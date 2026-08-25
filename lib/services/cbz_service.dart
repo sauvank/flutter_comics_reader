@@ -36,24 +36,12 @@ class CbzService {
       if (!await file.exists()) return null;
 
       final bytes = await file.readAsBytes();
-      final archive = await compute(_decodeZipArchive, bytes);
-
-      // Find all image files
-      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
-      if (imageEntries.isEmpty) return null;
-
-      // Sort naturally
-      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
-
-      final firstImage = imageEntries.first;
-      final rawBytes = firstImage.readBytes();
-      if (rawBytes == null) return null;
-
-      final imageBytes = rawBytes;
+      final coverBytes = await compute(_extractCoverBytesFromZip, bytes);
+      if (coverBytes == null || coverBytes.isEmpty) return null;
 
       final coverFile = File(targetCoverPath);
       await coverFile.parent.create(recursive: true);
-      await coverFile.writeAsBytes(imageBytes);
+      await coverFile.writeAsBytes(coverBytes, flush: true);
 
       return targetCoverPath;
     } catch (e) {
@@ -69,10 +57,7 @@ class CbzService {
       if (!await file.exists()) return 0;
 
       final bytes = await file.readAsBytes();
-      final archive = await compute(_decodeZipArchive, bytes);
-
-      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
-      return imageEntries.length;
+      return await compute(_countPagesFromZip, bytes);
     } catch (e) {
       debugPrint('Error getting page count: $e');
       return 0;
@@ -86,37 +71,64 @@ class CbzService {
       if (!await file.exists()) return [];
 
       final bytes = await file.readAsBytes();
-      final archive = await compute(_decodeZipArchive, bytes);
-
-      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
-      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
-
-      final List<ComicPage> pages = [];
-      for (int i = 0; i < imageEntries.length; i++) {
-        final entry = imageEntries[i];
-        final rawBytes = entry.readBytes();
-        if (rawBytes == null) continue;
-
-        final pageBytes = rawBytes;
-
-        pages.add(ComicPage(
-          pageIndex: i,
-          pageNumber: i + 1,
-          name: p.basename(entry.name),
-          bytes: pageBytes,
-        ));
-      }
-
-      return pages;
+      return await compute(_loadPagesFromZip, bytes);
     } catch (e) {
       debugPrint('Error loading CBZ pages: $e');
       return [];
     }
   }
 
-  // Top-level / static function for compute isolate
-  static Archive _decodeZipArchive(Uint8List bytes) {
-    return ZipDecoder().decodeBytes(bytes, verify: false);
+  // --- Top-level Isolate worker functions ---
+
+  static Uint8List? _extractCoverBytesFromZip(Uint8List bytes) {
+    try {
+      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
+      if (imageEntries.isEmpty) return null;
+
+      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
+
+      final firstImage = imageEntries.first;
+      final raw = firstImage.readBytes();
+      if (raw == null || raw.isEmpty) return null;
+      return Uint8List.fromList(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static int _countPagesFromZip(Uint8List bytes) {
+    try {
+      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      return archive.files.where((f) => f.isFile && isImageFile(f.name)).length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  static List<ComicPage> _loadPagesFromZip(Uint8List bytes) {
+    try {
+      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
+      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
+
+      final List<ComicPage> pages = [];
+      for (int i = 0; i < imageEntries.length; i++) {
+        final entry = imageEntries[i];
+        final raw = entry.readBytes();
+        if (raw == null || raw.isEmpty) continue;
+
+        pages.add(ComicPage(
+          pageIndex: i,
+          pageNumber: i + 1,
+          name: p.basename(entry.name),
+          bytes: Uint8List.fromList(raw),
+        ));
+      }
+      return pages;
+    } catch (e) {
+      return [];
+    }
   }
 }
 
