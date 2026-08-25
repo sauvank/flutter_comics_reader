@@ -14,3 +14,6 @@ Ce dossier contient toute la documentation technique, le contexte d'exécution e
 
 3. **[🏗️ ARCHITECTURE.md](file:///root/perso/comic_reader_app/docs/ARCHITECTURE.md)** :  
    Architecture logicielle (Providers & Services), diagrammes de flux de données, pipeline de conversion PDF ➔ CBZ super-échantillonné et structure de stockage local.
+
+4. **[📋 CONTRIBUTING.md](file:///root/perso/comic_reader_app/docs/CONTRIBUTING.md)** :  
+   Guide des règles de commit, conventions Conventional Commits et sécurité pour dépôt public.
