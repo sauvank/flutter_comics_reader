@@ -12,7 +12,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.antigravity.comicreader.comic_reader_app"
+    namespace = "com.sauvank.comicstream"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 

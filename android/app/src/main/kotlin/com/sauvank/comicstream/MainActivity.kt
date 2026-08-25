@@ -1,4 +1,4 @@
-package com.antigravity.comicreader.comic_reader_app
+package com.sauvank.comicstream
 
 import io.flutter.embedding.android.FlutterActivity
 
