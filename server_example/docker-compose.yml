@@ -1,0 +1,14 @@
+services:
+  webdav-comics:
+    image: bytemark/webdav
+    container_name: comicstream_webdav
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - AUTH_TYPE=Nothing # Connexion anonyme en réseau local, ou changer en Basic
+      # - USERNAME=admin
+      # - PASSWORD=monmotdepasse
+    volumes:
+      # Modifiez le chemin à gauche avec votre vrai dossier de bandes dessinées
+      - ./comics_library:/var/webdav/public

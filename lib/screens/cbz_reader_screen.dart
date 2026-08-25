@@ -1,0 +1,531 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../models/book_item.dart';
+import '../providers/library_provider.dart';
+import '../services/cbz_service.dart';
+import '../services/reader_settings_service.dart';
+import '../widgets/reader_controls.dart';
+
+class CbzReaderScreen extends StatefulWidget {
+  final BookItem book;
+
+  const CbzReaderScreen({super.key, required this.book});
+
+  @override
+  State<CbzReaderScreen> createState() => _CbzReaderScreenState();
+}
+
+class _CbzReaderScreenState extends State<CbzReaderScreen> {
+  late PageController _pageController;
+  final ScrollController _verticalScrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
+
+  List<ComicPage> _pages = [];
+  int _currentPage = 0;
+  bool _isLoading = true;
+  String? _errorMessage;
+  bool _showControls = false;
+
+  // Zoom controllers per page to allow zooming individual pages
+  final Map<int, TransformationController> _transformControllers = {};
+
+  TransformationController _getTransformController(int index) {
+    return _transformControllers.putIfAbsent(index, () => TransformationController());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPage = widget.book.currentPage;
+    _pageController = PageController(initialPage: _currentPage);
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _loadCbzPages();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    _pageController.dispose();
+    _verticalScrollController.dispose();
+    for (final ctrl in _transformControllers.values) {
+      ctrl.dispose();
+    }
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  Future<void> _loadCbzPages() async {
+    try {
+      final file = File(widget.book.localPath);
+      if (!await file.exists()) {
+        setState(() {
+          _errorMessage = 'Fichier CBZ introuvable sur l\'appareil.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final pages = await CbzService.loadAllPages(widget.book.localPath);
+
+      if (pages.isEmpty) {
+        setState(() {
+          _errorMessage = 'Aucune image valide trouvée dans cette archive CBZ.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (_currentPage >= pages.length) {
+        _currentPage = 0;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _pages = pages;
+        _isLoading = false;
+      });
+
+      _pageController = PageController(initialPage: _currentPage);
+
+      // Save page count if not already recorded
+      if (widget.book.totalPages != pages.length && mounted) {
+        context.read<LibraryProvider>().updateBookProgress(
+              bookId: widget.book.id,
+              currentPage: _currentPage,
+              totalPages: pages.length,
+            );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Erreur de lecture: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _onPageChanged(int index) {
+    setState(() {
+      _currentPage = index;
+    });
+
+    // Reset zoom on other pages
+    for (final entry in _transformControllers.entries) {
+      if (entry.key != index) {
+        entry.value.value = Matrix4.identity();
+      }
+    }
+
+    // Persist progress
+    context.read<LibraryProvider>().updateBookProgress(
+          bookId: widget.book.id,
+          currentPage: _currentPage,
+          totalPages: _pages.length,
+        );
+  }
+
+  void _nextPage() {
+    final settings = context.read<ReaderSettingsService>();
+    if (settings.readingMode == ReadingMode.vertical) {
+      _verticalScrollController.animateTo(
+        _verticalScrollController.offset + 500,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    } else {
+      if (_pageController.hasClients && _currentPage < _pages.length - 1) {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
+  void _prevPage() {
+    final settings = context.read<ReaderSettingsService>();
+    if (settings.readingMode == ReadingMode.vertical) {
+      _verticalScrollController.animateTo(
+        (_verticalScrollController.offset - 500).clamp(0.0, double.infinity),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    } else {
+      if (_pageController.hasClients && _currentPage > 0) {
+        _pageController.previousPage(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+        );
+      }
+    }
+  }
+
+  void _jumpToPage(int pageIndex) {
+    if (pageIndex < 0 || pageIndex >= _pages.length) return;
+    _onPageChanged(pageIndex);
+    final settings = context.read<ReaderSettingsService>();
+    if (settings.readingMode != ReadingMode.vertical) {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(pageIndex);
+      }
+    }
+  }
+
+  void _toggleBookmark() {
+    context.read<LibraryProvider>().toggleBookmark(
+          bookId: widget.book.id,
+          pageNumber: _currentPage,
+        );
+  }
+
+  void _showSettings() {
+    final settings = context.read<ReaderSettingsService>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReaderSettingsSheet(settings: settings),
+    );
+  }
+
+  void _showThumbnailsGrid() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF13151F),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Pages (${_pages.length})',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(ctx).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: GridView.builder(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 0.7,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: _pages.length,
+                    itemBuilder: (context, idx) {
+                      final isCurrent = idx == _currentPage;
+                      final isBookmarked = widget.book.bookmarks.contains(idx);
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.of(ctx).pop();
+                          _jumpToPage(idx);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isCurrent ? const Color(0xFF8B5CF6) : Colors.white12,
+                              width: isCurrent ? 2.5 : 1,
+                            ),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.memory(_pages[idx].bytes, fit: BoxFit.cover),
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  color: Colors.black87,
+                                  padding: const EdgeInsets.symmetric(vertical: 2),
+                                  child: Text(
+                                    '${idx + 1}',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: Colors.white, fontSize: 11),
+                                  ),
+                                ),
+                              ),
+                              if (isBookmarked)
+                                const Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: Icon(Icons.bookmark, color: Colors.amber, size: 18),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _handleDoubleTap(int pageIndex) {
+    final controller = _getTransformController(pageIndex);
+    if (controller.value != Matrix4.identity()) {
+      controller.value = Matrix4.identity();
+    } else {
+      // Zoom in 2x centered
+      final zoomed = Matrix4.identity()..scale(2.0, 2.0);
+      controller.value = zoomed;
+    }
+  }
+
+  void _onTapZone(TapDownDetails details, BuildContext context, ReaderSettingsService settings) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final tapX = details.globalPosition.dx;
+
+    final leftBoundary = screenWidth * 0.30;
+    final rightBoundary = screenWidth * 0.70;
+
+    final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+
+    if (tapX < leftBoundary) {
+      // Tapped Left Zone
+      if (isRTL) {
+        _nextPage();
+      } else {
+        _prevPage();
+      }
+    } else if (tapX > rightBoundary) {
+      // Tapped Right Zone
+      if (isRTL) {
+        _prevPage();
+      } else {
+        _nextPage();
+      }
+    } else {
+      // Tapped Center Zone: Toggle Bars/Controls
+      setState(() {
+        _showControls = !_showControls;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<ReaderSettingsService>();
+    final isBookmarked = widget.book.bookmarks.contains(_currentPage);
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+              const SizedBox(height: 16),
+              Text(
+                'Chargement du tome...',
+                style: TextStyle(color: Colors.white.withAlpha(200)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(backgroundColor: Colors.transparent),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Retour'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
+        const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevPage,
+        const SingleActivator(LogicalKeyboardKey.space): _nextPage,
+        const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
+        const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
+      },
+      child: Focus(
+        autofocus: true,
+        focusNode: _focusNode,
+        child: Scaffold(
+          backgroundColor: settings.actualBackgroundColor,
+          body: Stack(
+            children: [
+              // Main Reader Pages
+              settings.readingMode == ReadingMode.vertical
+                  ? _buildVerticalReader(settings)
+                  : _buildHorizontalReader(settings),
+
+              // Transparent 3-Zone Touch Tap Area
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTapDown: (details) => _onTapZone(details, context, settings),
+                  onDoubleTap: () => _handleDoubleTap(_currentPage),
+                ),
+              ),
+
+              // Top Controls Bar
+              if (_showControls)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ReaderTopBar(
+                    title: widget.book.title,
+                    currentPage: _currentPage,
+                    totalPages: _pages.length,
+                    isBookmarked: isBookmarked,
+                    onBack: () => Navigator.of(context).pop(),
+                    onToggleBookmark: _toggleBookmark,
+                    onOpenSettings: _showSettings,
+                  ),
+                ),
+
+              // Bottom Controls Bar
+              if (_showControls)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: ReaderBottomBar(
+                    currentPage: _currentPage,
+                    totalPages: _pages.length,
+                    readingMode: settings.readingMode,
+                    onPageChanged: _jumpToPage,
+                    onOpenThumbnails: _showThumbnailsGrid,
+                    onReadingModeChanged: (mode) => settings.setReadingMode(mode),
+                  ),
+                ),
+
+              // Floating Page Number Badge (when controls hidden)
+              if (!_showControls && settings.showPageNumbers)
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(160),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_currentPage + 1} / ${_pages.length}',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHorizontalReader(ReaderSettingsService settings) {
+    final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+
+    return Directionality(
+      textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+      child: PageView.builder(
+        controller: _pageController,
+        itemCount: _pages.length,
+        onPageChanged: _onPageChanged,
+        itemBuilder: (context, index) {
+          final page = _pages[index];
+          final transformCtrl = _getTransformController(index);
+
+          return InteractiveViewer(
+            transformationController: transformCtrl,
+            minScale: 1.0,
+            maxScale: 4.0,
+            child: Center(
+              child: Image.memory(
+                page.bytes,
+                fit: _getBoxFit(settings.fitMode),
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildVerticalReader(ReaderSettingsService settings) {
+    return ListView.builder(
+      controller: _verticalScrollController,
+      itemCount: _pages.length,
+      padding: EdgeInsets.zero,
+      itemBuilder: (context, index) {
+        final page = _pages[index];
+        return Image.memory(
+          page.bytes,
+          fit: BoxFit.fitWidth,
+          gaplessPlayback: true,
+          filterQuality: FilterQuality.high,
+          isAntiAlias: true,
+        );
+      },
+    );
+  }
+
+  BoxFit _getBoxFit(FitMode fitMode) {
+    switch (fitMode) {
+      case FitMode.fitWidth:
+        return BoxFit.fitWidth;
+      case FitMode.fitHeight:
+        return BoxFit.fitHeight;
+      case FitMode.fitScreen:
+        return BoxFit.contain;
+    }
+  }
+}
