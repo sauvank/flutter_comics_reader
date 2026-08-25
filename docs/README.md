@@ -17,3 +17,6 @@ Ce dossier contient toute la documentation technique, le contexte d'exécution e
 
 4. **[📋 CONTRIBUTING.md](file:///root/perso/comic_reader_app/docs/CONTRIBUTING.md)** :  
    Guide des règles de commit, conventions Conventional Commits et sécurité pour dépôt public.
+
+5. **[🛡️ PRIVACY_POLICY.md](file:///root/perso/comic_reader_app/docs/PRIVACY_POLICY.md)** :  
+   Politique de confidentialité officielle pour la fiche Google Play Store.
