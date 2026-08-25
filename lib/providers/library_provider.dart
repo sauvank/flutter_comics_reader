@@ -115,8 +115,7 @@ class LibraryProvider extends ChangeNotifier {
     _extractMissingCovers();
   }
 
-  void _extractMissingCovers() async {
-    bool hasUpdates = false;
+  Future<void> _extractMissingCovers() async {
     final coversDir = await _db.getCoversDirectory();
 
     for (int i = 0; i < _books.length; i++) {
@@ -155,13 +154,9 @@ class LibraryProvider extends ChangeNotifier {
           final updated = book.copyWith(coverPath: newCover);
           await _db.updateBook(updated);
           _books[i] = updated;
-          hasUpdates = true;
+          notifyListeners();
         }
       }
-    }
-
-    if (hasUpdates) {
-      notifyListeners();
     }
   }
 
