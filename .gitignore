@@ -55,3 +55,9 @@ migrate_working_dir/
 # Symbolication & Obfuscation
 app.*.symbols
 app.*.map.json
+
+# Uncommitted Play Store Bundle & Signing Assets
+playstore_bundle/
+playstore_assets/
+*.aab
+*.apk
