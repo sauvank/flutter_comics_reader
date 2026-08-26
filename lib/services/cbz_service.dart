@@ -16,13 +16,15 @@ class CbzService {
   };
 
   static bool isImageFile(String filename) {
-    if (filename.startsWith('__MACOSX') ||
-        filename.contains('/.') ||
-        filename.startsWith('.') ||
-        filename.toLowerCase().contains('thumbs.db')) {
+    final normalized = filename.replaceAll('\\', '/');
+    final base = p.basename(normalized);
+    if (normalized.startsWith('__MACOSX') ||
+        normalized.contains('/__MACOSX') ||
+        base.startsWith('.') ||
+        base.toLowerCase() == 'thumbs.db') {
       return false;
     }
-    final ext = p.extension(filename).toLowerCase();
+    final ext = p.extension(base).toLowerCase();
     return supportedImageExtensions.contains(ext);
   }
 
@@ -80,6 +82,20 @@ class CbzService {
 
   // --- Top-level Isolate worker functions ---
 
+  static Uint8List? _getArchiveFileBytes(ArchiveFile entry) {
+    try {
+      final raw = entry.readBytes();
+      if (raw != null && raw.isNotEmpty) {
+        return Uint8List.fromList(raw);
+      }
+      final dynamic content = entry.content;
+      if (content != null) {
+        return Uint8List.fromList(content as List<int>);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   static Uint8List? _extractCoverBytesFromZip(Uint8List bytes) {
     try {
       final archive = ZipDecoder().decodeBytes(bytes, verify: false);
@@ -89,10 +105,9 @@ class CbzService {
       imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
 
       final firstImage = imageEntries.first;
-      final raw = firstImage.readBytes();
-      if (raw == null || raw.isEmpty) return null;
-      return Uint8List.fromList(raw);
+      return _getArchiveFileBytes(firstImage);
     } catch (e) {
+      debugPrint('Error extracting cover bytes: $e');
       return null;
     }
   }
@@ -115,18 +130,19 @@ class CbzService {
       final List<ComicPage> pages = [];
       for (int i = 0; i < imageEntries.length; i++) {
         final entry = imageEntries[i];
-        final raw = entry.readBytes();
+        final raw = _getArchiveFileBytes(entry);
         if (raw == null || raw.isEmpty) continue;
 
         pages.add(ComicPage(
           pageIndex: i,
           pageNumber: i + 1,
           name: p.basename(entry.name),
-          bytes: Uint8List.fromList(raw),
+          bytes: raw,
         ));
       }
       return pages;
     } catch (e) {
+      debugPrint('Error loading pages from zip: $e');
       return [];
     }
   }

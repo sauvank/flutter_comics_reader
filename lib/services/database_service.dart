@@ -148,21 +148,7 @@ class DatabaseService {
     await init();
     final jsonString = _prefs?.getString(_keyServers);
     if (jsonString == null || jsonString.isEmpty) {
-      final defaultProfile = ServerProfile(
-        id: 'default_local',
-        name: 'Serveur BDs (Serveur NAS)',
-        host: '192.168.1.100',
-        port: 21,
-        path: '/media/comics/BOOKS',
-        username: 'pi',
-        password: '',
-        isHttps: false,
-        serverType: ServerType.ftp,
-        isActive: true,
-      );
-      await saveServers([defaultProfile]);
-      await setActiveServerId(defaultProfile.id);
-      return [defaultProfile];
+      return [];
     }
 
     try {
