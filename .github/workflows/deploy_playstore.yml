@@ -41,13 +41,14 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n "' | base64 -d > android/app/upload-keystore.jks
           cat <<EOF > android/key.properties
           storePassword=${KEYSTORE_PASSWORD:-REMOVED}
           keyPassword=${KEY_PASSWORD:-REMOVED}
           keyAlias=${KEY_ALIAS:-comicstream-upload-key}
           storeFile=upload-keystore.jks
           EOF
+          keytool -list -keystore android/app/upload-keystore.jks -storepass "${KEYSTORE_PASSWORD:-REMOVED}"
 
       - name: Build Android App Bundle (AAB)
         run: flutter build appbundle --release --android-skip-build-dependency-validation
