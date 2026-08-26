@@ -44,7 +44,7 @@ jobs:
           EOC
 
       - name: Build Android App Bundle (AAB)
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --android-skip-build-dependency-validation
 
       - name: Deploy to Google Play Internal Track
         uses: r0adkll/upload-google-play@v1
