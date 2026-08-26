@@ -51,6 +51,10 @@ jobs:
           keytool -list -keystore android/app/upload-keystore.jks -storepass "${KEYSTORE_PASSWORD:-REMOVED}"
 
       - name: Build Android App Bundle (AAB)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: flutter build appbundle --release --android-skip-build-dependency-validation
 
       - name: Deploy to Google Play Internal Track

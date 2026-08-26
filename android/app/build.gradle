@@ -35,23 +35,21 @@ android {
 
     signingConfigs {
         release {
-            if (keystorePropertiesFile.exists()) {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
-                storePassword keystoreProperties['storePassword']
-                storeType 'PKCS12'
-            }
+            def keyAliasVal = System.getenv("KEY_ALIAS") ?: (keystorePropertiesFile.exists() ? keystoreProperties['keyAlias'] : null)
+            def keyPassVal = System.getenv("KEY_PASSWORD") ?: (keystorePropertiesFile.exists() ? keystoreProperties['keyPassword'] : null)
+            def storePassVal = System.getenv("KEYSTORE_PASSWORD") ?: (keystorePropertiesFile.exists() ? keystoreProperties['storePassword'] : null)
+            
+            keyAlias keyAliasVal ?: 'comicstream-upload-key'
+            keyPassword keyPassVal ?: 'REMOVED'
+            storePassword storePassVal ?: 'REMOVED'
+            storeFile file('upload-keystore.jks')
+            storeType 'PKCS12'
         }
     }
 
     buildTypes {
         release {
-            if (keystorePropertiesFile.exists()) {
-                signingConfig signingConfigs.release
-            } else {
-                signingConfig signingConfigs.debug
-            }
+            signingConfig signingConfigs.release
         }
     }
 }
