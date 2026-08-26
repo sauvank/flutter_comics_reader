@@ -33,17 +33,37 @@ android {
         versionName = flutter.versionName
     }
 
+    // Release signing credentials come from the environment (CI) or from
+    // android/key.properties (local, never committed). There is deliberately
+    // no default value: a missing credential must fail the build, not silently
+    // fall back to a shared secret.
     signingConfigs {
         release {
-            def keyAliasVal = System.getenv("KEY_ALIAS") ?: (keystorePropertiesFile.exists() ? keystoreProperties['keyAlias'] : null)
-            def keyPassVal = System.getenv("KEY_PASSWORD") ?: (keystorePropertiesFile.exists() ? keystoreProperties['keyPassword'] : null)
-            def storePassVal = System.getenv("KEYSTORE_PASSWORD") ?: (keystorePropertiesFile.exists() ? keystoreProperties['storePassword'] : null)
-            
-            keyAlias keyAliasVal ?: 'comicstream-upload-key'
-            keyPassword keyPassVal ?: 'REMOVED'
-            storePassword storePassVal ?: 'REMOVED'
-            storeFile file('upload-keystore.jks')
-            storeType 'PKCS12'
+            def keyAliasVal = System.getenv("KEY_ALIAS") ?: keystoreProperties['keyAlias']
+            def keyPassVal = System.getenv("KEY_PASSWORD") ?: keystoreProperties['keyPassword']
+            def storePassVal = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties['storePassword']
+            def storeFileVal = System.getenv("KEYSTORE_PATH") ?: (keystoreProperties['storeFile'] ?: 'upload-keystore.jks')
+
+            // Only a release build needs these, so debug builds keep working
+            // on a machine that has no keystore at all.
+            def isReleaseBuild = gradle.startParameter.taskNames.any {
+                it.toLowerCase().contains('release')
+            }
+            if (isReleaseBuild && (!keyAliasVal || !keyPassVal || !storePassVal)) {
+                throw new GradleException(
+                    "Missing release signing credentials. Set KEY_ALIAS, KEY_PASSWORD and " +
+                    "KEYSTORE_PASSWORD in the environment, or create android/key.properties " +
+                    "(gitignored). Never commit the keystore or its password."
+                )
+            }
+
+            if (keyAliasVal && keyPassVal && storePassVal) {
+                keyAlias keyAliasVal
+                keyPassword keyPassVal
+                storePassword storePassVal
+                storeFile file(storeFileVal)
+                storeType 'PKCS12'
+            }
         }
     }
 
