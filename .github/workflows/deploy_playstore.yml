@@ -56,9 +56,10 @@ jobs:
       - name: Verify Signing Credentials
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
-          for name in KEYSTORE_PASSWORD KEY_ALIAS; do
+          for name in KEYSTORE_PASSWORD KEY_PASSWORD KEY_ALIAS; do
             if [ -z "${!name}" ]; then
               echo "::error::Secret $name absent."
               exit 1
