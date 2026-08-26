@@ -41,12 +41,18 @@ jobs:
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || 'REMOVED' }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'comicstream-upload-key' }}
         run: |
-          echo "Taille de la cle Base64 reçue : ${#KEYSTORE_BASE64} caractères"
-          if [ -z "$KEYSTORE_BASE64" ] || [ "${#KEYSTORE_BASE64}" -lt 50 ]; then
-            echo "::error::Le secret ANDROID_KEYSTORE_BASE64 est VIDE ou INTROUVABLE dans GitHub Repository Secrets !"
-            exit 1
-          fi
-          printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n "' | base64 -d > android/app/upload-keystore.jks
+          python3 -c "
+          import os, base64, sys
+          b64 = os.environ.get('KEYSTORE_BASE64', '').strip()
+          print(f'Caractères Base64 reçus : {len(b64)}')
+          if not b64:
+              print('ERREUR: Le secret ANDROID_KEYSTORE_BASE64 est vide dans GitHub Actions!')
+              sys.exit(1)
+          raw = base64.b64decode(b64)
+          print(f'Octets décodés avec succès : {len(raw)} bytes')
+          with open('android/app/upload-keystore.jks', 'wb') as f:
+              f.write(raw)
+          "
           cat <<EOF > android/key.properties
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
