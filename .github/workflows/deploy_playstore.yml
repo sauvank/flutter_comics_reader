@@ -34,25 +34,12 @@ jobs:
       - name: Run Code Analysis
         run: dart analyze lib/
 
-      - name: Reconstruct Keystore & Signing Config
+      - name: Setup Signing Config
         env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE || secrets.KEYSTORE || secrets.KEYSTORE_BASE_64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD || 'REMOVED' }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || 'REMOVED' }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'comicstream-upload-key' }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'REMOVED' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || 'REMOVED' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'comicstream-upload-key' }}
         run: |
-          python3 -c "
-          import os, base64, sys
-          b64 = os.environ.get('KEYSTORE_BASE64', '').strip()
-          print(f'Caractères Base64 reçus : {len(b64)}')
-          if not b64:
-              print('ERREUR: Le secret ANDROID_KEYSTORE_BASE64 est vide dans GitHub Actions!')
-              sys.exit(1)
-          raw = base64.b64decode(b64)
-          print(f'Octets décodés avec succès : {len(raw)} bytes')
-          with open('android/app/upload-keystore.jks', 'wb') as f:
-              f.write(raw)
-          "
           cat <<EOF > android/key.properties
           storePassword=$KEYSTORE_PASSWORD
           keyPassword=$KEY_PASSWORD
