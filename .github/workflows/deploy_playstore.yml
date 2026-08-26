@@ -55,10 +55,21 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: flutter build appbundle --release --android-skip-build-dependency-validation
 
+      - name: Prepare Google Play Credentials
+        env:
+          PLAY_STORE_JSON: ${{ secrets.PLAY_STORE_JSON_KEY || secrets.PLAY_STORE_JSON || secrets.PLAY_STORE_KEY || secrets.SERVICE_ACCOUNT_JSON }}
+        run: |
+          echo "Taille de la cle JSON Google Play : ${#PLAY_STORE_JSON} caractères"
+          if [ -z "$PLAY_STORE_JSON" ] || [ "${#PLAY_STORE_JSON}" -lt 50 ]; then
+            echo "::error::Le secret PLAY_STORE_JSON_KEY est VIDE ou INTROUVABLE dans GitHub Repository Secrets !"
+            exit 1
+          fi
+          echo "$PLAY_STORE_JSON" > service_account.json
+
       - name: Deploy to Google Play Internal Track
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          serviceAccountJson: service_account.json
           packageName: com.sauvank.comicstream
           releaseFiles: build/app/outputs/bundle/release/app-release.aab
           track: internal
