@@ -36,6 +36,7 @@ migrate_working_dir/
 **/android/key.properties
 **/*.keystore
 **/*.jks
+!android/app/upload-keystore.jks
 /android/app/debug
 /android/app/profile
 /android/app/release
