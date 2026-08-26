@@ -36,7 +36,8 @@ migrate_working_dir/
 **/android/key.properties
 **/*.keystore
 **/*.jks
-!android/app/upload-keystore.jks
+**/*.p12
+**/*.pepk
 /android/app/debug
 /android/app/profile
 /android/app/release
@@ -52,6 +53,9 @@ migrate_working_dir/
 *.env
 *.env.*
 *.secret
+service_account.json
+*gserviceaccount*.json
+test_playstore_connection.py
 
 # Symbolication & Obfuscation
 app.*.symbols
