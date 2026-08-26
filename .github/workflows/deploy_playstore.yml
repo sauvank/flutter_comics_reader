@@ -36,19 +36,24 @@ jobs:
 
       - name: Reconstruct Keystore & Signing Config
         env:
-          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.KEYSTORE_BASE64 || secrets.ANDROID_KEYSTORE || secrets.KEYSTORE || secrets.KEYSTORE_BASE_64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || secrets.KEYSTORE_PASSWORD || 'REMOVED' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || 'REMOVED' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'comicstream-upload-key' }}
         run: |
+          echo "Taille de la cle Base64 reçue : ${#KEYSTORE_BASE64} caractères"
+          if [ -z "$KEYSTORE_BASE64" ] || [ "${#KEYSTORE_BASE64}" -lt 50 ]; then
+            echo "::error::Le secret ANDROID_KEYSTORE_BASE64 est VIDE ou INTROUVABLE dans GitHub Repository Secrets !"
+            exit 1
+          fi
           printf '%s' "$KEYSTORE_BASE64" | tr -d '\r\n "' | base64 -d > android/app/upload-keystore.jks
           cat <<EOF > android/key.properties
-          storePassword=${KEYSTORE_PASSWORD:-REMOVED}
-          keyPassword=${KEY_PASSWORD:-REMOVED}
-          keyAlias=${KEY_ALIAS:-comicstream-upload-key}
+          storePassword=$KEYSTORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
           storeFile=upload-keystore.jks
           EOF
-          keytool -list -keystore android/app/upload-keystore.jks -storepass "${KEYSTORE_PASSWORD:-REMOVED}"
+          keytool -list -keystore android/app/upload-keystore.jks -storepass "$KEYSTORE_PASSWORD"
 
       - name: Build Android App Bundle (AAB)
         env:
