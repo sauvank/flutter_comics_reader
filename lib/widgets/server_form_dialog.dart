@@ -33,10 +33,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   void initState() {
     super.initState();
     final s = widget.server;
-    _nameController = TextEditingController(text: s?.name ?? 'Mon Serveur BD');
-    _hostController = TextEditingController(text: s?.host ?? '192.168.1.50');
+    _nameController = TextEditingController(text: s?.name ?? '');
+    _hostController = TextEditingController(text: s?.host ?? '');
     _portController = TextEditingController(text: s != null ? s.port.toString() : '8080');
-    _pathController = TextEditingController(text: s?.path ?? '/webdav');
+    _pathController = TextEditingController(text: s?.path ?? '');
     _userController = TextEditingController(text: s?.username ?? '');
     _passController = TextEditingController(text: s?.password ?? '');
     _serverType = s?.serverType ?? ServerType.webdav;
@@ -243,7 +243,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                         decoration: const InputDecoration(
                           labelText: 'Hôte / IP',
                           prefixIcon: Icon(Icons.router_outlined),
-                          hintText: '192.168.1.50',
+                          hintText: 'ex: 192.168.1.10 ou nas.local',
                         ),
                         validator: (val) => val == null || val.trim().isEmpty ? 'IP ou domaine requis' : null,
                       ),

@@ -8,6 +8,7 @@ import '../models/book_item.dart';
 import '../services/cbz_service.dart';
 import '../services/database_service.dart';
 import '../services/reader_settings_service.dart';
+import '../utils/format_utils.dart';
 
 class PdfConverterProgress {
   final int currentPage;
@@ -112,8 +113,32 @@ class PdfConverterService {
         statusText: 'Compression de l\'archive CBZ...',
       );
 
-      final encoder = ZipFileEncoder();
-      encoder.zipDirectory(conversionTempDir, filename: targetPath);
+      final generatedImages = conversionTempDir
+          .listSync()
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.png'))
+          .toList();
+      generatedImages.sort((a, b) => NaturalSort.compare(p.basename(a.path), p.basename(b.path)));
+
+      if (generatedImages.isEmpty) {
+        throw Exception('Aucune page n\'a pu être générée depuis le PDF.');
+      }
+
+      final archive = Archive();
+      for (final imageFile in generatedImages) {
+        final bytes = await imageFile.readAsBytes();
+        final name = p.basename(imageFile.path);
+        archive.addFile(ArchiveFile(name, bytes.length, bytes));
+      }
+
+      final zipData = ZipEncoder().encode(archive);
+      if (zipData.isEmpty) {
+        throw Exception('Échec de la compression de l\'archive CBZ.');
+      }
+
+      final targetFile = File(targetPath);
+      await targetFile.parent.create(recursive: true);
+      await targetFile.writeAsBytes(zipData, flush: true);
 
       yield PdfConverterProgress(
         currentPage: totalPages,
