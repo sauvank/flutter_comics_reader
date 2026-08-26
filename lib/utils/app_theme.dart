@@ -23,7 +23,7 @@ class AppTheme {
       error: Color(0xFFEF4444),
     ),
     scaffoldBackgroundColor: const Color(0xFF0B0D14),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: const Color(0xFF181B2A),
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -94,7 +94,7 @@ class AppTheme {
       ),
       hintStyle: const TextStyle(color: Color(0xFF64748B)),
     ),
-    dialogTheme: DialogTheme(
+    dialogTheme: DialogThemeData(
       backgroundColor: const Color(0xFF181B2A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     ),
@@ -117,7 +117,7 @@ class AppTheme {
       backgroundColor: Colors.black,
       elevation: 0,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: const Color(0xFF121212),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),

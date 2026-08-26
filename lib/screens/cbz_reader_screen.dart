@@ -297,7 +297,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
       controller.value = Matrix4.identity();
     } else {
       // Zoom in 2x centered
-      final zoomed = Matrix4.identity()..scale(2.0, 2.0);
+      final zoomed = Matrix4.diagonal3Values(2.0, 2.0, 1.0);
       controller.value = zoomed;
     }
   }
