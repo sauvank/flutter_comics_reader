@@ -18,7 +18,7 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> {
+class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderStateMixin {
   late PageController _pageController;
   final ScrollController _verticalScrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -28,6 +28,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _showControls = false;
+  bool _isCurrentPageZoomed = false;
+
+  AnimationController? _zoomAnimationController;
+  Animation<Matrix4>? _zoomAnimation;
 
   // Keys and controllers for vertical Webtoon mode
   final Map<int, GlobalKey> _pageKeys = {};
@@ -40,7 +44,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
   final Map<int, TransformationController> _transformControllers = {};
 
   TransformationController _getTransformController(int index) {
-    return _transformControllers.putIfAbsent(index, () => TransformationController());
+    return _transformControllers.putIfAbsent(index, () {
+      final ctrl = TransformationController();
+      ctrl.addListener(() {
+        if (index == _currentPage) {
+          final isZoomed = ctrl.value.getMaxScaleOnAxis() > 1.05;
+          if (isZoomed != _isCurrentPageZoomed) {
+            setState(() {
+              _isCurrentPageZoomed = isZoomed;
+            });
+          }
+        }
+      });
+      return ctrl;
+    });
   }
 
   @override
@@ -56,6 +73,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
 
   @override
   void dispose() {
+    _zoomAnimationController?.dispose();
     _focusNode.dispose();
     _pageController.dispose();
     _verticalScrollController.removeListener(_onVerticalScroll);
@@ -371,18 +389,60 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     );
   }
 
-  void _handleDoubleTap(int pageIndex) {
+  void _animateTransformation(TransformationController controller, Matrix4 targetMatrix) {
+    _zoomAnimationController?.dispose();
+    _zoomAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+
+    _zoomAnimation = Matrix4Tween(
+      begin: controller.value,
+      end: targetMatrix,
+    ).animate(CurvedAnimation(
+      parent: _zoomAnimationController!,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _zoomAnimation!.addListener(() {
+      controller.value = _zoomAnimation!.value;
+    });
+
+    _zoomAnimationController!.forward();
+  }
+
+  void _handleDoubleTap(int pageIndex, TapDownDetails? details) {
     final controller = _getTransformController(pageIndex);
-    if (controller.value != Matrix4.identity()) {
-      controller.value = Matrix4.identity();
+    final currentScale = controller.value.getMaxScaleOnAxis();
+
+    if (currentScale > 1.1) {
+      // Zoom out smoothly
+      _animateTransformation(controller, Matrix4.identity());
     } else {
-      // Zoom in 2x centered
-      final zoomed = Matrix4.diagonal3Values(2.0, 2.0, 1.0);
-      controller.value = zoomed;
+      // Zoom in smoothly to 2.5x centered at the double-tapped point
+      final tapPos = details?.localPosition ?? const Offset(200, 300);
+      const targetScale = 2.5;
+
+      final dx = -tapPos.dx * (targetScale - 1);
+      final dy = -tapPos.dy * (targetScale - 1);
+
+      final target = Matrix4.identity()
+        ..translate(dx, dy)
+        ..scale(targetScale);
+
+      _animateTransformation(controller, target);
     }
   }
 
   void _onTapZone(TapUpDetails details, BuildContext context, ReaderSettingsService settings) {
+    // If controls are visible, tapping anywhere hides controls
+    if (_showControls) {
+      setState(() {
+        _showControls = false;
+      });
+      return;
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final tapX = details.globalPosition.dx;
 
@@ -556,21 +616,28 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
       child: PageView.builder(
         controller: _pageController,
+        physics: _isCurrentPageZoomed
+            ? const NeverScrollableScrollPhysics()
+            : const PageScrollPhysics(),
         itemCount: _pages.length,
         onPageChanged: _onPageChanged,
         itemBuilder: (context, index) {
           final page = _pages[index];
           final transformCtrl = _getTransformController(index);
+          TapDownDetails? doubleTapDetails;
 
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
+            onTapDown: (details) => doubleTapDetails = details,
             onTapUp: (details) => _onTapZone(details, context, settings),
-            onDoubleTap: () => _handleDoubleTap(index),
+            onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
             child: InteractiveViewer(
               transformationController: transformCtrl,
               minScale: 1.0,
-              maxScale: 5.0,
+              maxScale: 6.0,
               panAxis: PanAxis.free,
+              boundaryMargin: const EdgeInsets.all(50),
+              clipBehavior: Clip.none,
               child: Center(
                 child: Image.memory(
                   page.bytes,
@@ -596,36 +663,47 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
           _showControls = !_showControls;
         });
       },
-      child: InteractiveViewer(
-        minScale: 1.0,
-        maxScale: 5.0,
-        panAxis: PanAxis.free,
-        child: ListView.builder(
-          controller: _verticalScrollController,
-          itemCount: _pages.length + 1, // +1 for end of book footer
-          padding: EdgeInsets.zero,
-          physics: const ClampingScrollPhysics(),
-          itemBuilder: (context, index) {
-            if (index == _pages.length) {
-              return _buildEndOfBookWidget(context);
-            }
+      child: ListView.builder(
+        controller: _verticalScrollController,
+        itemCount: _pages.length + 1, // +1 for end of book footer
+        padding: EdgeInsets.zero,
+        physics: const ClampingScrollPhysics(),
+        itemBuilder: (context, index) {
+          if (index == _pages.length) {
+            return _buildEndOfBookWidget(context);
+          }
 
-            final page = _pages[index];
-            return Container(
-              key: _getPageKey(index),
-              width: double.infinity,
-              color: settings.actualBackgroundColor,
-              child: Image.memory(
-                page.bytes,
-                fit: BoxFit.fitWidth,
-                width: MediaQuery.of(context).size.width,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.high,
-                isAntiAlias: true,
+          final page = _pages[index];
+          final transformCtrl = _getTransformController(index);
+          TapDownDetails? doubleTapDetails;
+
+          return Container(
+            key: _getPageKey(index),
+            width: double.infinity,
+            color: settings.actualBackgroundColor,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTapDown: (details) => doubleTapDetails = details,
+              onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
+              child: InteractiveViewer(
+                transformationController: transformCtrl,
+                minScale: 1.0,
+                maxScale: 6.0,
+                panAxis: PanAxis.free,
+                boundaryMargin: const EdgeInsets.all(20),
+                clipBehavior: Clip.none,
+                child: Image.memory(
+                  page.bytes,
+                  fit: BoxFit.fitWidth,
+                  width: MediaQuery.of(context).size.width,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
+                ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

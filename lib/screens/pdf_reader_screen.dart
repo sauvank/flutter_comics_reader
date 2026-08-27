@@ -154,8 +154,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   backgroundColor: settings.actualBackgroundColor,
                   margin: 4,
                   maxScale: 8.0,
-                  minScale: 0.8,
+                  minScale: 1.0,
                   panAxis: PanAxis.free,
+                  boundaryMargin: const EdgeInsets.all(30),
+                  enableTextSelection: false,
                   viewerOverlayBuilder: (ctx, size, handleLinkTap) => [
                     GestureDetector(
                       behavior: HitTestBehavior.translucent,
