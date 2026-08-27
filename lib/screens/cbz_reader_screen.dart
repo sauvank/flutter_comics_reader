@@ -30,6 +30,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   bool _showControls = false;
   bool _isCurrentPageZoomed = false;
   bool _navigatedAway = false;
+  Matrix4 _sharedTransformation = Matrix4.identity();
+  bool _isSynchronizingTransformation = false;
 
   AnimationController? _zoomAnimationController;
   Animation<Matrix4>? _zoomAnimation;
@@ -41,24 +43,52 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     return _pageKeys.putIfAbsent(index, () => GlobalKey());
   }
 
-  // Zoom controllers per page to allow zooming individual pages
+  // Each visible page needs its own controller, but all pages share the same
+  // zoom and pan so reading remains consistent when navigating.
   final Map<int, TransformationController> _transformControllers = {};
 
   TransformationController _getTransformController(int index) {
     return _transformControllers.putIfAbsent(index, () {
-      final ctrl = TransformationController();
+      final ctrl = TransformationController(Matrix4.copy(_sharedTransformation));
       ctrl.addListener(() {
-        if (index == _currentPage) {
-          final isZoomed = ctrl.value.getMaxScaleOnAxis() > 1.05;
-          if (isZoomed != _isCurrentPageZoomed) {
-            setState(() {
-              _isCurrentPageZoomed = isZoomed;
-            });
-          }
+        if (_isSynchronizingTransformation || !mounted) return;
+
+        final isZoomed = ctrl.value.getMaxScaleOnAxis() > 1.05;
+        if (isZoomed != _isCurrentPageZoomed) {
+          setState(() {
+            _isCurrentPageZoomed = isZoomed;
+          });
         }
       });
       return ctrl;
     });
+  }
+
+  void _synchronizeTransformation(int sourcePageIndex) {
+    final source = _getTransformController(sourcePageIndex);
+    var transformation = Matrix4.copy(source.value);
+    final isZoomed = transformation.getMaxScaleOnAxis() > 1.05;
+
+    // Avoid leaving a barely transformed page that can no longer be panned.
+    if (!isZoomed) {
+      transformation = Matrix4.identity();
+      source.value = Matrix4.identity();
+    }
+
+    _sharedTransformation = Matrix4.copy(transformation);
+    _isSynchronizingTransformation = true;
+    for (final entry in _transformControllers.entries) {
+      if (entry.key != sourcePageIndex) {
+        entry.value.value = Matrix4.copy(_sharedTransformation);
+      }
+    }
+    _isSynchronizingTransformation = false;
+
+    if (mounted && _isCurrentPageZoomed != isZoomed) {
+      setState(() {
+        _isCurrentPageZoomed = isZoomed;
+      });
+    }
   }
 
   @override
@@ -166,14 +196,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   void _onPageChanged(int index) {
     setState(() {
       _currentPage = index;
+      _isCurrentPageZoomed = _sharedTransformation.getMaxScaleOnAxis() > 1.05;
     });
-
-    // Reset zoom on other pages
-    for (final entry in _transformControllers.entries) {
-      if (entry.key != index) {
-        entry.value.value = Matrix4.identity();
-      }
-    }
 
     // Persist progress
     context.read<LibraryProvider>().updateBookProgress(
@@ -417,7 +441,11 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     );
   }
 
-  void _animateTransformation(TransformationController controller, Matrix4 targetMatrix) {
+  void _animateTransformation(
+    TransformationController controller,
+    Matrix4 targetMatrix, {
+    VoidCallback? onCompleted,
+  }) {
     _zoomAnimationController?.dispose();
     _zoomAnimationController = AnimationController(
       vsync: this,
@@ -436,7 +464,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       controller.value = _zoomAnimation!.value;
     });
 
-    _zoomAnimationController!.forward();
+    _zoomAnimationController!.forward().whenComplete(() {
+      if (mounted) onCompleted?.call();
+    });
   }
 
   void _handleDoubleTap(int pageIndex, TapDownDetails? details) {
@@ -445,7 +475,11 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
     if (currentScale > 1.1) {
       // Zoom out smoothly
-      _animateTransformation(controller, Matrix4.identity());
+      _animateTransformation(
+        controller,
+        Matrix4.identity(),
+        onCompleted: () => _synchronizeTransformation(pageIndex),
+      );
     } else {
       // Zoom in smoothly to 2.5x centered at the double-tapped point
       final tapPos = details?.localPosition ?? const Offset(200, 300);
@@ -458,7 +492,11 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         ..translate(dx, dy)
         ..scale(targetScale);
 
-      _animateTransformation(controller, target);
+      _animateTransformation(
+        controller,
+        target,
+        onCompleted: () => _synchronizeTransformation(pageIndex),
+      );
     }
   }
 
@@ -656,7 +694,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTapDown: (details) => doubleTapDetails = details,
+            onDoubleTapDown: (details) => doubleTapDetails = details,
             onTapUp: (details) => _onTapZone(details, context, settings),
             onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
             child: InteractiveViewer(
@@ -665,8 +703,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               maxScale: 6.0,
               panAxis: PanAxis.free,
               panEnabled: _isCurrentPageZoomed,
-              boundaryMargin: EdgeInsets.zero,
+              boundaryMargin: const EdgeInsets.all(48),
               clipBehavior: Clip.hardEdge,
+              onInteractionEnd: (_) => _synchronizeTransformation(index),
               child: Center(
                 child: Image.memory(
                   page.bytes,
@@ -696,7 +735,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         controller: _verticalScrollController,
         itemCount: _pages.length + 1, // +1 for end of book footer
         padding: EdgeInsets.zero,
-        physics: const ClampingScrollPhysics(),
+        physics: _isCurrentPageZoomed
+            ? const NeverScrollableScrollPhysics()
+            : const ClampingScrollPhysics(),
         itemBuilder: (context, index) {
           if (index == _pages.length) {
             return _buildEndOfBookWidget(context);
@@ -712,7 +753,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             color: settings.actualBackgroundColor,
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
-              onTapDown: (details) => doubleTapDetails = details,
+              onDoubleTapDown: (details) => doubleTapDetails = details,
               onTap: () {
                 setState(() {
                   _showControls = !_showControls;
@@ -724,9 +765,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                 minScale: 1.0,
                 maxScale: 6.0,
                 panAxis: PanAxis.free,
-                panEnabled: transformCtrl.value.getMaxScaleOnAxis() > 1.05,
-                boundaryMargin: EdgeInsets.zero,
+                panEnabled: _isCurrentPageZoomed,
+                boundaryMargin: const EdgeInsets.all(48),
                 clipBehavior: Clip.hardEdge,
+                onInteractionEnd: (_) => _synchronizeTransformation(index),
                 child: Image.memory(
                   page.bytes,
                   fit: BoxFit.fitWidth,
