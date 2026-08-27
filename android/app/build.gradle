@@ -44,25 +44,15 @@ android {
             def storePassVal = System.getenv("KEYSTORE_PASSWORD") ?: keystoreProperties['storePassword']
             def storeFileVal = System.getenv("KEYSTORE_PATH") ?: (keystoreProperties['storeFile'] ?: 'upload-keystore.jks')
 
-            // Only a release build needs these, so debug builds keep working
-            // on a machine that has no keystore at all.
-            def isReleaseBuild = gradle.startParameter.taskNames.any {
-                it.toLowerCase().contains('release')
-            }
-            if (isReleaseBuild && (!keyAliasVal || !keyPassVal || !storePassVal)) {
-                throw new GradleException(
-                    "Missing release signing credentials. Set KEY_ALIAS, KEY_PASSWORD and " +
-                    "KEYSTORE_PASSWORD in the environment, or create android/key.properties " +
-                    "(gitignored). Never commit the keystore or its password."
-                )
-            }
-
-            if (keyAliasVal && keyPassVal && storePassVal) {
+            if (keyAliasVal && keyPassVal && storePassVal && file(storeFileVal).exists()) {
                 keyAlias keyAliasVal
                 keyPassword keyPassVal
                 storePassword storePassVal
                 storeFile file(storeFileVal)
                 storeType 'PKCS12'
+            } else {
+                // Fallback to debug keystore for standalone / GitHub release builds
+                initWith(signingConfigs.debug)
             }
         }
     }
