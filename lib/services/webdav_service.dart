@@ -343,6 +343,13 @@ class WebDavService {
           rethrow;
         }
 
+        if (e is DioException && e.type == DioExceptionType.badResponse) {
+          final code = e.response?.statusCode ?? 0;
+          if (code >= 400 && code < 500) {
+            rethrow; // Don't retry client errors (401, 403, 404...)
+          }
+        }
+
         debugPrint('WebDAV download attempt $attempts/$maxAttempts failed for $remoteRelativePath: $e');
 
         // Delete partially written temp file before next attempt

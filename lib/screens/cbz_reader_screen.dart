@@ -29,6 +29,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   String? _errorMessage;
   bool _showControls = false;
   bool _isCurrentPageZoomed = false;
+  bool _navigatedAway = false;
 
   AnimationController? _zoomAnimationController;
   Animation<Matrix4>? _zoomAnimation;
@@ -81,7 +82,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     for (final ctrl in _transformControllers.values) {
       ctrl.dispose();
     }
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (!_navigatedAway) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
     super.dispose();
   }
 
@@ -98,7 +101,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
       // Check if file is actually a PDF
       try {
-        final headerBytes = await file.openRead(0, 5).first;
+        final raf = await file.open(mode: FileMode.read);
+        final headerBytes = await raf.read(4);
+        await raf.close();
+
         final isPdf = headerBytes.length >= 4 &&
             headerBytes[0] == 0x25 && // %
             headerBytes[1] == 0x50 && // P
@@ -107,6 +113,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
         if (isPdf) {
           if (!mounted) return;
+          _navigatedAway = true;
+          context.read<LibraryProvider>().updateBookFormat(widget.book.id, BookFormat.pdf);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (_) => PdfReaderScreen(book: widget.book.copyWith(format: BookFormat.pdf)),

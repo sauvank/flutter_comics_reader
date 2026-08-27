@@ -165,6 +165,10 @@ class DownloadProvider extends ChangeNotifier {
 
     void onProgress(int received, int total) {
       final now = DateTime.now();
+      if (received == 0 || received < lastBytes) {
+        lastBytes = 0;
+        lastTime = now;
+      }
       final timeDiff = now.difference(lastTime).inMilliseconds;
       double speed = 0.0;
       if (timeDiff >= 500) {
@@ -339,11 +343,13 @@ class DownloadProvider extends ChangeNotifier {
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
           return 'Délai d\'attente dépassé (timeout réseau)';
+        case DioExceptionType.badCertificate:
+          return 'Certificat de sécurité invalide (serveur auto-signé ?)';
         case DioExceptionType.badResponse:
           final code = error.response?.statusCode;
           if (code == 404) return 'Fichier introuvable sur le serveur (404)';
           if (code == 401 || code == 403) return 'Accès refusé (identifiants incorrects)';
-          return 'Erreur serveur ($code)';
+          return 'Erreur serveur${code != null ? ' ($code)' : ''}';
         case DioExceptionType.connectionError:
           return 'Impossible de joindre le serveur (connexion perdue)';
         case DioExceptionType.cancel:
@@ -361,6 +367,16 @@ class DownloadProvider extends ChangeNotifier {
           }
           return 'Erreur de connexion réseau';
       }
+    }
+    if (error is SocketException) {
+      return 'Connexion réseau interrompue';
+    }
+    if (error is FileSystemException) {
+      final msg = error.message.toLowerCase();
+      if (msg.contains('no space') || msg.contains('enospc')) {
+        return 'Espace de stockage insuffisant sur l\'appareil';
+      }
+      return 'Erreur d\'accès au fichier local';
     }
     return error.toString();
   }

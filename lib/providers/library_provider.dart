@@ -210,6 +210,16 @@ class LibraryProvider extends ChangeNotifier {
     await loadLibrary();
   }
 
+  Future<void> updateBookFormat(String bookId, BookFormat format) async {
+    final index = _books.indexWhere((b) => b.id == bookId);
+    if (index >= 0) {
+      final updated = _books[index].copyWith(format: format);
+      await _db.updateBook(updated);
+      _books[index] = updated;
+      notifyListeners();
+    }
+  }
+
   Future<void> toggleFavorite(String bookId) async {
     await _db.toggleFavoriteBook(bookId);
     final index = _books.indexWhere((b) => b.id == bookId);
