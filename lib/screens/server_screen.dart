@@ -23,6 +23,15 @@ class ServerScreen extends StatefulWidget {
 
 class _ServerScreenState extends State<ServerScreen> {
   bool _isGridView = true;
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   void _openAddServerDialog() async {
     final newServer = await showDialog<ServerProfile>(
@@ -270,6 +279,390 @@ class _ServerScreenState extends State<ServerScreen> {
     );
   }
 
+  void _showServerSwitchSheet(BuildContext context) {
+    final serverProvider = context.read<ServerProvider>();
+    final activeServer = serverProvider.activeServer;
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.outlineVariant.withAlpha(80),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 22),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'Mes Serveurs Cloud & Locaux',
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              if (serverProvider.servers.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Aucun profil serveur enregistré',
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: serverProvider.servers.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final srv = serverProvider.servers[index];
+                      final isSelected = srv.id == activeServer?.id;
+
+                      IconData typeIcon = Icons.cloud_outlined;
+                      Color typeColor = const Color(0xFF8B5CF6);
+                      if (srv.serverType == ServerType.webdav) {
+                        typeIcon = Icons.cloud_done_outlined;
+                        typeColor = const Color(0xFF06B6D4);
+                      } else if (srv.serverType == ServerType.ftp) {
+                        typeIcon = Icons.swap_horizontal_circle_outlined;
+                        typeColor = const Color(0xFFF59E0B);
+                      } else if (srv.serverType == ServerType.httpDirectory) {
+                        typeIcon = Icons.http_rounded;
+                        typeColor = const Color(0xFF10B981);
+                      }
+
+                      return Material(
+                        color: isSelected
+                            ? theme.colorScheme.primaryContainer.withAlpha(100)
+                            : theme.colorScheme.surfaceContainerHighest.withAlpha(50),
+                        borderRadius: BorderRadius.circular(14),
+                        child: InkWell(
+                          onTap: () {
+                            serverProvider.setActiveServer(srv);
+                            Navigator.pop(ctx);
+                          },
+                          borderRadius: BorderRadius.circular(14),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: isSelected
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.outlineVariant.withAlpha(30),
+                                width: isSelected ? 1.8 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: typeColor.withAlpha(35),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(typeIcon, color: typeColor, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Text(
+                                              srv.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                                color: isSelected
+                                                    ? theme.colorScheme.primary
+                                                    : theme.colorScheme.onSurface,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: typeColor.withAlpha(30),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              srv.serverType.name.toUpperCase(),
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: typeColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${srv.host}:${srv.port}${srv.path}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontFamily: 'monospace',
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 18),
+                                  tooltip: 'Modifier',
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _openEditServerDialog(srv);
+                                  },
+                                ),
+                                if (isSelected)
+                                  Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
+
+              // Add Server Button
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _openAddServerDialog();
+                },
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text('Ajouter un autre serveur'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(46),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildServerHeroHeader(ServerProfile? activeServer, ServerProvider serverProvider, ThemeData theme) {
+    if (activeServer == null) {
+      return Container(
+        margin: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withAlpha(30),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.cloud_off_rounded, color: theme.colorScheme.primary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Aucun serveur actif', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  SizedBox(height: 2),
+                  Text('Touchez pour connecter un serveur', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                ],
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: _openAddServerDialog,
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('Ajouter'),
+              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Color typeColor = const Color(0xFF8B5CF6);
+    IconData typeIcon = Icons.cloud_queue_rounded;
+    if (activeServer.serverType == ServerType.webdav) {
+      typeColor = const Color(0xFF06B6D4);
+      typeIcon = Icons.cloud_done_rounded;
+    } else if (activeServer.serverType == ServerType.ftp) {
+      typeColor = const Color(0xFFF59E0B);
+      typeIcon = Icons.swap_horizontal_circle_rounded;
+    } else if (activeServer.serverType == ServerType.httpDirectory) {
+      typeColor = const Color(0xFF10B981);
+      typeIcon = Icons.http_rounded;
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(20),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _showServerSwitchSheet(context),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              // Type Icon with glowing container
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: typeColor.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: typeColor.withAlpha(80), width: 1.2),
+                ),
+                child: Icon(typeIcon, color: typeColor, size: 22),
+              ),
+              const SizedBox(width: 12),
+
+              // Server Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            activeServer.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: typeColor.withAlpha(25),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            activeServer.serverType.name.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: typeColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF10B981),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${activeServer.host}:${activeServer.port}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Switch Icon Badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Changer',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+                    ),
+                    const SizedBox(width: 2),
+                    Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: theme.colorScheme.primary),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -282,27 +675,63 @@ class _ServerScreenState extends State<ServerScreen> {
     final breadcrumbs = serverProvider.breadcrumbs;
     final currentPath = serverProvider.currentPath;
 
-    final folders = remoteFiles.where((f) => f.isDirectory).toList();
-    final books = remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList();
+    final q = _searchQuery.trim().toLowerCase();
+    final folders = q.isEmpty
+        ? remoteFiles.where((f) => f.isDirectory).toList()
+        : remoteFiles.where((f) => f.isDirectory && f.name.toLowerCase().contains(q)).toList();
+    final books = q.isEmpty
+        ? remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList()
+        : remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook && f.name.toLowerCase().contains(q)).toList();
     final supportedFilesCount = books.length;
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withAlpha(40),
-                borderRadius: BorderRadius.circular(8),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Filtrer ce dossier...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey),
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    _searchQuery = val;
+                  });
+                },
+              )
+            : Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withAlpha(40),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.cloud_sync_rounded, color: theme.colorScheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text('Explorateur Serveur'),
+                ],
               ),
-              child: Icon(Icons.cloud_sync_rounded, color: theme.colorScheme.primary, size: 20),
-            ),
-            const SizedBox(width: 10),
-            const Text('Explorateur Serveur'),
-          ],
-        ),
         actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            tooltip: _isSearching ? 'Fermer la recherche' : 'Rechercher',
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchController.clear();
+                  _searchQuery = '';
+                } else {
+                  _isSearching = true;
+                }
+              });
+            },
+          ),
           IconButton(
             icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
             tooltip: _isGridView ? 'Vue Liste' : 'Vue Grille',
@@ -359,80 +788,8 @@ class _ServerScreenState extends State<ServerScreen> {
       ),
       body: Column(
         children: [
-          // Server Selector Card
-          Container(
-            margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(30)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: serverProvider.servers.isEmpty
-                      ? const Text('Aucun serveur configuré', style: TextStyle(color: Colors.grey))
-                      : DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: serverProvider.servers.any((s) => s.id == activeServer?.id)
-                                ? activeServer?.id
-                                : null,
-                            isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down),
-                            items: serverProvider.servers.map((server) {
-                              IconData icon = Icons.folder_shared_outlined;
-                              if (server.serverType == ServerType.ftp) {
-                                icon = Icons.swap_horizontal_circle_outlined;
-                              } else if (server.serverType == ServerType.httpDirectory) {
-                                icon = Icons.http;
-                              }
-
-                              return DropdownMenuItem<String>(
-                                value: server.id,
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      icon,
-                                      size: 18,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        server.name,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                      ),
-                                    ),
-                                    Text(
-                                      '${server.host}:${server.port}',
-                                      style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (serverId) {
-                              if (serverId != null) {
-                                final s = serverProvider.servers.firstWhere((srv) => srv.id == serverId);
-                                serverProvider.setActiveServer(s);
-                              }
-                            },
-                          ),
-                        ),
-                ),
-                if (activeServer != null) ...[
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, size: 20),
-                    tooltip: 'Modifier ce serveur',
-                    onPressed: () => _openEditServerDialog(activeServer),
-                  ),
-                ],
-              ],
-            ),
-          ),
+          // Server Hero Header
+          _buildServerHeroHeader(activeServer, serverProvider, theme),
 
           // Breadcrumbs Navigation Bar
           if (activeServer != null)
