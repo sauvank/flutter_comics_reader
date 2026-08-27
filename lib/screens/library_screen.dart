@@ -634,28 +634,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     ),
                                   ),
                                 ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  sliver: SliverGrid(
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      childAspectRatio: 1.5,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                    ),
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final folder = folders[index];
-                                        final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
-                                        return FolderCard(
-                                          name: folder.name,
-                                          isFavorite: isFav,
-                                          onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
-                                          onTap: () => serverProvider.navigateTo(folder.path),
-                                        );
-                                      },
-                                      childCount: folders.length,
-                                    ),
+                                SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                      final folder = folders[index];
+                                      final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
+                                      return FolderCard(
+                                        name: folder.name,
+                                        isFavorite: isFav,
+                                        onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
+                                        onTap: () => serverProvider.navigateTo(folder.path),
+                                      );
+                                    },
+                                    childCount: folders.length,
                                   ),
                                 ),
                               ],

@@ -96,6 +96,26 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         return;
       }
 
+      // Check if file is actually a PDF
+      try {
+        final headerBytes = await file.openRead(0, 5).first;
+        final isPdf = headerBytes.length >= 4 &&
+            headerBytes[0] == 0x25 && // %
+            headerBytes[1] == 0x50 && // P
+            headerBytes[2] == 0x44 && // D
+            headerBytes[3] == 0x46;   // F
+
+        if (isPdf) {
+          if (!mounted) return;
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => PdfReaderScreen(book: widget.book.copyWith(format: BookFormat.pdf)),
+            ),
+          );
+          return;
+        }
+      } catch (_) {}
+
       final pages = await CbzService.loadAllPages(widget.book.localPath);
 
       if (pages.isEmpty) {
