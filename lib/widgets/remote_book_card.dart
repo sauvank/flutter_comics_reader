@@ -275,30 +275,38 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
                               color: widget.isDownloaded
-                                  ? Colors.green.shade800
-                                  : Colors.black.withAlpha(140),
-                              borderRadius: BorderRadius.circular(6),
+                                  ? const Color(0xFF10B981) // Vibrant Green for LOCAL
+                                  : const Color(0xFF3B82F6), // Vibrant Blue for SERVEUR
+                              borderRadius: BorderRadius.circular(7),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withAlpha(50),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
                                   widget.isDownloaded
-                                      ? Icons.check_circle
+                                      ? Icons.check_circle_rounded
                                       : Icons.cloud_outlined,
                                   size: 11,
-                                  color: widget.isDownloaded ? Colors.white : Colors.white70,
+                                  color: Colors.white,
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
                                   widget.isDownloaded ? 'LOCAL' : 'SERVEUR',
-                                  style: TextStyle(
-                                    color: widget.isDownloaded ? Colors.white : Colors.white70,
-                                    fontSize: 8,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8.5,
                                     fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
                                   ),
                                 ),
                               ],

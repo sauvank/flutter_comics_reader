@@ -24,7 +24,7 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  int _activeViewIndex = 0; // Default to 0 (Mes BD Téléchargées & En cours)
+  int _activeViewIndex = 1; // Default to 1 (Collection / Folder Explorer with Local & Server badges)
 
   @override
   void dispose() {
@@ -101,7 +101,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
-                      _activeViewIndex == 0 ? Icons.menu_book_rounded : Icons.cloud_done_rounded,
+                      _activeViewIndex == 0 ? Icons.menu_book_rounded : Icons.folder_copy_rounded,
                       color: theme.colorScheme.primary,
                       size: 20,
                     ),
@@ -160,20 +160,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       body: Column(
         children: [
-          // View Switcher (Mes BD vs Tout le Serveur)
+          // View Switcher (Ma Collection / Dossiers vs Téléchargés)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
             child: SegmentedButton<int>(
               segments: [
-                ButtonSegment(
-                  value: 0,
-                  label: Text('Mes BD (${library.books.length})'),
-                  icon: const Icon(Icons.menu_book_rounded, size: 16),
+                const ButtonSegment(
+                  value: 1,
+                  label: Text('Ma Collection (Dossiers)'),
+                  icon: Icon(Icons.folder_copy_rounded, size: 16),
                 ),
                 ButtonSegment(
-                  value: 1,
-                  label: const Text('Tout le Serveur (Dossiers)'),
-                  icon: const Icon(Icons.cloud_sync_outlined, size: 16),
+                  value: 0,
+                  label: Text('Téléchargés (${library.books.length})'),
+                  icon: const Icon(Icons.download_done_rounded, size: 16),
                 ),
               ],
               selected: {_activeViewIndex},

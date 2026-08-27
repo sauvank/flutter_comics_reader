@@ -93,7 +93,11 @@ class WebDavService {
       cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
     }
 
-    return cleanRelative.isEmpty ? base : '$base$cleanRelative';
+    var url = cleanRelative.isEmpty ? base : '$base$cleanRelative';
+    if (!url.endsWith('/')) {
+      url = '$url/';
+    }
+    return url;
   }
 
   /// Lists files and folders at [remoteRelativePath]
@@ -119,6 +123,8 @@ class WebDavService {
         data: propfindXml,
         options: Options(
           method: 'PROPFIND',
+          followRedirects: true,
+          maxRedirects: 5,
           headers: {
             ..._getHeaders(server),
             'Depth': '1',
@@ -133,7 +139,34 @@ class WebDavService {
 
       return _parseWebDavXml(xmlString, targetUrl, server);
     } catch (e) {
-      debugPrint('WebDAV listDirectory error: $e');
+      debugPrint('WebDAV listDirectory error on $targetUrl: $e');
+      // If failed with trailing slash, try without trailing slash as fallback
+      if (targetUrl.endsWith('/')) {
+        final fallbackUrl = targetUrl.substring(0, targetUrl.length - 1);
+        try {
+          final fallbackResponse = await _dio.request<String>(
+            fallbackUrl,
+            data: propfindXml,
+            options: Options(
+              method: 'PROPFIND',
+              followRedirects: true,
+              maxRedirects: 5,
+              headers: {
+                ..._getHeaders(server),
+                'Depth': '1',
+                'Content-Type': 'application/xml; charset=utf-8',
+              },
+              responseType: ResponseType.plain,
+            ),
+          );
+          final xmlString = fallbackResponse.data;
+          if (xmlString != null && xmlString.isNotEmpty) {
+            return _parseWebDavXml(xmlString, fallbackUrl, server);
+          }
+        } catch (e2) {
+          debugPrint('WebDAV fallback error on $fallbackUrl: $e2');
+        }
+      }
       rethrow;
     }
   }
