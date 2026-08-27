@@ -25,6 +25,7 @@ class BookItem {
   final String? serverId;
   final String? serverRelativePath;
   final List<int> bookmarks;
+  final bool isFavorite;
 
   BookItem({
     required this.id,
@@ -43,6 +44,7 @@ class BookItem {
     this.serverId,
     this.serverRelativePath,
     List<int>? bookmarks,
+    this.isFavorite = false,
   }) : bookmarks = bookmarks ?? [];
 
   static BookFormat formatFromExtension(String pathOrName) {
@@ -86,6 +88,7 @@ class BookItem {
     String? serverId,
     String? serverRelativePath,
     List<int>? bookmarks,
+    bool? isFavorite,
   }) {
     return BookItem(
       id: id ?? this.id,
@@ -104,6 +107,7 @@ class BookItem {
       serverId: serverId ?? this.serverId,
       serverRelativePath: serverRelativePath ?? this.serverRelativePath,
       bookmarks: bookmarks ?? List.from(this.bookmarks),
+      isFavorite: isFavorite ?? this.isFavorite,
     );
   }
 
@@ -125,6 +129,7 @@ class BookItem {
       'serverId': serverId,
       'serverRelativePath': serverRelativePath,
       'bookmarks': jsonEncode(bookmarks),
+      'isFavorite': isFavorite ? 1 : 0,
     };
   }
 
@@ -151,6 +156,7 @@ class BookItem {
       bookmarks: map['bookmarks'] != null
           ? List<int>.from(jsonDecode(map['bookmarks'] as String) as List)
           : [],
+      isFavorite: (map['isFavorite'] == 1 || map['isFavorite'] == true),
     );
   }
 

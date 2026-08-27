@@ -6,8 +6,10 @@ class ReaderTopBar extends StatelessWidget {
   final int currentPage;
   final int totalPages;
   final bool isBookmarked;
+  final bool isFavorite;
   final VoidCallback onBack;
   final VoidCallback onToggleBookmark;
+  final VoidCallback? onToggleFavorite;
   final VoidCallback onOpenSettings;
 
   const ReaderTopBar({
@@ -16,8 +18,10 @@ class ReaderTopBar extends StatelessWidget {
     required this.currentPage,
     required this.totalPages,
     required this.isBookmarked,
+    this.isFavorite = false,
     required this.onBack,
     required this.onToggleBookmark,
+    this.onToggleFavorite,
     required this.onOpenSettings,
   });
 
@@ -79,6 +83,15 @@ class ReaderTopBar extends StatelessWidget {
                 onPressed: onToggleBookmark,
                 tooltip: 'Marque-page',
               ),
+              if (onToggleFavorite != null)
+                IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    color: isFavorite ? Colors.redAccent : Colors.white,
+                  ),
+                  onPressed: onToggleFavorite,
+                  tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                ),
               IconButton(
                 icon: const Icon(Icons.tune_rounded, color: Colors.white),
                 onPressed: onOpenSettings,

@@ -19,7 +19,7 @@ class WebDavService {
           ),
         );
 
-  Map<String, String> _getHeaders(ServerProfile server) {
+  Map<String, String> getHeaders(ServerProfile server) {
     final headers = <String, String>{
       'User-Agent': 'ComicStream-App/1.0',
     };
@@ -40,7 +40,7 @@ class WebDavService {
         options: Options(
           method: 'PROPFIND',
           headers: {
-            ..._getHeaders(server),
+            ...getHeaders(server),
             'Depth': '0',
             'Content-Type': 'application/xml',
           },
@@ -54,7 +54,7 @@ class WebDavService {
         final response = await _dio.get(
           server.baseUrl,
           options: Options(
-            headers: _getHeaders(server),
+            headers: getHeaders(server),
             sendTimeout: const Duration(seconds: 5),
             receiveTimeout: const Duration(seconds: 5),
           ),
@@ -67,7 +67,7 @@ class WebDavService {
     }
   }
 
-  String _buildTargetUrl(ServerProfile server, String remoteRelativePath, {bool isDirectory = true}) {
+  String buildTargetUrl(ServerProfile server, String remoteRelativePath, {bool isDirectory = true}) {
     var base = server.baseUrl;
     if (!base.endsWith('/')) base = '$base/';
 
@@ -105,7 +105,7 @@ class WebDavService {
     required ServerProfile server,
     String remoteRelativePath = '',
   }) async {
-    final targetUrl = _buildTargetUrl(server, remoteRelativePath, isDirectory: true);
+    final targetUrl = buildTargetUrl(server, remoteRelativePath, isDirectory: true);
 
     const propfindXml = '''<?xml version="1.0" encoding="utf-8" ?>
 <D:propfind xmlns:D="DAV:">
@@ -126,7 +126,7 @@ class WebDavService {
           followRedirects: true,
           maxRedirects: 5,
           headers: {
-            ..._getHeaders(server),
+            ...getHeaders(server),
             'Depth': '1',
             'Content-Type': 'application/xml; charset=utf-8',
           },
@@ -152,7 +152,7 @@ class WebDavService {
               followRedirects: true,
               maxRedirects: 5,
               headers: {
-                ..._getHeaders(server),
+                ...getHeaders(server),
                 'Depth': '1',
                 'Content-Type': 'application/xml; charset=utf-8',
               },
@@ -171,6 +171,18 @@ class WebDavService {
     }
   }
 
+  String _safeDecode(String input) {
+    var s = input;
+    try {
+      while (s.contains('%')) {
+        final decoded = Uri.decodeComponent(s);
+        if (decoded == s) break;
+        s = decoded;
+      }
+    } catch (_) {}
+    return s;
+  }
+
   List<RemoteFile> _parseWebDavXml(String xmlContent, String requestedUrl, ServerProfile server) {
     final List<RemoteFile> results = [];
     final document = XmlDocument.parse(xmlContent);
@@ -181,7 +193,7 @@ class WebDavService {
         : document.findAllElements('response');
 
     final uriRequested = Uri.tryParse(requestedUrl);
-    final requestedPath = uriRequested != null ? Uri.decodeComponent(uriRequested.path).replaceAll(RegExp(r'/+$'), '') : '';
+    final requestedPath = uriRequested != null ? _safeDecode(uriRequested.path).replaceAll(RegExp(r'/+$'), '') : '';
 
     for (final res in responses) {
       // Get href
@@ -191,7 +203,7 @@ class WebDavService {
 
       if (hrefElements.isEmpty) continue;
       final rawHref = hrefElements.first.innerText.trim();
-      final decodedHref = Uri.decodeComponent(rawHref);
+      final decodedHref = _safeDecode(rawHref);
 
       // Check if it's the requested folder itself (Depth: 1 includes the target folder as 1st element)
       final cleanItemPath = decodedHref.replaceAll(RegExp(r'/+$'), '');
@@ -208,10 +220,10 @@ class WebDavService {
       var displayName = '';
       final displayNameElems = res.findAllElements('displayname', namespace: '*');
       if (displayNameElems.isNotEmpty && displayNameElems.first.innerText.trim().isNotEmpty) {
-        displayName = displayNameElems.first.innerText.trim();
+        displayName = _safeDecode(displayNameElems.first.innerText.trim());
       } else {
         final segments = Uri.parse(rawHref).pathSegments.where((s) => s.isNotEmpty).toList();
-        displayName = segments.isNotEmpty ? Uri.decodeComponent(segments.last) : 'Unknown';
+        displayName = segments.isNotEmpty ? _safeDecode(segments.last) : 'Unknown';
       }
 
       // Content length (file size)
@@ -275,7 +287,7 @@ class WebDavService {
     required void Function(int receivedBytes, int totalBytes) onProgress,
     CancelToken? cancelToken,
   }) async {
-    final downloadUrl = _buildTargetUrl(server, remoteRelativePath, isDirectory: false);
+    final downloadUrl = buildTargetUrl(server, remoteRelativePath, isDirectory: false);
 
     final tempFile = File('$destinationLocalPath.tmp');
     if (await tempFile.exists()) {
@@ -289,7 +301,7 @@ class WebDavService {
         onReceiveProgress: onProgress,
         cancelToken: cancelToken,
         options: Options(
-          headers: _getHeaders(server),
+          headers: getHeaders(server),
           responseType: ResponseType.stream,
         ),
       );

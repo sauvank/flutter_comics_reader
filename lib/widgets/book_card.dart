@@ -9,6 +9,7 @@ class BookCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onToggleStatus;
+  final VoidCallback? onToggleFavorite;
 
   const BookCard({
     super.key,
@@ -16,6 +17,7 @@ class BookCard extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
     required this.onToggleStatus,
+    this.onToggleFavorite,
   });
 
   @override
@@ -101,6 +103,34 @@ class BookCard extends StatelessWidget {
                     ),
                   ),
 
+                  // Favorite Quick Action Button
+                  if (onToggleFavorite != null)
+                    Positioned(
+                      top: 4,
+                      right: 32,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onToggleFavorite,
+                          borderRadius: BorderRadius.circular(20),
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: book.isFavorite
+                                  ? Colors.redAccent.withAlpha(200)
+                                  : Colors.black.withAlpha(90),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              color: book.isFavorite ? Colors.white : Colors.white70,
+                              size: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                   // Menu Button
                   Positioned(
                     top: 4,
@@ -119,9 +149,25 @@ class BookCard extends StatelessWidget {
                             onToggleStatus();
                           } else if (value == 'convert') {
                             PdfToCbzDialog.show(context, book: book);
+                          } else if (value == 'favorite') {
+                            onToggleFavorite?.call();
                           }
                         },
                         itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'favorite',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                  size: 18,
+                                  color: Colors.redAccent,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(book.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'),
+                              ],
+                            ),
+                          ),
                           if (book.format == BookFormat.pdf)
                             const PopupMenuItem(
                               value: 'convert',

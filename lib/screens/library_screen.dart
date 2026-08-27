@@ -237,6 +237,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 children: [
                   _buildFilterChip('Tous (${library.books.length})', LibraryFilter.all, library),
                   const SizedBox(width: 8),
+                  _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
+                  const SizedBox(width: 8),
                   _buildFilterChip('En cours', LibraryFilter.inProgress, library),
                   const SizedBox(width: 8),
                   _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
@@ -288,6 +290,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         book: book,
                         onTap: () => _openReader(book),
                         onDelete: () => _confirmDelete(book),
+                        onToggleFavorite: () => library.toggleFavorite(book.id),
                         onToggleStatus: () {
                           library.updateBookProgress(
                             bookId: book.id,
@@ -369,6 +372,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       book: book,
                       onTap: () => _openReader(book),
                       onDelete: () => _confirmDelete(book),
+                      onToggleFavorite: () => library.toggleFavorite(book.id),
                       onToggleStatus: () {
                         library.updateBookProgress(
                           bookId: book.id,
@@ -638,8 +642,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     delegate: SliverChildBuilderDelegate(
                                       (context, index) {
                                         final folder = folders[index];
+                                        final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
                                         return FolderCard(
                                           name: folder.name,
+                                          isFavorite: isFav,
+                                          onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
                                           onTap: () => serverProvider.navigateTo(folder.path),
                                         );
                                       },

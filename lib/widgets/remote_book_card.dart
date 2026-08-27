@@ -174,6 +174,12 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
             widget.downloadTask!.status == DownloadStatus.converting ||
             widget.downloadTask!.status == DownloadStatus.pending);
 
+    final library = context.watch<LibraryProvider>();
+    final localBook = library.getBookByServerPath(widget.server.id, widget.file.path);
+    final isFavorite = widget.isDownloaded && localBook != null
+        ? localBook.isFavorite
+        : library.isRemoteFavorite(widget.server.id, widget.file.path);
+
     final cleanTitle = widget.file.name
         .replaceAll(RegExp(r'\.(cbz|cbr|zip|rar|pdf|epub)$', caseSensitive: false), '')
         .replaceAll('_', ' ');
@@ -274,6 +280,35 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // Favorite Heart Button
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                if (widget.isDownloaded && localBook != null) {
+                                  library.toggleFavorite(localBook.id);
+                                } else {
+                                  library.toggleRemoteFavorite(widget.server.id, widget.file.path);
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: isFavorite
+                                      ? Colors.redAccent.withAlpha(220)
+                                      : Colors.black.withAlpha(120),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                  color: isFavorite ? Colors.white : Colors.white70,
+                                  size: 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(

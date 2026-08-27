@@ -3,11 +3,15 @@ import 'package:flutter/material.dart';
 class FolderCard extends StatelessWidget {
   final String name;
   final VoidCallback onTap;
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
 
   const FolderCard({
     super.key,
     required this.name,
     required this.onTap,
+    this.isFavorite = false,
+    this.onToggleFavorite,
   });
 
   @override
@@ -25,14 +29,16 @@ class FolderCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
           border: Border.all(
-            color: theme.colorScheme.primary.withAlpha(50),
+            color: isFavorite
+                ? Colors.redAccent.withAlpha(100)
+                : theme.colorScheme.primary.withAlpha(50),
             width: 1.5,
           ),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              theme.colorScheme.primary.withAlpha(25),
+              (isFavorite ? Colors.redAccent : theme.colorScheme.primary).withAlpha(25),
               theme.colorScheme.surfaceContainerHighest.withAlpha(90),
             ],
           ),
@@ -48,7 +54,7 @@ class FolderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row with Folder Icon and arrow
+            // Top row with Folder Icon and favorite/arrow
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -64,10 +70,28 @@ class FolderCard extends StatelessWidget {
                     size: 26,
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant.withAlpha(120),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (onToggleFavorite != null)
+                      IconButton(
+                        icon: Icon(
+                          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFavorite ? Colors.redAccent : theme.colorScheme.onSurfaceVariant.withAlpha(150),
+                          size: 20,
+                        ),
+                        onPressed: onToggleFavorite,
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                      ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant.withAlpha(120),
+                    ),
+                  ],
                 ),
               ],
             ),

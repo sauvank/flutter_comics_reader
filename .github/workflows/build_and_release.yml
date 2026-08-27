@@ -1,0 +1,107 @@
+name: Build & Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Tag de la version (ex: v1.0.1)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: 📱 Build Android APK & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: 🐦 Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.4'
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🔍 Analyze code
+        run: flutter analyze || true
+
+      - name: 🔨 Build Universal APK
+        run: |
+          flutter build apk --release
+
+      - name: 🔨 Build Split APKs (Optimized size for ARM64/ARMv7)
+        run: |
+          flutter build apk --release --split-per-abi
+
+      - name: 📋 Prepare Artifacts
+        run: |
+          mkdir -p release_assets
+          # Universal APK
+          cp build/app/outputs/flutter-apk/app-release.apk release_assets/ComicStream-Universal.apk
+          # Split APKs
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_assets/ComicStream-arm64-v8a.apk || true
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release_assets/ComicStream-armeabi-v7a.apk || true
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release_assets/ComicStream-x86_64.apk || true
+          # Default easy-to-download name
+          cp build/app/outputs/flutter-apk/app-release.apk release_assets/app-release.apk
+
+      - name: 📤 Upload Build Artifacts (Actions tab)
+        uses: actions/upload-artifact@v4
+        with:
+          name: comicstream-apks
+          path: release_assets/
+          retention-days: 14
+
+      - name: 🏷️ Determine Release Tag
+        id: release_info
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 🚀 Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag }}
+          name: "ComicStream ${{ steps.release_info.outputs.tag }}"
+          draft: false
+          prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
+          files: |
+            release_assets/ComicStream-Universal.apk
+            release_assets/ComicStream-arm64-v8a.apk
+            release_assets/ComicStream-armeabi-v7a.apk
+            release_assets/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

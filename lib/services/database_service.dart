@@ -120,6 +120,35 @@ class DatabaseService {
     }
   }
 
+  Future<void> toggleFavoriteBook(String bookId) async {
+    final books = await getBooks();
+    final index = books.indexWhere((b) => b.id == bookId);
+    if (index >= 0) {
+      final current = books[index];
+      books[index] = current.copyWith(isFavorite: !current.isFavorite);
+      await saveBooks(books);
+    }
+  }
+
+  static const String _keyFavoriteRemoteKeys = 'favorite_remote_paths_json';
+
+  Future<Set<String>> getFavoriteRemoteKeys() async {
+    await init();
+    final jsonString = _prefs?.getString(_keyFavoriteRemoteKeys);
+    if (jsonString == null || jsonString.isEmpty) return {};
+    try {
+      final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
+      return Set<String>.from(list.map((e) => e.toString()));
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> saveFavoriteRemoteKeys(Set<String> keys) async {
+    await init();
+    await _prefs?.setString(_keyFavoriteRemoteKeys, jsonEncode(keys.toList()));
+  }
+
   Future<void> deleteBook(String bookId) async {
     final books = await getBooks();
     final book = books.firstWhere((b) => b.id == bookId, orElse: () => throw Exception('Not found'));

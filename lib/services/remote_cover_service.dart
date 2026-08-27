@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:archive/archive.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -11,11 +10,14 @@ import '../models/remote_file.dart';
 import '../models/server_profile.dart';
 import 'cbz_service.dart';
 
+import 'webdav_service.dart';
+
 class RemoteCoverService {
   static final RemoteCoverService _instance = RemoteCoverService._internal();
   factory RemoteCoverService() => _instance;
   RemoteCoverService._internal();
 
+  final WebDavService _webdav = WebDavService();
   final Map<String, String> _memoryCoverCache = {};
   final Set<String> _pendingRequests = {};
 
@@ -79,7 +81,7 @@ class RemoteCoverService {
     try {
       final coverBytes = await _extractFirstImageBytesFromRemote(server, file);
       if (coverBytes != null && coverBytes.isNotEmpty) {
-        await targetFile.writeAsBytes(coverBytes);
+        await targetFile.writeAsBytes(coverBytes, flush: true);
         _memoryCoverCache[key] = targetFile.path;
         return targetFile.path;
       }
@@ -96,178 +98,165 @@ class RemoteCoverService {
     if (server.serverType == ServerType.ftp) {
       return await _fetchFtpPartialZipCover(server, file.path);
     } else {
-      return await _fetchHttpPartialZipCover(server, file.path);
+      return await _fetchHttpCoverBytes(server, file.path);
     }
   }
 
-  Future<Uint8List?> _fetchHttpPartialZipCover(ServerProfile server, String remoteFilePath) async {
+  Future<Uint8List?> _fetchHttpCoverBytes(ServerProfile server, String remoteFilePath) async {
     final dio = Dio(
       BaseOptions(
-        connectTimeout: const Duration(seconds: 8),
-        receiveTimeout: const Duration(seconds: 15),
-        sendTimeout: const Duration(seconds: 8),
-        validateStatus: (status) => status != null && (status >= 200 && status < 400),
+        connectTimeout: const Duration(seconds: 12),
+        receiveTimeout: const Duration(seconds: 25),
+        sendTimeout: const Duration(seconds: 12),
+        validateStatus: (status) => status != null && status >= 200 && status < 400,
       ),
     );
 
-    var base = server.baseUrl;
-    if (!base.endsWith('/')) base = '$base/';
+    final rawUrl = _webdav.buildTargetUrl(server, remoteFilePath, isDirectory: false);
+    final headers = _webdav.getHeaders(server);
 
-    var cleanPath = remoteFilePath.trim();
-    var serverBasePath = Uri.parse(base).path.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
-    var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
-    if (cleanRelative == serverBasePath) {
-      cleanRelative = '';
-    } else if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
-      cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
-    }
+    Future<Uint8List?> tryFetch(String url) async {
+      try {
+        final response = await dio.get<ResponseBody>(
+          url,
+          options: Options(
+            headers: headers,
+            responseType: ResponseType.stream,
+            followRedirects: true,
+            maxRedirects: 5,
+          ),
+        );
 
-    final baseUri = Uri.parse(base);
-    final allSegments = [
-      ...baseUri.pathSegments.where((s) => s.isNotEmpty),
-      ...cleanRelative.split('/').where((s) => s.isNotEmpty),
-    ];
-    final fileUri = baseUri.replace(pathSegments: allSegments);
-    final fileUrl = fileUri.toString();
+        final stream = response.data?.stream;
+        if (stream == null) return null;
 
-    final headers = <String, String>{
-      'User-Agent': 'ComicStream-App/1.0',
-      'Range': 'bytes=0-2097151', // Fetch first 2 MB
-    };
-    if (server.username != null && server.username!.isNotEmpty) {
-      final authStr = '${server.username}:${server.password ?? ''}';
-      final base64Auth = base64Encode(utf8.encode(authStr));
-      headers['Authorization'] = 'Basic $base64Auth';
-    }
+        final chunk = <int>[];
+        const maxBytes = 3 * 1024 * 1024; // 3 MB max
 
-    try {
-      final response = await dio.get<List<int>>(
-        fileUrl,
-        options: Options(
-          headers: headers,
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-          maxRedirects: 5,
-        ),
-      );
+        await for (final data in stream) {
+          chunk.addAll(data);
+          if (chunk.length >= maxBytes) {
+            break;
+          }
+        }
 
-      final data = response.data;
-      if (data == null || data.isEmpty) return null;
-
-      final chunk = Uint8List.fromList(data);
-      return _tryParseZipFirstImage(chunk);
-    } catch (e) {
-      debugPrint('RemoteCoverService: HTTP Range cover extraction error on $fileUrl: $e');
-      return null;
-    }
-  }
-
-  Future<Uint8List?> _fetchFtpPartialZipCover(ServerProfile server, String remoteFilePath) async {
-    final port = server.port == 80 || server.port == 8080 ? 21 : server.port;
-    Socket? controlSocket;
-    Socket? dataSocket;
-
-    try {
-      controlSocket = await Socket.connect(server.host, port, timeout: const Duration(seconds: 5));
-      final reader = _FtpStreamReader(controlSocket);
-      await reader.readLine(); // Banner
-
-      // Login
-      controlSocket.write('USER ${server.username ?? 'anonymous'}\r\n');
-      final userResp = await reader.readLine();
-      if (userResp.startsWith('331')) {
-        controlSocket.write('PASS ${server.password ?? ''}\r\n');
-        await reader.readLine();
-      }
-
-      controlSocket.write('TYPE I\r\n');
-      await reader.readLine();
-
-      // Navigate to directory
-      final cleanRelative = remoteFilePath.replaceAll('\\', '/').replaceAll(RegExp(r'^/+'), '');
-      final lastSlash = cleanRelative.lastIndexOf('/');
-      String dirPart = '';
-      String filePart = cleanRelative;
-
-      if (lastSlash >= 0) {
-        dirPart = cleanRelative.substring(0, lastSlash);
-        filePart = cleanRelative.substring(lastSlash + 1);
-      }
-
-      controlSocket.write('CWD /$dirPart\r\n');
-      var cwdResp = await reader.readLine();
-      if (!cwdResp.startsWith('250')) {
-        controlSocket.write('CWD $dirPart\r\n');
-        await reader.readLine();
-      }
-
-      // Enter Passive Mode
-      controlSocket.write('PASV\r\n');
-      final pasvResp = await reader.readLine();
-      final dataEndpoint = _parsePasvResponse(pasvResp, server.host);
-
-      dataSocket = await Socket.connect(dataEndpoint.host, dataEndpoint.port, timeout: const Duration(seconds: 6));
-
-      controlSocket.write('RETR $filePart\r\n');
-      final retrResp = await reader.readLine();
-      if (!retrResp.startsWith('150') && !retrResp.startsWith('125')) {
+        if (chunk.isEmpty) return null;
+        final rawBytes = Uint8List.fromList(chunk);
+        return _extractFirstImage(rawBytes, remoteFilePath);
+      } catch (e) {
         return null;
       }
-
-      // Read only the first 500 KB to find the first image
-      final buffer = BytesBuilder();
-      final completer = Completer<Uint8List?>();
-      const maxHeaderBytes = 600 * 1024; // 600 KB max for cover extraction
-
-      StreamSubscription? sub;
-      sub = dataSocket.listen(
-        (chunk) {
-          buffer.add(chunk);
-          if (buffer.length >= maxHeaderBytes) {
-            sub?.cancel();
-            dataSocket?.destroy();
-            final partial = buffer.takeBytes();
-            final cover = _tryParseZipFirstImage(partial);
-            if (!completer.isCompleted) completer.complete(cover);
-          }
-        },
-        onDone: () {
-          if (!completer.isCompleted) {
-            final partial = buffer.takeBytes();
-            final cover = _tryParseZipFirstImage(partial);
-            completer.complete(cover);
-          }
-        },
-        onError: (err) {
-          if (!completer.isCompleted) completer.complete(null);
-        },
-        cancelOnError: true,
-      );
-
-      final result = await completer.future.timeout(const Duration(seconds: 6), onTimeout: () => null);
-      return result;
-    } catch (_) {
-      return null;
-    } finally {
-      try {
-        dataSocket?.destroy();
-        controlSocket?.write('QUIT\r\n');
-        controlSocket?.destroy();
-      } catch (_) {}
     }
+
+    var result = await tryFetch(rawUrl);
+    if (result == null || result.isEmpty) {
+      final encodedUrl = Uri.encodeFull(rawUrl);
+      if (encodedUrl != rawUrl) {
+        result = await tryFetch(encodedUrl);
+      }
+    }
+    return result;
+  }
+
+  Uint8List? _extractFirstImage(Uint8List bytes, String filename) {
+    final lower = filename.toLowerCase();
+
+    // 1. If CBZ/ZIP, try ZIP parser first
+    if (lower.endsWith('.cbz') || lower.endsWith('.zip')) {
+      final zipImg = _tryParseZipFirstImage(bytes);
+      if (zipImg != null && zipImg.isNotEmpty) return zipImg;
+    }
+
+    // 2. Try extracting embedded JPEG (works for PDF, CBZ/ZIP raw, etc.)
+    final jpeg = _tryExtractJpeg(bytes);
+    if (jpeg != null && jpeg.isNotEmpty) return jpeg;
+
+    // 3. Try extracting embedded PNG
+    final png = _tryExtractPng(bytes);
+    if (png != null && png.isNotEmpty) return png;
+
+    // 4. Try WebP
+    final webp = _tryExtractWebp(bytes);
+    if (webp != null && webp.isNotEmpty) return webp;
+
+    return null;
+  }
+
+  Uint8List? _tryExtractJpeg(Uint8List bytes) {
+    for (int i = 0; i < bytes.length - 3; i++) {
+      if (bytes[i] == 0xFF && bytes[i + 1] == 0xD8 && bytes[i + 2] == 0xFF) {
+        // Found JPEG start marker
+        for (int j = i + 5000; j < bytes.length - 1; j++) {
+          if (bytes[j] == 0xFF && bytes[j + 1] == 0xD9) {
+            // Found JPEG end marker
+            final length = (j + 2) - i;
+            if (length > 8000) { // At least 8KB
+              return bytes.sublist(i, j + 2);
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  Uint8List? _tryExtractPng(Uint8List bytes) {
+    for (int i = 0; i < bytes.length - 8; i++) {
+      if (bytes[i] == 0x89 &&
+          bytes[i + 1] == 0x50 &&
+          bytes[i + 2] == 0x4E &&
+          bytes[i + 3] == 0x47 &&
+          bytes[i + 4] == 0x0D &&
+          bytes[i + 5] == 0x0A &&
+          bytes[i + 6] == 0x1A &&
+          bytes[i + 7] == 0x0A) {
+        for (int j = i + 5000; j < bytes.length - 8; j++) {
+          if (bytes[j] == 0x49 &&
+              bytes[j + 1] == 0x45 &&
+              bytes[j + 2] == 0x4E &&
+              bytes[j + 3] == 0x44 &&
+              bytes[j + 4] == 0xAE &&
+              bytes[j + 5] == 0x42 &&
+              bytes[j + 6] == 0x60 &&
+              bytes[j + 7] == 0x82) {
+            final length = (j + 8) - i;
+            if (length > 8000) {
+              return bytes.sublist(i, j + 8);
+            }
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  Uint8List? _tryExtractWebp(Uint8List bytes) {
+    for (int i = 0; i < bytes.length - 12; i++) {
+      if (bytes[i] == 0x52 &&
+          bytes[i + 1] == 0x49 &&
+          bytes[i + 2] == 0x46 &&
+          bytes[i + 3] == 0x46 &&
+          bytes[i + 8] == 0x57 &&
+          bytes[i + 9] == 0x45 &&
+          bytes[i + 10] == 0x42 &&
+          bytes[i + 11] == 0x50) {
+        final view = ByteData.view(bytes.buffer, bytes.offsetInBytes + i, 8);
+        final fileSize = view.getUint32(4, Endian.little) + 8;
+        if (fileSize > 8000 && i + fileSize <= bytes.length) {
+          return bytes.sublist(i, i + fileSize);
+        }
+      }
+    }
+    return null;
   }
 
   Uint8List? _tryParseZipFirstImage(Uint8List zipChunk) {
-    if (zipChunk.length < 30) return null;
-
     int offset = 0;
-    while (offset + 30 <= zipChunk.length) {
-      final view = ByteData.sublistView(zipChunk, offset);
-
-      // Check Local File Header Signature: 0x04034b50 (PK\x03\x04)
-      final sig = view.getUint32(0, Endian.little);
-      if (sig != 0x04034b50) {
-        // Try searching for next PK\x03\x04 header in the chunk
+    while (offset + 30 < zipChunk.length) {
+      if (zipChunk[offset] != 0x50 ||
+          zipChunk[offset + 1] != 0x4B ||
+          zipChunk[offset + 2] != 0x03 ||
+          zipChunk[offset + 3] != 0x04) {
         final nextSig = _findNextLocalHeader(zipChunk, offset + 4);
         if (nextSig > 0) {
           offset = nextSig;
@@ -276,6 +265,7 @@ class RemoteCoverService {
         break;
       }
 
+      final view = ByteData.view(zipChunk.buffer, zipChunk.offsetInBytes + offset, 30);
       final compressionMethod = view.getUint16(8, Endian.little);
       final compressedSize = view.getUint32(18, Endian.little);
       final fileNameLen = view.getUint16(26, Endian.little);
@@ -285,19 +275,16 @@ class RemoteCoverService {
 
       final fileNameBytes = zipChunk.sublist(offset + 30, offset + 30 + fileNameLen);
       final fileName = utf8.decode(fileNameBytes, allowMalformed: true);
-
       final dataOffset = offset + 30 + fileNameLen + extraFieldLen;
 
       if (CbzService.isImageFile(fileName) && dataOffset < zipChunk.length) {
         if (compressionMethod == 0) {
-          // Stored / uncompressed
           final end = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
               ? dataOffset + compressedSize
               : zipChunk.length;
           final imgBytes = zipChunk.sublist(dataOffset, end);
           if (imgBytes.length > 100) return imgBytes;
         } else if (compressionMethod == 8) {
-          // Deflate
           try {
             final compressed = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
                 ? zipChunk.sublist(dataOffset, dataOffset + compressedSize)
@@ -311,7 +298,6 @@ class RemoteCoverService {
         }
       }
 
-      // Advance offset to next entry
       if (compressedSize > 0 && dataOffset + compressedSize < zipChunk.length) {
         offset = dataOffset + compressedSize;
       } else {
@@ -323,7 +309,6 @@ class RemoteCoverService {
         }
       }
     }
-
     return null;
   }
 
@@ -334,6 +319,66 @@ class RemoteCoverService {
       }
     }
     return -1;
+  }
+
+  Future<Uint8List?> _fetchFtpPartialZipCover(ServerProfile server, String remoteFilePath) async {
+    final port = server.port == 80 || server.port == 8080 ? 21 : server.port;
+    Socket? controlSocket;
+    Socket? dataSocket;
+
+    try {
+      controlSocket = await Socket.connect(server.host, port, timeout: const Duration(seconds: 5));
+      final reader = _FtpStreamReader(controlSocket);
+      await reader.readLine();
+
+      controlSocket.write('USER ${server.username ?? 'anonymous'}\r\n');
+      final userResp = await reader.readLine();
+      if (userResp.startsWith('331')) {
+        controlSocket.write('PASS ${server.password ?? ''}\r\n');
+        await reader.readLine();
+      }
+
+      controlSocket.write('TYPE I\r\n');
+      await reader.readLine();
+
+      controlSocket.write('PASV\r\n');
+      final pasvResp = await reader.readLine();
+      final endpoint = _parsePasvResponse(pasvResp, server.host);
+
+      dataSocket = await Socket.connect(endpoint.host, endpoint.port, timeout: const Duration(seconds: 5));
+
+      controlSocket.write('RETR $remoteFilePath\r\n');
+      await reader.readLine();
+
+      final chunks = <int>[];
+      const maxBytes = 2 * 1024 * 1024; // 2MB
+
+      await for (final chunk in dataSocket) {
+        chunks.addAll(chunk);
+        if (chunks.length >= maxBytes) {
+          break;
+        }
+      }
+
+      if (chunks.isNotEmpty) {
+        final raw = Uint8List.fromList(chunks);
+        return _extractFirstImage(raw, remoteFilePath);
+      }
+    } catch (e) {
+      debugPrint('FTP partial cover fetch error: $e');
+    } finally {
+      try {
+        await dataSocket?.close();
+        dataSocket?.destroy();
+      } catch (_) {}
+      try {
+        controlSocket?.write('QUIT\r\n');
+        await controlSocket?.close();
+        controlSocket?.destroy();
+      } catch (_) {}
+    }
+
+    return null;
   }
 
   _FtpEndpoint _parsePasvResponse(String response, String fallbackHost) {
