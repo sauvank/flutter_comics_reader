@@ -23,6 +23,20 @@ if [ ! -d "$SOURCE_DIR" ]; then
     exit 1
 fi
 
+# Sécurité anti-erreur sur les dossiers racines ou disques complets
+CLEAN_SOURCE=$(realpath -m "$SOURCE_DIR" 2>/dev/null || echo "$SOURCE_DIR")
+FORBIDDEN_PATHS=("/" "/mnt" "/mnt/c" "/mnt/wsl" "/mnt/wslg" "/home" "/root" "/etc" "/usr" "/var" "/tmp" "/bin" "/sbin" "/lib" "/opt" "/sys" "/proc" "/dev")
+
+for forbidden in "${FORBIDDEN_PATHS[@]}"; do
+    if [ "$CLEAN_SOURCE" == "$forbidden" ]; then
+        echo ""
+        echo "🛑 SÉCURITÉ ACTIVÉE : Le chemin '$SOURCE_DIR' est interdit !"
+        echo "❌ Vous tentez de sauvegarder une racine système ou le disque Windows complet."
+        echo "💡 Veuillez spécifier votre dossier de BD précis (ex: /mnt/bd)."
+        exit 1
+    fi
+done
+
 # 2. Dossier de destination pour l'archive chiffrée
 if [ -z "$2" ]; then
     read -p "💾 Dossier de destination (ex: /home/balkhubam/backups) [Défaut: ./backups] : " DEST_DIR
