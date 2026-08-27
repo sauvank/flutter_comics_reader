@@ -3,15 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../models/remote_file.dart';
 import '../models/server_profile.dart';
-import '../providers/download_provider.dart';
-import '../providers/library_provider.dart';
 import '../providers/server_provider.dart';
-import '../widgets/folder_card.dart';
-import '../widgets/instant_read_modal.dart';
-import '../widgets/remote_book_card.dart';
-import '../widgets/remote_file_tile.dart';
 import '../widgets/server_form_dialog.dart';
 
 class ServerScreen extends StatefulWidget {
@@ -22,7 +15,6 @@ class ServerScreen extends StatefulWidget {
 }
 
 class _ServerScreenState extends State<ServerScreen> {
-  bool _isGridView = true;
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
   String _searchQuery = '';
@@ -254,29 +246,6 @@ class _ServerScreenState extends State<ServerScreen> {
         ),
       );
     }
-  }
-
-  void _downloadAllInFolder(List<RemoteFile> files, ServerProfile server) {
-    final downloadProvider = context.read<DownloadProvider>();
-    final libraryProvider = context.read<LibraryProvider>();
-
-    int count = 0;
-    for (final file in files) {
-      if (file.isSupportedBook) {
-        final isDownloaded = libraryProvider.getBookByServerPath(server.id, file.path) != null;
-        if (!isDownloaded) {
-          downloadProvider.enqueueDownload(server: server, remoteFile: file);
-          count++;
-        }
-      }
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$count fichier(s) ajouté(s) à la file de téléchargement'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
   }
 
   void _showServerSwitchSheet(BuildContext context) {
@@ -667,8 +636,6 @@ class _ServerScreenState extends State<ServerScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final serverProvider = context.watch<ServerProvider>();
-    final downloadProvider = context.watch<DownloadProvider>();
-    final libraryProvider = context.watch<LibraryProvider>();
 
     final activeServer = serverProvider.activeServer;
     final remoteFiles = serverProvider.remoteFiles;
@@ -682,7 +649,6 @@ class _ServerScreenState extends State<ServerScreen> {
     final books = q.isEmpty
         ? remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList()
         : remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook && f.name.toLowerCase().contains(q)).toList();
-    final supportedFilesCount = books.length;
 
     return Scaffold(
       appBar: AppBar(
@@ -729,15 +695,6 @@ class _ServerScreenState extends State<ServerScreen> {
                 } else {
                   _isSearching = true;
                 }
-              });
-            },
-          ),
-          IconButton(
-            icon: Icon(_isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded),
-            tooltip: _isGridView ? 'Vue Liste' : 'Vue Grille',
-            onPressed: () {
-              setState(() {
-                _isGridView = !_isGridView;
               });
             },
           ),
@@ -794,7 +751,7 @@ class _ServerScreenState extends State<ServerScreen> {
           // Breadcrumbs Navigation Bar
           if (activeServer != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest.withAlpha(60),
                 border: Border(
@@ -802,120 +759,69 @@ class _ServerScreenState extends State<ServerScreen> {
                   bottom: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
                 ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      // Back button
-                      if (currentPath.isNotEmpty && currentPath != '/')
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, size: 18),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                          onPressed: () => serverProvider.navigateUp(),
-                          tooltip: 'Dossier parent',
-                        ),
-                      // Root icon
-                      InkWell(
-                        onTap: () => serverProvider.navigateToRoot(),
-                        borderRadius: BorderRadius.circular(4),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          child: Row(
-                            children: [
-                              Icon(Icons.home_outlined, size: 16, color: theme.colorScheme.primary),
-                              const SizedBox(width: 4),
-                              const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
+                  // Back button
+                  if (currentPath.isNotEmpty && currentPath != '/')
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                      onPressed: () => serverProvider.navigateUp(),
+                      tooltip: 'Dossier parent',
+                    ),
+                  // Root icon
+                  InkWell(
+                    onTap: () => serverProvider.navigateToRoot(),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      child: Row(
+                        children: [
+                          Icon(Icons.home_rounded, size: 16, color: theme.colorScheme.primary),
+                          const SizedBox(width: 4),
+                          const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      // Breadcrumb segments
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              for (int i = 0; i < breadcrumbs.length; i++) ...[
-                                const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-                                InkWell(
-                                  onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                                    child: Text(
-                                      breadcrumbs[i],
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: i == breadcrumbs.length - 1
-                                            ? theme.colorScheme.onSurface
-                                            : theme.colorScheme.primary,
-                                        fontWeight: i == breadcrumbs.length - 1
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                    ),
+                  ),
+                  // Breadcrumb segments
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          for (int i = 0; i < breadcrumbs.length; i++) ...[
+                            Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.outline),
+                            InkWell(
+                              onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                child: Text(
+                                  breadcrumbs[i],
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: i == breadcrumbs.length - 1
+                                        ? theme.colorScheme.primary
+                                        : theme.colorScheme.onSurface,
+                                    fontWeight: i == breadcrumbs.length - 1
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      // Batch Download All button
-                      if (supportedFilesCount > 0)
-                        TextButton.icon(
-                          onPressed: () => _downloadAllInFolder(books, activeServer),
-                          icon: const Icon(Icons.download_for_offline_outlined, size: 16),
-                          label: Text('Tout ($supportedFilesCount)', style: const TextStyle(fontSize: 11)),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  // Folder Validation Banner
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, bottom: 2),
-                    child: Row(
-                      children: [
-                        Icon(Icons.folder_open, size: 14, color: theme.colorScheme.primary),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            currentPath.isEmpty ? '/' : currentPath,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontFamily: 'monospace',
-                              color: theme.colorScheme.onSurfaceVariant,
+                              ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        FilledButton.icon(
-                          onPressed: _saveCurrentPathAsRoot,
-                          icon: const Icon(Icons.check_circle_outline, size: 14),
-                          label: const Text('Valider ce dossier', style: TextStyle(fontSize: 11)),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: const Color(0xFF10B981),
-                          ),
-                        ),
-                      ],
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
 
-          // Main Directory Content Area
+          // Main Directory Content Area (Folder List)
           Expanded(
             child: activeServer == null
                 ? _buildNoServerState(theme)
@@ -927,177 +833,138 @@ class _ServerScreenState extends State<ServerScreen> {
                             ? _buildEmptyDirectoryState(theme)
                             : RefreshIndicator(
                                 onRefresh: () => serverProvider.fetchRemoteFiles(),
-                                child: _isGridView
-                                    ? _buildGridView(context, folders, books, activeServer, libraryProvider, downloadProvider, theme)
-                                    : _buildListView(context, remoteFiles, activeServer, libraryProvider, downloadProvider),
+                                child: ListView(
+                                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
+                                  children: [
+                                    // Info pill if current folder contains books
+                                    if (books.isNotEmpty)
+                                      Container(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF10B981).withAlpha(25),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: const Color(0xFF10B981).withAlpha(60)),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.auto_stories_rounded, color: Color(0xFF10B981), size: 18),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Text(
+                                                'Ce dossier contient ${books.length} tome(s) de BD',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF10B981),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                    // List of Folders
+                                    if (folders.isNotEmpty) ...[
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                        child: Text(
+                                          'Sous-dossiers disponibles (${folders.length})',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                      ...folders.map((folder) => Container(
+                                            margin: const EdgeInsets.only(bottom: 8),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.surfaceContainer,
+                                              borderRadius: BorderRadius.circular(14),
+                                              border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(30)),
+                                            ),
+                                            child: ListTile(
+                                              onTap: () => serverProvider.navigateTo(folder.path),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                              leading: Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.primary.withAlpha(30),
+                                                  borderRadius: BorderRadius.circular(10),
+                                                ),
+                                                child: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 22),
+                                              ),
+                                              title: Text(
+                                                folder.name.replaceAll('_', ' '),
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                              ),
+                                              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                                            ),
+                                          )),
+                                    ],
+                                  ],
+                                ),
                               ),
           ),
+
+          // Bottom Action Bar to Select Folder as Library Root
+          if (activeServer != null)
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainer,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(40),
+                    blurRadius: 10,
+                    offset: const Offset(0, -3),
+                  ),
+                ],
+                border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(30))),
+              ),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dossier actuel :',
+                            style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                          Text(
+                            currentPath.isEmpty ? '/' : currentPath,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      onPressed: _saveCurrentPathAsRoot,
+                      icon: const Icon(Icons.check_circle_rounded, size: 18),
+                      label: const Text('Choisir ce dossier'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildGridView(
-    BuildContext context,
-    List<RemoteFile> folders,
-    List<RemoteFile> books,
-    ServerProfile activeServer,
-    LibraryProvider libraryProvider,
-    DownloadProvider downloadProvider,
-    ThemeData theme,
-  ) {
-    final serverProvider = context.read<ServerProvider>();
 
-    return CustomScrollView(
-      slivers: [
-        // Folders Section
-        if (folders.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Row(
-                children: [
-                  Icon(Icons.folder_copy_outlined, size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Dossiers & Séries (${folders.length})',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 1.5,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final folder = folders[index];
-                  return FolderCard(
-                    name: folder.name,
-                    onTap: () => serverProvider.navigateTo(folder.path),
-                  );
-                },
-                childCount: folders.length,
-              ),
-            ),
-          ),
-        ],
-
-        // Books Section
-        if (books.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Row(
-                children: [
-                  Icon(Icons.menu_book_rounded, size: 18, color: theme.colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Livres & Tomes (${books.length})',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.65,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final file = books[index];
-                  final isDownloaded =
-                      libraryProvider.getBookByServerPath(activeServer.id, file.path) != null;
-                  final task = downloadProvider.getTaskForRemotePath(file.path);
-
-                  return RemoteBookCard(
-                    server: activeServer,
-                    file: file,
-                    isDownloaded: isDownloaded,
-                    downloadTask: task,
-                    onTap: () {
-                      InstantReadModal.show(
-                        context,
-                        server: activeServer,
-                        file: file,
-                      );
-                    },
-                    onDownload: () {
-                      downloadProvider.enqueueDownload(
-                        server: activeServer,
-                        remoteFile: file,
-                      );
-                    },
-                  );
-                },
-                childCount: books.length,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildListView(
-    BuildContext context,
-    List<RemoteFile> remoteFiles,
-    ServerProfile activeServer,
-    LibraryProvider libraryProvider,
-    DownloadProvider downloadProvider,
-  ) {
-    final serverProvider = context.read<ServerProvider>();
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 6, bottom: 20),
-      itemCount: remoteFiles.length,
-      itemBuilder: (context, index) {
-        final file = remoteFiles[index];
-        final isDownloaded =
-            libraryProvider.getBookByServerPath(activeServer.id, file.path) != null;
-        final task = downloadProvider.getTaskForRemotePath(file.path);
-
-        return RemoteFileTile(
-          file: file,
-          isDownloaded: isDownloaded,
-          downloadTask: task,
-          onTap: () {
-            if (file.isDirectory) {
-              serverProvider.navigateTo(file.path);
-            } else if (file.isSupportedBook) {
-              InstantReadModal.show(
-                context,
-                server: activeServer,
-                file: file,
-              );
-            }
-          },
-          onDownload: () {
-            downloadProvider.enqueueDownload(
-              server: activeServer,
-              remoteFile: file,
-            );
-          },
-          onCancelDownload: task != null
-              ? () => downloadProvider.cancelDownload(task.id)
-              : null,
-        );
-      },
-    );
-  }
 
   Widget _buildNoServerState(ThemeData theme) {
     return Center(
