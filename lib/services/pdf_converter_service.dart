@@ -130,7 +130,7 @@ class PdfConverterService {
       final zipEncoder = ZipFileEncoder();
       zipEncoder.create(targetPath);
       for (final imageFile in generatedImages) {
-        zipEncoder.addFile(imageFile);
+        zipEncoder.addFile(imageFile, p.basename(imageFile.path));
       }
       zipEncoder.close();
 
