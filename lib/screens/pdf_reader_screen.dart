@@ -73,7 +73,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   void _jumpToPage(int pageIndex) {
     if (pageIndex < 0 || (_totalPages > 0 && pageIndex >= _totalPages)) return;
-    _pdfController.goToPage(pageNumber: pageIndex + 1);
+    _pdfController.goToPage(pageNumber: pageIndex + 1, anchor: PdfPageAnchor.top);
   }
 
   void _toggleBookmark() {
@@ -95,7 +95,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<ReaderSettingsService>();
-    final isBookmarked = widget.book.bookmarks.contains(_currentPage);
+    final library = context.watch<LibraryProvider>();
+    final currentBook = library.getBookById(widget.book.id) ?? widget.book;
+    final isBookmarked = currentBook.bookmarks.contains(_currentPage);
+    final isFavorite = currentBook.isFavorite;
     final file = File(widget.book.localPath);
 
     if (!file.existsSync()) {
@@ -184,8 +187,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                     currentPage: _currentPage,
                     totalPages: _totalPages > 0 ? _totalPages : widget.book.totalPages,
                     isBookmarked: isBookmarked,
+                    isFavorite: isFavorite,
                     onBack: () => Navigator.of(context).pop(),
                     onToggleBookmark: _toggleBookmark,
+                    onToggleFavorite: () => library.toggleFavorite(widget.book.id),
                     onOpenSettings: _showSettings,
                   ),
                 ),

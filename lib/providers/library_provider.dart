@@ -6,9 +6,11 @@ import 'package:pdfrx/pdfrx.dart';
 import '../models/book_item.dart';
 import '../services/cbz_service.dart';
 import '../services/database_service.dart';
+import '../utils/format_utils.dart';
 
 enum LibraryFilter {
   all,
+  favorites,
   inProgress,
   unread,
   completed,
@@ -27,6 +29,7 @@ class LibraryProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
 
   List<BookItem> _books = [];
+  Set<String> _favoriteRemoteKeys = {};
   bool _isLoading = false;
   String _searchQuery = '';
   LibraryFilter _filter = LibraryFilter.all;
@@ -34,6 +37,7 @@ class LibraryProvider extends ChangeNotifier {
   int _totalStorageBytes = 0;
 
   List<BookItem> get books => _books;
+  Set<String> get favoriteRemoteKeys => _favoriteRemoteKeys;
   bool get isLoading => _isLoading;
   String get searchQuery => _searchQuery;
   LibraryFilter get filter => _filter;
@@ -46,6 +50,9 @@ class LibraryProvider extends ChangeNotifier {
     // Apply format/status filter
     switch (_filter) {
       case LibraryFilter.all:
+        break;
+      case LibraryFilter.favorites:
+        list = list.where((b) => b.isFavorite).toList();
         break;
       case LibraryFilter.inProgress:
         list = list.where((b) => b.progress > 0 && !b.isCompleted).toList();
@@ -102,11 +109,24 @@ class LibraryProvider extends ChangeNotifier {
     return list.take(6).toList();
   }
 
+  /// Finds the logically next volume in the library for the given book
+  BookItem? getNextBook(BookItem currentBook) {
+    if (_books.isEmpty) return null;
+    final sorted = List<BookItem>.from(_books);
+    sorted.sort((a, b) => NaturalSort.compare(a.title, b.title));
+    final idx = sorted.indexWhere((b) => b.id == currentBook.id);
+    if (idx >= 0 && idx < sorted.length - 1) {
+      return sorted[idx + 1];
+    }
+    return null;
+  }
+
   Future<void> loadLibrary() async {
     _isLoading = true;
     notifyListeners();
 
     _books = await _db.getBooks();
+    _favoriteRemoteKeys = await _db.getFavoriteRemoteKeys();
     _totalStorageBytes = await _db.calculateTotalLibraryStorage();
 
     _isLoading = false;
@@ -188,6 +208,31 @@ class LibraryProvider extends ChangeNotifier {
       isCompleted: isCompleted,
     );
     await loadLibrary();
+  }
+
+  Future<void> toggleFavorite(String bookId) async {
+    await _db.toggleFavoriteBook(bookId);
+    final index = _books.indexWhere((b) => b.id == bookId);
+    if (index >= 0) {
+      _books[index] = _books[index].copyWith(isFavorite: !_books[index].isFavorite);
+      notifyListeners();
+    }
+  }
+
+  bool isRemoteFavorite(String serverId, String remotePath) {
+    final key = '$serverId:$remotePath';
+    return _favoriteRemoteKeys.contains(key);
+  }
+
+  Future<void> toggleRemoteFavorite(String serverId, String remotePath) async {
+    final key = '$serverId:$remotePath';
+    if (_favoriteRemoteKeys.contains(key)) {
+      _favoriteRemoteKeys.remove(key);
+    } else {
+      _favoriteRemoteKeys.add(key);
+    }
+    await _db.saveFavoriteRemoteKeys(_favoriteRemoteKeys);
+    notifyListeners();
   }
 
   Future<void> toggleBookmark({required String bookId, required int pageNumber}) async {
