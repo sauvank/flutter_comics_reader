@@ -34,7 +34,7 @@ class ReaderSettingsService extends ChangeNotifier {
   factory ReaderSettingsService() => _instance;
   ReaderSettingsService._internal();
 
-  ReadingMode _readingMode = ReadingMode.leftToRight;
+  ReadingMode _readingMode = ReadingMode.vertical; // Webtoon par défaut
   FitMode _fitMode = FitMode.fitWidth;
   ReaderBgColor _bgColor = ReaderBgColor.black;
   bool _keepScreenOn = true;
@@ -96,7 +96,7 @@ class ReaderSettingsService extends ChangeNotifier {
     if (modeStr != null) {
       _readingMode = ReadingMode.values.firstWhere(
         (e) => e.name == modeStr,
-        orElse: () => ReadingMode.leftToRight,
+        orElse: () => ReadingMode.vertical,
       );
     }
     final fitStr = prefs.getString('reader_fit_mode');

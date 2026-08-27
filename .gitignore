@@ -66,3 +66,7 @@ playstore_bundle/
 playstore_assets/
 *.aab
 *.apk
+
+# Local private notes & configs
+SETUP_STORAGE_NOTES.md
+*.private.md

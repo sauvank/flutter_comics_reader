@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
@@ -45,6 +48,178 @@ class _ServerScreenState extends State<ServerScreen> {
         await provider.setActiveServer(updated);
       }
     }
+  }
+
+  void _exportServersDialog() {
+    final serverProvider = context.read<ServerProvider>();
+    final jsonStr = serverProvider.exportServersJson();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.file_upload_outlined),
+            SizedBox(width: 8),
+            Text('Exporter la configuration'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Voici le fichier de configuration JSON contenant vos profils serveurs :',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.surfaceContainerHighest.withAlpha(80),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant.withAlpha(50)),
+                ),
+                constraints: const BoxConstraints(maxHeight: 180),
+                child: SingleChildScrollView(
+                  child: SelectableText(
+                    jsonStr,
+                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Fermer'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.copy_rounded, size: 16),
+            label: const Text('Copier JSON'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: jsonStr));
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Configuration copiée dans le presse-papiers !'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _importServersDialog() {
+    final textController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.file_download_outlined),
+            SizedBox(width: 8),
+            Text('Importer une configuration'),
+          ],
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              OutlinedButton.icon(
+                icon: const Icon(Icons.folder_open_rounded),
+                label: const Text('Choisir un fichier .json'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(40),
+                ),
+                onPressed: () async {
+                  final result = await FilePicker.pickFiles(
+                    type: FileType.custom,
+                    allowedExtensions: ['json'],
+                  );
+                  if (result != null && result.files.single.path != null) {
+                    try {
+                      final file = File(result.files.single.path!);
+                      final content = await file.readAsString();
+                      textController.text = content;
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erreur lors de la lecture du fichier : $e')),
+                        );
+                      }
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              const Text('Ou collez le JSON ici :', style: TextStyle(fontSize: 12)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: textController,
+                maxLines: 5,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                decoration: const InputDecoration(
+                  hintText: '[{"name": "Mon Serveur", ...}]',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.all(10),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.download_done_rounded, size: 16),
+            label: const Text('Importer'),
+            onPressed: () async {
+              final text = textController.text.trim();
+              if (text.isEmpty) return;
+
+              final messenger = ScaffoldMessenger.of(context);
+              final nav = Navigator.of(ctx);
+              final provider = context.read<ServerProvider>();
+
+              try {
+                final count = await provider.importServersFromJson(text);
+                if (ctx.mounted) {
+                  nav.pop();
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('✅ $count serveur(s) importé(s) avec succès !'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (ctx.mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('❌ Erreur de format JSON : $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _saveCurrentPathAsRoot() async {
@@ -146,6 +321,39 @@ class _ServerScreenState extends State<ServerScreen> {
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Actualiser',
             onPressed: activeServer != null ? () => serverProvider.fetchRemoteFiles() : null,
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Options de configuration',
+            onSelected: (value) {
+              if (value == 'export') {
+                _exportServersDialog();
+              } else if (value == 'import') {
+                _importServersDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text('Exporter la configuration'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text('Importer une configuration'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
