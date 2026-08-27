@@ -40,7 +40,7 @@ class ReaderSettingsService extends ChangeNotifier {
   bool _keepScreenOn = true;
   bool _showPageNumbers = true;
   bool _volumeButtonsNavigation = false;
-  bool _autoConvertPdfToCbz = true;
+  bool _autoConvertPdfToCbz = false; // Native PDF reading by default (instant and smooth)
   PdfRenderQuality _pdfRenderQuality = PdfRenderQuality.autoAdaptive;
 
   ReadingMode get readingMode => _readingMode;

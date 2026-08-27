@@ -156,7 +156,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   maxScale: 8.0,
                   minScale: 1.0,
                   panAxis: PanAxis.free,
-                  boundaryMargin: const EdgeInsets.all(30),
+                  boundaryMargin: EdgeInsets.zero,
                   enableTextSelection: false,
                   viewerOverlayBuilder: (ctx, size, handleLinkTap) => [
                     GestureDetector(
