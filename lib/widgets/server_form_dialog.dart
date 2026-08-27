@@ -146,6 +146,41 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     Navigator.of(context).pop(server);
   }
 
+  void _confirmDelete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce serveur ?'),
+        content: Text('Êtes-vous sûr de vouloir supprimer le profil "${widget.server?.name}" ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted && widget.server != null) {
+      final serverName = widget.server?.name ?? '';
+      await context.read<ServerProvider>().deleteServer(widget.server!.id);
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('🗑️ Serveur "$serverName" supprimé.'),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -179,6 +214,12 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
+                    if (widget.server != null)
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        tooltip: 'Supprimer ce serveur',
+                        onPressed: _confirmDelete,
+                      ),
                     IconButton(
                       icon: const Icon(Icons.close),
                       onPressed: () => Navigator.of(context).pop(),

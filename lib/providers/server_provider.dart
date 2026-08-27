@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
@@ -95,6 +96,45 @@ class ServerProvider extends ChangeNotifier {
       _remoteFiles = [];
     }
     await loadServers();
+  }
+
+  /// Exports all configured servers into a formatted JSON string
+  String exportServersJson() {
+    final list = _servers.map((s) => s.toMap()).toList();
+    return const JsonEncoder.withIndent('  ').convert(list);
+  }
+
+  /// Imports server profiles from a JSON string, returns the number of imported servers
+  Future<int> importServersFromJson(String jsonContent) async {
+    try {
+      final decoded = jsonDecode(jsonContent);
+      List<dynamic> list;
+      if (decoded is List) {
+        list = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        if (decoded.containsKey('servers') && decoded['servers'] is List) {
+          list = decoded['servers'] as List;
+        } else {
+          list = [decoded];
+        }
+      } else {
+        throw const FormatException('Format JSON invalide');
+      }
+
+      int count = 0;
+      for (final item in list) {
+        if (item is Map<String, dynamic>) {
+          final profile = ServerProfile.fromMap(item);
+          await _db.saveServer(profile);
+          count++;
+        }
+      }
+      await loadServers();
+      return count;
+    } catch (e) {
+      debugPrint('Error importing servers: $e');
+      rethrow;
+    }
   }
 
   Future<bool> testConnection(ServerProfile server) async {

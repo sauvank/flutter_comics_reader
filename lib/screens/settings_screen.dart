@@ -390,6 +390,43 @@ class SettingsScreen extends StatelessWidget {
               onTap: () => _showServerGuide(context),
             ),
           ),
+          const SizedBox(height: 24),
+
+          // App Info & Version
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_stories_rounded, size: 16, color: theme.colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ComicStream v1.0.0 (Build 5)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Lecteur de BD, Comics & Mangas Cloud',
+                  style: TextStyle(fontSize: 11, color: theme.colorScheme.outline),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 30),
         ],
       ),

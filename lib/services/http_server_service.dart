@@ -28,15 +28,38 @@ class HttpServerService {
     return headers;
   }
 
+  String _buildTargetUrl(ServerProfile server, String remoteRelativePath) {
+    var base = server.baseUrl;
+    if (!base.endsWith('/')) base = '$base/';
+
+    var cleanPath = remoteRelativePath.trim();
+    if (cleanPath.isEmpty || cleanPath == '/') {
+      return base;
+    }
+
+    var serverBasePath = Uri.parse(base).path;
+    serverBasePath = serverBasePath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+
+    var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+
+    if (cleanRelative == serverBasePath || cleanRelative.isEmpty) {
+      return base;
+    }
+
+    if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
+      cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
+    }
+
+    return cleanRelative.isEmpty ? base : '$base$cleanRelative';
+  }
+
   /// Lists files from an HTTP server (Supports JSON API or standard HTML Directory Listing)
   Future<List<RemoteFile>> listDirectory({
     required ServerProfile server,
     String remoteRelativePath = '',
   }) async {
-    var cleanRelative = remoteRelativePath.replaceAll(RegExp(r'^/+'), '');
-    var base = server.baseUrl;
-    if (!base.endsWith('/')) base = '$base/';
-    final targetUrl = cleanRelative.isEmpty ? base : '$base$cleanRelative';
+    final targetUrl = _buildTargetUrl(server, remoteRelativePath);
+    final cleanRelative = remoteRelativePath.replaceAll(RegExp(r'^/+'), '');
 
     try {
       final response = await _dio.get(

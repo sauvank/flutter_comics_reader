@@ -92,37 +92,6 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     );
   }
 
-  void _onTapZone(TapDownDetails details, BuildContext context, ReaderSettingsService settings) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final tapX = details.globalPosition.dx;
-
-    final leftBoundary = screenWidth * 0.30;
-    final rightBoundary = screenWidth * 0.70;
-
-    final isRTL = settings.readingMode == ReadingMode.rightToLeft;
-
-    if (tapX < leftBoundary) {
-      // Tapped Left Zone
-      if (isRTL) {
-        _nextPage();
-      } else {
-        _prevPage();
-      }
-    } else if (tapX > rightBoundary) {
-      // Tapped Right Zone
-      if (isRTL) {
-        _prevPage();
-      } else {
-        _nextPage();
-      }
-    } else {
-      // Tapped Center Zone
-      setState(() {
-        _showControls = !_showControls;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<ReaderSettingsService>();
@@ -173,22 +142,34 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           backgroundColor: settings.actualBackgroundColor,
           body: Stack(
             children: [
-              // PDF Viewer
+              // PDF Viewer with smooth pinch-to-zoom & Webtoon scroll
               PdfViewer.file(
                 widget.book.localPath,
                 controller: _pdfController,
                 initialPageNumber: _currentPage > 0 ? _currentPage + 1 : 1,
                 params: PdfViewerParams(
                   backgroundColor: settings.actualBackgroundColor,
-                  margin: 8,
-                ),
-              ),
-
-              // 3-Zone Touch Tap Area
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTapDown: (details) => _onTapZone(details, context, settings),
+                  margin: 4,
+                  maxScale: 8.0,
+                  minScale: 0.8,
+                  panAxis: PanAxis.free,
+                  viewerOverlayBuilder: (ctx, size, handleLinkTap) => [
+                    GestureDetector(
+                      behavior: HitTestBehavior.translucent,
+                      onTapUp: (details) {
+                        final tapX = details.globalPosition.dx;
+                        final screenWidth = size.width;
+                        if (tapX > screenWidth * 0.30 && tapX < screenWidth * 0.70) {
+                          setState(() {
+                            _showControls = !_showControls;
+                          });
+                        }
+                      },
+                      child: IgnorePointer(
+                        child: SizedBox(width: size.width, height: size.height),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 

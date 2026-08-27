@@ -302,7 +302,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
     }
   }
 
-  void _onTapZone(TapDownDetails details, BuildContext context, ReaderSettingsService settings) {
+  void _onTapZone(TapUpDetails details, BuildContext context, ReaderSettingsService settings) {
     final screenWidth = MediaQuery.of(context).size.width;
     final tapX = details.globalPosition.dx;
 
@@ -402,15 +402,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
                   ? _buildVerticalReader(settings)
                   : _buildHorizontalReader(settings),
 
-              // Transparent 3-Zone Touch Tap Area
-              Positioned.fill(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTapDown: (details) => _onTapZone(details, context, settings),
-                  onDoubleTap: () => _handleDoubleTap(_currentPage),
-                ),
-              ),
-
               // Top Controls Bar
               if (_showControls)
                 Positioned(
@@ -481,17 +472,24 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
           final page = _pages[index];
           final transformCtrl = _getTransformController(index);
 
-          return InteractiveViewer(
-            transformationController: transformCtrl,
-            minScale: 1.0,
-            maxScale: 4.0,
-            child: Center(
-              child: Image.memory(
-                page.bytes,
-                fit: _getBoxFit(settings.fitMode),
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.high,
-                isAntiAlias: true,
+          return GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTapUp: (details) => _onTapZone(details, context, settings),
+            onDoubleTap: () => _handleDoubleTap(index),
+            child: InteractiveViewer(
+              transformationController: transformCtrl,
+              minScale: 1.0,
+              maxScale: 5.0,
+              panAxis: PanAxis.free,
+              child: Center(
+                child: Image.memory(
+                  page.bytes,
+                  fit: _getBoxFit(settings.fitMode),
+                  width: settings.fitMode == FitMode.fitWidth ? MediaQuery.of(context).size.width : null,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
+                ),
               ),
             ),
           );
@@ -501,20 +499,39 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> {
   }
 
   Widget _buildVerticalReader(ReaderSettingsService settings) {
-    return ListView.builder(
-      controller: _verticalScrollController,
-      itemCount: _pages.length,
-      padding: EdgeInsets.zero,
-      itemBuilder: (context, index) {
-        final page = _pages[index];
-        return Image.memory(
-          page.bytes,
-          fit: BoxFit.fitWidth,
-          gaplessPlayback: true,
-          filterQuality: FilterQuality.high,
-          isAntiAlias: true,
-        );
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        setState(() {
+          _showControls = !_showControls;
+        });
       },
+      child: InteractiveViewer(
+        minScale: 1.0,
+        maxScale: 5.0,
+        panAxis: PanAxis.free,
+        child: ListView.builder(
+          controller: _verticalScrollController,
+          itemCount: _pages.length,
+          padding: EdgeInsets.zero,
+          physics: const ClampingScrollPhysics(),
+          itemBuilder: (context, index) {
+            final page = _pages[index];
+            return Container(
+              width: double.infinity,
+              color: settings.actualBackgroundColor,
+              child: Image.memory(
+                page.bytes,
+                fit: BoxFit.fitWidth,
+                width: MediaQuery.of(context).size.width,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.high,
+                isAntiAlias: true,
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 

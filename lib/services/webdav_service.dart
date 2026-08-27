@@ -67,16 +67,41 @@ class WebDavService {
     }
   }
 
+  String _buildTargetUrl(ServerProfile server, String remoteRelativePath) {
+    var base = server.baseUrl;
+    if (!base.endsWith('/')) base = '$base/';
+
+    var cleanPath = remoteRelativePath.trim();
+    if (cleanPath.isEmpty || cleanPath == '/') {
+      return base;
+    }
+
+    // Clean server basePath to check for overlaps
+    var serverBasePath = Uri.parse(base).path;
+    serverBasePath = serverBasePath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+
+    var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+
+    // If cleanRelative is exactly serverBasePath (e.g. 'dav/Comics' when base is 'http://.../dav/Comics/'),
+    // it refers to the root of baseUrl itself!
+    if (cleanRelative == serverBasePath || cleanRelative.isEmpty) {
+      return base;
+    }
+
+    // If cleanRelative starts with serverBasePath, strip that prefix
+    if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
+      cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
+    }
+
+    return cleanRelative.isEmpty ? base : '$base$cleanRelative';
+  }
+
   /// Lists files and folders at [remoteRelativePath]
   Future<List<RemoteFile>> listDirectory({
     required ServerProfile server,
     String remoteRelativePath = '',
   }) async {
-    // Construct target URL
-    var cleanRelative = remoteRelativePath.replaceAll(RegExp(r'^/+'), '');
-    var base = server.baseUrl;
-    if (!base.endsWith('/')) base = '$base/';
-    final targetUrl = cleanRelative.isEmpty ? base : '$base$cleanRelative';
+    final targetUrl = _buildTargetUrl(server, remoteRelativePath);
 
     const propfindXml = '''<?xml version="1.0" encoding="utf-8" ?>
 <D:propfind xmlns:D="DAV:">
@@ -180,6 +205,10 @@ class WebDavService {
       if (!serverBasePath.endsWith('/')) serverBasePath = '$serverBasePath/';
 
       var relPath = decodedHref;
+      if (relPath.contains('://')) {
+        final parsed = Uri.tryParse(relPath);
+        if (parsed != null) relPath = parsed.path;
+      }
       if (relPath.startsWith(serverBasePath)) {
         relPath = relPath.substring(serverBasePath.length);
       } else if (relPath.startsWith('/')) {
@@ -213,10 +242,7 @@ class WebDavService {
     required void Function(int receivedBytes, int totalBytes) onProgress,
     CancelToken? cancelToken,
   }) async {
-    var cleanRelative = remoteRelativePath.replaceAll(RegExp(r'^/+'), '');
-    var base = server.baseUrl;
-    if (!base.endsWith('/')) base = '$base/';
-    final downloadUrl = '$base$cleanRelative';
+    final downloadUrl = _buildTargetUrl(server, remoteRelativePath);
 
     final tempFile = File('$destinationLocalPath.tmp');
     if (await tempFile.exists()) {
