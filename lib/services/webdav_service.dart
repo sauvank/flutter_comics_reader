@@ -300,31 +300,66 @@ class WebDavService {
       await tempFile.delete();
     }
 
-    try {
-      await _dio.download(
-        downloadUrl,
-        tempFile.path,
-        onReceiveProgress: onProgress,
-        cancelToken: cancelToken,
-        options: Options(
-          headers: getHeaders(server),
-          responseType: ResponseType.stream,
-        ),
-      );
+    int attempts = 0;
+    const maxAttempts = 3;
+    dynamic lastError;
 
-      // Rename temp file to final destination
-      final finalFile = File(destinationLocalPath);
-      if (await finalFile.exists()) {
-        await finalFile.delete();
+    while (attempts < maxAttempts) {
+      attempts++;
+      if (cancelToken?.isCancelled == true) {
+        throw DioException(
+          requestOptions: RequestOptions(path: downloadUrl),
+          type: DioExceptionType.cancel,
+        );
       }
-      await tempFile.rename(destinationLocalPath);
-    } catch (e) {
-      if (await tempFile.exists()) {
-        try {
-          await tempFile.delete();
-        } catch (_) {}
+
+      try {
+        await _dio.download(
+          downloadUrl,
+          tempFile.path,
+          onReceiveProgress: onProgress,
+          cancelToken: cancelToken,
+          options: Options(
+            headers: getHeaders(server),
+            responseType: ResponseType.stream,
+          ),
+        );
+
+        // Rename temp file to final destination
+        final finalFile = File(destinationLocalPath);
+        if (await finalFile.exists()) {
+          await finalFile.delete();
+        }
+        await tempFile.rename(destinationLocalPath);
+        return;
+      } catch (e) {
+        lastError = e;
+        if (cancelToken?.isCancelled == true) {
+          if (await tempFile.exists()) {
+            try {
+              await tempFile.delete();
+            } catch (_) {}
+          }
+          rethrow;
+        }
+
+        debugPrint('WebDAV download attempt $attempts/$maxAttempts failed for $remoteRelativePath: $e');
+
+        // Delete partially written temp file before next attempt
+        if (await tempFile.exists()) {
+          try {
+            await tempFile.delete();
+          } catch (_) {}
+        }
+
+        if (attempts < maxAttempts) {
+          await Future.delayed(Duration(milliseconds: 600 * attempts));
+        }
       }
-      rethrow;
+    }
+
+    if (lastError != null) {
+      throw lastError;
     }
   }
 }
