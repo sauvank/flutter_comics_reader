@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:pdfrx/pdfrx.dart';
 import 'package:uuid/uuid.dart';
 import '../models/book_item.dart';
 import '../models/download_task.dart';
@@ -12,6 +14,7 @@ import '../services/database_service.dart';
 import '../services/ftp_service.dart';
 import '../services/pdf_converter_service.dart';
 import '../services/reader_settings_service.dart';
+import '../services/remote_cover_service.dart';
 import '../services/webdav_service.dart';
 import 'library_provider.dart';
 
@@ -247,6 +250,40 @@ class DownloadProvider extends ChangeNotifier {
           targetCoverPath: targetCover,
         );
         totalPages = await CbzService.getPageCount(finalLocalPath);
+      } else if (finalFormat == BookFormat.pdf) {
+        try {
+          final coversDir = await _db.getCoversDirectory();
+          final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
+
+          // Check if remote cover was already cached first
+          final cachedRemoteCover = await RemoteCoverService().getCachedCover(server.id, task.remotePath);
+          if (cachedRemoteCover != null && await File(cachedRemoteCover).exists()) {
+            await File(cachedRemoteCover).copy(targetCover);
+            coverPath = targetCover;
+          }
+
+          final doc = await PdfDocument.openFile(finalLocalPath);
+          totalPages = doc.pages.length;
+
+          if (coverPath == null && doc.pages.isNotEmpty) {
+            final page = doc.pages[0];
+            final img = await page.render(fullWidth: 600, fullHeight: 900);
+            if (img != null) {
+              final uiImg = await img.createImage();
+              final byteData = await uiImg.toByteData(format: ui.ImageByteFormat.png);
+              img.dispose();
+              uiImg.dispose();
+              if (byteData != null) {
+                final f = File(targetCover);
+                await f.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+                coverPath = targetCover;
+              }
+            }
+          }
+          await doc.dispose();
+        } catch (e) {
+          debugPrint('PDF metadata extraction error on download: $e');
+        }
       }
 
       final downloadedFile = File(finalLocalPath);

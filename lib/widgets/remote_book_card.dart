@@ -233,18 +233,20 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
 
                     // Top and Bottom dark gradient overlay for text contrast
                     Positioned.fill(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withAlpha(140),
-                              Colors.transparent,
-                              Colors.transparent,
-                              Colors.black.withAlpha(180),
-                            ],
-                            stops: const [0.0, 0.25, 0.65, 1.0],
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.black.withAlpha(140),
+                                Colors.transparent,
+                                Colors.transparent,
+                                Colors.black.withAlpha(180),
+                              ],
+                              stops: const [0.0, 0.25, 0.65, 1.0],
+                            ),
                           ),
                         ),
                       ),

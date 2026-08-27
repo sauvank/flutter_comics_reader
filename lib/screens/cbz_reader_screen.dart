@@ -636,8 +636,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               minScale: 1.0,
               maxScale: 6.0,
               panAxis: PanAxis.free,
-              boundaryMargin: const EdgeInsets.all(50),
-              clipBehavior: Clip.none,
+              panEnabled: _isCurrentPageZoomed,
+              boundaryMargin: EdgeInsets.zero,
+              clipBehavior: Clip.hardEdge,
               child: Center(
                 child: Image.memory(
                   page.bytes,
@@ -684,14 +685,20 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTapDown: (details) => doubleTapDetails = details,
+              onTap: () {
+                setState(() {
+                  _showControls = !_showControls;
+                });
+              },
               onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
               child: InteractiveViewer(
                 transformationController: transformCtrl,
                 minScale: 1.0,
                 maxScale: 6.0,
                 panAxis: PanAxis.free,
-                boundaryMargin: const EdgeInsets.all(20),
-                clipBehavior: Clip.none,
+                panEnabled: transformCtrl.value.getMaxScaleOnAxis() > 1.05,
+                boundaryMargin: EdgeInsets.zero,
+                clipBehavior: Clip.hardEdge,
                 child: Image.memory(
                   page.bytes,
                   fit: BoxFit.fitWidth,

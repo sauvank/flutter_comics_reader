@@ -44,6 +44,22 @@ class RemoteCoverService {
     return _memoryCoverCache[key];
   }
 
+  /// Returns the cached cover file path if available on disk/memory, or null
+  Future<String?> getCachedCover(String serverId, String remotePath) async {
+    final key = _generateKey(serverId, remotePath);
+    if (_memoryCoverCache.containsKey(key)) {
+      final cachedPath = _memoryCoverCache[key]!;
+      if (File(cachedPath).existsSync()) return cachedPath;
+    }
+    final cacheDir = await _getCacheDirectory();
+    final targetFile = File(p.join(cacheDir.path, '$key.jpg'));
+    if (await targetFile.exists()) {
+      _memoryCoverCache[key] = targetFile.path;
+      return targetFile.path;
+    }
+    return null;
+  }
+
   void setCachedCover(String serverId, String remotePath, String localCoverPath) {
     final key = _generateKey(serverId, remotePath);
     _memoryCoverCache[key] = localCoverPath;

@@ -124,21 +124,15 @@ class PdfConverterService {
         throw Exception('Aucune page n\'a pu être générée depuis le PDF.');
       }
 
-      final archive = Archive();
-      for (final imageFile in generatedImages) {
-        final bytes = await imageFile.readAsBytes();
-        final name = p.basename(imageFile.path);
-        archive.addFile(ArchiveFile(name, bytes.length, bytes));
-      }
-
-      final zipData = ZipEncoder().encode(archive);
-      if (zipData.isEmpty) {
-        throw Exception('Échec de la compression de l\'archive CBZ.');
-      }
-
       final targetFile = File(targetPath);
       await targetFile.parent.create(recursive: true);
-      await targetFile.writeAsBytes(zipData, flush: true);
+
+      final zipEncoder = ZipFileEncoder();
+      zipEncoder.create(targetPath);
+      for (final imageFile in generatedImages) {
+        zipEncoder.addFile(imageFile);
+      }
+      zipEncoder.close();
 
       yield PdfConverterProgress(
         currentPage: totalPages,
@@ -184,6 +178,7 @@ class PdfConverterService {
         statusText: 'Conversion terminée avec succès !',
       );
     } finally {
+      await doc.dispose();
       if (await conversionTempDir.exists()) {
         await conversionTempDir.delete(recursive: true).catchError((_) => conversionTempDir);
       }

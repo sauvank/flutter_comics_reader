@@ -132,8 +132,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          children: [
           // View Switcher (Ma Collection / Dossiers vs Téléchargés)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
@@ -216,6 +219,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 : _buildServerExplorerView(context, serverProvider, theme),
           ),
         ],
+      ),
       ),
     );
   }
