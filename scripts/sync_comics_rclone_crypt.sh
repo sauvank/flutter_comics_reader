@@ -94,14 +94,16 @@ echo ""
 # Options :
 # -P : Affichage de la progression en temps réel
 # --fast-list : Optimise les requêtes pour lister les fichiers
-# --transfers 2 : Téléverse 2 gros fichiers en parallèle (plus stable)
+# --transfers 2 : Téléverse 2 gros fichiers en parallèle
+# --tpslimit 5 : Limite le nombre de requêtes par seconde pour éviter les blocages API TeraBox
 # --retries 5 : Réessaie automatiquement les fichiers en échec
 # --low-level-retries 10 : Réessaie les paquets/requêtes individuelles
 # --ignore-existing : Ne tente pas d'écraser un fichier déjà présent
-# --timeout 30m : Laisse le temps pour les très gros fichiers (2 Go - 3 Go)
+# --timeout 30m : Laisse le temps pour les très gros fichiers
 rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --progress \
     --transfers 2 \
+    --tpslimit 5 \
     --checkers 4 \
     --retries 5 \
     --low-level-retries 10 \
