@@ -47,6 +47,20 @@ if [ ! -d "$SOURCE_PATH" ]; then
     exit 1
 fi
 
+# 2.1 Sécurité anti-erreur sur les dossiers racines ou disques complets
+CLEAN_SOURCE=$(realpath -m "$SOURCE_PATH" 2>/dev/null || echo "$SOURCE_PATH")
+FORBIDDEN_PATHS=("/" "/mnt" "/mnt/c" "/mnt/wsl" "/mnt/wslg" "/home" "/root" "/etc" "/usr" "/var" "/tmp" "/bin" "/sbin" "/lib" "/opt" "/sys" "/proc" "/dev")
+
+for forbidden in "${FORBIDDEN_PATHS[@]}"; do
+    if [ "$CLEAN_SOURCE" == "$forbidden" ]; then
+        echo ""
+        echo -e "${RED}🛑 SÉCURITÉ ACTIVÉE : Le chemin '$SOURCE_PATH' est interdit !${NC}"
+        echo -e "${RED}❌ Vous tentez de synchroniser une racine système ou le disque Windows complet.${NC}"
+        echo -e "${YELLOW}💡 Veuillez spécifier votre dossier de BD précis (ex: /mnt/bd).${NC}"
+        exit 1
+    fi
+done
+
 # 3. Choix du remote chiffré (Défaut: terabox_crypt)
 REMOTE_NAME="terabox_crypt"
 if ! rclone listremotes | grep -q "^${REMOTE_NAME}:"; then
@@ -80,11 +94,19 @@ echo ""
 # Options :
 # -P : Affichage de la progression en temps réel
 # --fast-list : Optimise les requêtes pour lister les fichiers
-# --transfers 4 : Téléverse 4 fichiers en parallèle
+# --transfers 2 : Téléverse 2 gros fichiers en parallèle (plus stable)
+# --retries 5 : Réessaie automatiquement
+# --ignore-existing : Ne tente pas d'écraser un fichier déjà présent (évite l'erreur 405)
+# --timeout 30m : Laisse le temps pour les très gros fichiers (2 Go - 3 Go)
 rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --progress \
-    --transfers 4 \
-    --checkers 8 \
+    --transfers 2 \
+    --checkers 4 \
+    --retries 5 \
+    --retries-sleep 3s \
+    --timeout 30m \
+    --buffer-size 64M \
+    --ignore-existing \
     --fast-list
 
 echo ""
