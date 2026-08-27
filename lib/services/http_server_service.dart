@@ -28,7 +28,7 @@ class HttpServerService {
     return headers;
   }
 
-  String _buildTargetUrl(ServerProfile server, String remoteRelativePath) {
+  String _buildTargetUrl(ServerProfile server, String remoteRelativePath, {bool isDirectory = false}) {
     var base = server.baseUrl;
     if (!base.endsWith('/')) base = '$base/';
 
@@ -37,7 +37,8 @@ class HttpServerService {
       return base;
     }
 
-    var serverBasePath = Uri.parse(base).path;
+    final baseUri = Uri.parse(base);
+    var serverBasePath = baseUri.path;
     serverBasePath = serverBasePath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
 
     var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
@@ -50,7 +51,27 @@ class HttpServerService {
       cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
     }
 
-    return cleanRelative.isEmpty ? base : '$base$cleanRelative';
+    if (cleanRelative.isEmpty) {
+      return base;
+    }
+
+    final baseSegments = baseUri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final relativeSegments = cleanRelative.split('/').where((s) => s.isNotEmpty).map((seg) {
+      var s = seg;
+      try {
+        while (s.contains('%')) {
+          final decoded = Uri.decodeComponent(s);
+          if (decoded == s) break;
+          s = decoded;
+        }
+      } catch (_) {}
+      return Uri.encodeComponent(s);
+    }).toList();
+
+    final allSegments = [...baseSegments, ...relativeSegments];
+    final fullPath = '/${allSegments.join('/')}${isDirectory ? '/' : ''}';
+
+    return baseUri.replace(path: fullPath).toString();
   }
 
   /// Lists files from an HTTP server (Supports JSON API or standard HTML Directory Listing)
@@ -58,7 +79,7 @@ class HttpServerService {
     required ServerProfile server,
     String remoteRelativePath = '',
   }) async {
-    final targetUrl = _buildTargetUrl(server, remoteRelativePath);
+    final targetUrl = _buildTargetUrl(server, remoteRelativePath, isDirectory: true);
     final cleanRelative = remoteRelativePath.replaceAll(RegExp(r'^/+'), '');
 
     try {

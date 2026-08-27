@@ -76,28 +76,34 @@ class WebDavService {
       return base;
     }
 
-    // Clean server basePath to check for overlaps
-    var serverBasePath = Uri.parse(base).path;
+    final baseUri = Uri.parse(base);
+    var serverBasePath = baseUri.path;
     serverBasePath = serverBasePath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
 
     var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
 
-    // If cleanRelative is exactly serverBasePath (e.g. 'dav/Comics' when base is 'http://.../dav/Comics/'),
-    // it refers to the root of baseUrl itself!
     if (cleanRelative == serverBasePath || cleanRelative.isEmpty) {
       return base;
     }
 
-    // If cleanRelative starts with serverBasePath, strip that prefix
     if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
       cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
     }
 
-    var url = cleanRelative.isEmpty ? base : '$base$cleanRelative';
-    if (isDirectory && !url.endsWith('/')) {
-      url = '$url/';
+    if (cleanRelative.isEmpty) {
+      return base;
     }
-    return url;
+
+    // Split cleanRelative into segments, decode first to prevent double-encoding, then encode each segment
+    final baseSegments = baseUri.pathSegments.where((s) => s.isNotEmpty).toList();
+    final relativeSegments = cleanRelative.split('/').where((s) => s.isNotEmpty).map((seg) {
+      return Uri.encodeComponent(_safeDecode(seg));
+    }).toList();
+
+    final allSegments = [...baseSegments, ...relativeSegments];
+    final fullPath = '/${allSegments.join('/')}${isDirectory ? '/' : ''}';
+
+    return baseUri.replace(path: fullPath).toString();
   }
 
   /// Lists files and folders at [remoteRelativePath]
