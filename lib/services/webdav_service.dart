@@ -67,7 +67,7 @@ class WebDavService {
     }
   }
 
-  String _buildTargetUrl(ServerProfile server, String remoteRelativePath) {
+  String _buildTargetUrl(ServerProfile server, String remoteRelativePath, {bool isDirectory = true}) {
     var base = server.baseUrl;
     if (!base.endsWith('/')) base = '$base/';
 
@@ -94,7 +94,7 @@ class WebDavService {
     }
 
     var url = cleanRelative.isEmpty ? base : '$base$cleanRelative';
-    if (!url.endsWith('/')) {
+    if (isDirectory && !url.endsWith('/')) {
       url = '$url/';
     }
     return url;
@@ -105,7 +105,7 @@ class WebDavService {
     required ServerProfile server,
     String remoteRelativePath = '',
   }) async {
-    final targetUrl = _buildTargetUrl(server, remoteRelativePath);
+    final targetUrl = _buildTargetUrl(server, remoteRelativePath, isDirectory: true);
 
     const propfindXml = '''<?xml version="1.0" encoding="utf-8" ?>
 <D:propfind xmlns:D="DAV:">
@@ -275,7 +275,7 @@ class WebDavService {
     required void Function(int receivedBytes, int totalBytes) onProgress,
     CancelToken? cancelToken,
   }) async {
-    final downloadUrl = _buildTargetUrl(server, remoteRelativePath);
+    final downloadUrl = _buildTargetUrl(server, remoteRelativePath, isDirectory: false);
 
     final tempFile = File('$destinationLocalPath.tmp');
     if (await tempFile.exists()) {
