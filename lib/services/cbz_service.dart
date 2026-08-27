@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:unrar_file/unrar_file.dart';
 import '../utils/format_utils.dart';
 
 class CbzService {
@@ -28,7 +30,7 @@ class CbzService {
     return supportedImageExtensions.contains(ext);
   }
 
-  /// Extracts cover image from a CBZ file and saves it to [targetCoverPath]
+  /// Extracts cover image from a CBZ/CBR file and saves it to [targetCoverPath]
   static Future<String?> extractCover({
     required String cbzFilePath,
     required String targetCoverPath,
@@ -38,7 +40,13 @@ class CbzService {
       if (!await file.exists()) return null;
 
       final bytes = await file.readAsBytes();
-      final coverBytes = await compute(_extractCoverBytesFromZip, bytes);
+      var coverBytes = await compute(_extractCoverBytesFromZip, bytes);
+
+      // Fallback: If Zip decoder returned null, try RAR extraction for CBR files
+      if (coverBytes == null || coverBytes.isEmpty) {
+        coverBytes = await _extractCoverFromRar(cbzFilePath);
+      }
+
       if (coverBytes == null || coverBytes.isEmpty) return null;
 
       final coverFile = File(targetCoverPath);
@@ -52,14 +60,21 @@ class CbzService {
     }
   }
 
-  /// Scans CBZ archive and returns the total count of image pages
+  /// Scans CBZ/CBR archive and returns the total count of image pages
   static Future<int> getPageCount(String cbzFilePath) async {
     try {
       final file = File(cbzFilePath);
       if (!await file.exists()) return 0;
 
       final bytes = await file.readAsBytes();
-      return await compute(_countPagesFromZip, bytes);
+      var count = await compute(_countPagesFromZip, bytes);
+
+      if (count == 0) {
+        final pages = await _loadPagesFromRar(cbzFilePath);
+        count = pages.length;
+      }
+
+      return count;
     } catch (e) {
       debugPrint('Error getting page count: $e');
       return 0;
@@ -72,11 +87,97 @@ class CbzService {
       final file = File(cbzFilePath);
       if (!await file.exists()) return [];
 
+      // If it's a directory of images
+      if (FileSystemEntity.isDirectorySync(cbzFilePath)) {
+        return _loadPagesFromDirectory(Directory(cbzFilePath));
+      }
+
       final bytes = await file.readAsBytes();
-      return await compute(_loadPagesFromZip, bytes);
+      var pages = await compute(_loadPagesFromZip, bytes);
+
+      // Fallback: If Zip decoder produced 0 images, try RAR extractor (for CBR files)
+      if (pages.isEmpty) {
+        pages = await _loadPagesFromRar(cbzFilePath);
+      }
+
+      return pages;
     } catch (e) {
-      debugPrint('Error loading CBZ pages: $e');
+      debugPrint('Error loading CBZ/CBR pages: $e');
+      try {
+        return await _loadPagesFromRar(cbzFilePath);
+      } catch (_) {
+        return [];
+      }
+    }
+  }
+
+  // --- Directory loading ---
+  static Future<List<ComicPage>> _loadPagesFromDirectory(Directory dir) async {
+    final imageFiles = dir
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => isImageFile(f.path))
+        .toList();
+
+    imageFiles.sort((a, b) => NaturalSort.compare(p.basename(a.path), p.basename(b.path)));
+
+    final List<ComicPage> pages = [];
+    for (int i = 0; i < imageFiles.length; i++) {
+      final f = imageFiles[i];
+      final raw = await f.readAsBytes();
+      pages.add(ComicPage(
+        pageIndex: i,
+        pageNumber: i + 1,
+        name: p.basename(f.path),
+        bytes: raw,
+      ));
+    }
+    return pages;
+  }
+
+  // --- RAR / CBR extraction fallback ---
+  static Future<List<ComicPage>> _loadPagesFromRar(String filePath) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final key = filePath.hashCode.toRadixString(16);
+      final extractDir = Directory(p.join(tempDir.path, 'cbr_$key'));
+
+      if (!await extractDir.exists() || extractDir.listSync().isEmpty) {
+        await extractDir.create(recursive: true);
+        await UnrarFile.extract_rar(filePath, extractDir.path);
+      }
+
+      return await _loadPagesFromDirectory(extractDir);
+    } catch (e) {
+      debugPrint('RAR extraction error on $filePath: $e');
       return [];
+    }
+  }
+
+  static Future<Uint8List?> _extractCoverFromRar(String filePath) async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final key = filePath.hashCode.toRadixString(16);
+      final extractDir = Directory(p.join(tempDir.path, 'cbr_$key'));
+
+      if (!await extractDir.exists() || extractDir.listSync().isEmpty) {
+        await extractDir.create(recursive: true);
+        await UnrarFile.extract_rar(filePath, extractDir.path);
+      }
+
+      final imageFiles = extractDir
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => isImageFile(f.path))
+          .toList();
+
+      if (imageFiles.isEmpty) return null;
+      imageFiles.sort((a, b) => NaturalSort.compare(p.basename(a.path), p.basename(b.path)));
+
+      return await imageFiles.first.readAsBytes();
+    } catch (e) {
+      debugPrint('RAR cover extraction error on $filePath: $e');
+      return null;
     }
   }
 
@@ -90,7 +191,12 @@ class CbzService {
       }
       final dynamic content = entry.content;
       if (content != null) {
-        return Uint8List.fromList(content as List<int>);
+        if (content is List<int>) {
+          return Uint8List.fromList(content);
+        }
+        if (content is InputStream) {
+          return content.toUint8List();
+        }
       }
     } catch (_) {}
     return null;
@@ -98,11 +204,23 @@ class CbzService {
 
   static Uint8List? _extractCoverBytesFromZip(Uint8List bytes) {
     try {
-      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
+      Archive archive;
+      try {
+        archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      } catch (_) {
+        try {
+          archive = TarDecoder().decodeBytes(bytes);
+        } catch (_) {
+          return null;
+        }
+      }
+
+      final imageEntries = archive.files
+          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+          .toList();
       if (imageEntries.isEmpty) return null;
 
-      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
+      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
 
       final firstImage = imageEntries.first;
       return _getArchiveFileBytes(firstImage);
@@ -114,8 +232,17 @@ class CbzService {
 
   static int _countPagesFromZip(Uint8List bytes) {
     try {
-      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      return archive.files.where((f) => f.isFile && isImageFile(f.name)).length;
+      Archive archive;
+      try {
+        archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      } catch (_) {
+        try {
+          archive = TarDecoder().decodeBytes(bytes);
+        } catch (_) {
+          return 0;
+        }
+      }
+      return archive.files.where((f) => !f.name.endsWith('/') && isImageFile(f.name)).length;
     } catch (e) {
       return 0;
     }
@@ -123,9 +250,21 @@ class CbzService {
 
   static List<ComicPage> _loadPagesFromZip(Uint8List bytes) {
     try {
-      final archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      final imageEntries = archive.files.where((f) => f.isFile && isImageFile(f.name)).toList();
-      imageEntries.sort((a, b) => NaturalSort.compare(a.name, b.name));
+      Archive archive;
+      try {
+        archive = ZipDecoder().decodeBytes(bytes, verify: false);
+      } catch (_) {
+        try {
+          archive = TarDecoder().decodeBytes(bytes);
+        } catch (_) {
+          return [];
+        }
+      }
+
+      final imageEntries = archive.files
+          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+          .toList();
+      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
 
       final List<ComicPage> pages = [];
       for (int i = 0; i < imageEntries.length; i++) {
