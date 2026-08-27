@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
@@ -23,7 +24,7 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
-  int _activeViewIndex = 1; // Default to 1 (Server / Home Explorer) so user immediately sees their library folders
+  int _activeViewIndex = 0; // Default to 0 (Mes BD Téléchargées & En cours)
 
   @override
   void dispose() {
@@ -159,20 +160,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       body: Column(
         children: [
-          // View Switcher (Mon Serveur / Dossiers vs Téléchargés)
+          // View Switcher (Mes BD vs Tout le Serveur)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
             child: SegmentedButton<int>(
               segments: [
                 ButtonSegment(
+                  value: 0,
+                  label: Text('Mes BD (${library.books.length})'),
+                  icon: const Icon(Icons.menu_book_rounded, size: 16),
+                ),
+                ButtonSegment(
                   value: 1,
                   label: const Text('Tout le Serveur (Dossiers)'),
                   icon: const Icon(Icons.cloud_sync_outlined, size: 16),
-                ),
-                ButtonSegment(
-                  value: 0,
-                  label: Text('Téléchargés (${library.books.length})'),
-                  icon: const Icon(Icons.download_done_rounded, size: 16),
                 ),
               ],
               selected: {_activeViewIndex},
@@ -223,17 +224,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ),
 
-          // Recent Books Section (Resume Reading)
-          if (recentBooks.isNotEmpty && !_isSearching && library.filter == LibraryFilter.all) ...[
+          // Hero Resume Reading Banner (Latest Read Book)
+          if (recentBooks.isNotEmpty && !_isSearching && library.filter == LibraryFilter.all)
+            SliverToBoxAdapter(
+              child: _buildResumeReadingHero(recentBooks.first, theme),
+            ),
+
+          // Recent Books Section (Resume Reading Carousel)
+          if (recentBooks.length > 1 && !_isSearching && library.filter == LibraryFilter.all) ...[
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
                 child: Row(
                   children: [
                     Icon(Icons.history_rounded, size: 18, color: theme.colorScheme.primary),
                     const SizedBox(width: 6),
                     const Text(
-                      'Reprendre la lecture',
+                      'Récemment ouverts',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -246,9 +253,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: recentBooks.length,
+                  itemCount: recentBooks.skip(1).length,
                   itemBuilder: (context, index) {
-                    final book = recentBooks[index];
+                    final book = recentBooks.skip(1).toList()[index];
                     return Container(
                       width: 130,
                       margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -645,6 +652,123 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
         ),
       ],
+    );
+  }
+
+  Widget _buildResumeReadingHero(BookItem book, ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.primaryContainer.withAlpha(160),
+            theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withAlpha(60),
+          width: 1.2,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _openReader(book),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Cover
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 65,
+                  height: 95,
+                  child: book.coverPath != null && File(book.coverPath!).existsSync()
+                      ? Image.file(File(book.coverPath!), fit: BoxFit.cover)
+                      : Container(
+                          color: theme.colorScheme.primary.withAlpha(40),
+                          child: Icon(Icons.menu_book, color: theme.colorScheme.primary, size: 30),
+                        ),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            book.formatString,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Page ${book.currentPage + 1} / ${book.totalPages > 0 ? book.totalPages : "?"}',
+                          style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: book.progress,
+                        minHeight: 5,
+                        backgroundColor: theme.colorScheme.outlineVariant.withAlpha(50),
+                        valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${(book.progress * 100).toInt()}% lu',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              'Reprendre',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                            ),
+                            Icon(Icons.play_arrow_rounded, size: 18, color: theme.colorScheme.primary),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
