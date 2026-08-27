@@ -323,12 +323,46 @@ class DownloadProvider extends ChangeNotifier {
         _updateTaskStatus(task.id, DownloadStatus.cancelled, statusDescription: 'Annulé');
       } else {
         debugPrint('Download failed for ${task.fileName}: $e');
-        _updateTaskStatus(task.id, DownloadStatus.failed, errorMessage: e.toString(), statusDescription: 'Échec');
+        final cleanMsg = _formatDownloadError(e);
+        _updateTaskStatus(task.id, DownloadStatus.failed, errorMessage: cleanMsg, statusDescription: 'Échec');
       }
     } finally {
       _cancelTokens.remove(task.id);
       _pendingQueue.remove(task.id);
     }
+  }
+
+  String _formatDownloadError(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Délai d\'attente dépassé (timeout réseau)';
+        case DioExceptionType.badResponse:
+          final code = error.response?.statusCode;
+          if (code == 404) return 'Fichier introuvable sur le serveur (404)';
+          if (code == 401 || code == 403) return 'Accès refusé (identifiants incorrects)';
+          return 'Erreur serveur ($code)';
+        case DioExceptionType.connectionError:
+          return 'Impossible de joindre le serveur (connexion perdue)';
+        case DioExceptionType.cancel:
+          return 'Téléchargement annulé';
+        case DioExceptionType.unknown:
+        default:
+          if (error.error != null) {
+            final inner = error.error.toString().toLowerCase();
+            if (inner.contains('socket') || inner.contains('network') || inner.contains('broken pipe') || inner.contains('connection reset')) {
+              return 'Connexion réseau interrompue';
+            }
+            if (inner.contains('space') || inner.contains('enospc')) {
+              return 'Espace de stockage insuffisant sur l\'appareil';
+            }
+          }
+          return 'Erreur de connexion réseau';
+      }
+    }
+    return error.toString();
   }
 
   void cancelDownload(String taskId) {
