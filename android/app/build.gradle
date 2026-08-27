@@ -51,8 +51,20 @@ android {
                 storeFile file(storeFileVal)
                 storeType 'PKCS12'
             } else {
-                // Fallback to debug keystore for standalone / GitHub release builds
-                initWith(signingConfigs.debug)
+                // Fallback to auto-created debug keystore for standalone / GitHub release builds
+                def homeDir = System.getProperty("user.home")
+                def debugFile = file("${homeDir}/.android/debug.keystore")
+                if (!debugFile.exists()) {
+                    debugFile.parentFile.mkdirs()
+                    try {
+                        def proc = "keytool -genkey -v -keystore ${debugFile.absolutePath} -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname CN=Android,O=Android,C=US".execute()
+                        proc.waitFor()
+                    } catch (Exception ignored) {}
+                }
+                keyAlias 'androiddebugkey'
+                keyPassword 'android'
+                storePassword 'android'
+                storeFile debugFile
             }
         }
     }

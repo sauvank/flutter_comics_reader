@@ -48,6 +48,12 @@ jobs:
       - name: 🔍 Analyze code
         run: flutter analyze || true
 
+      - name: 🔑 Ensure Android Keystore exists
+        run: |
+          mkdir -p ~/.android ~/.config/.android
+          keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
+          cp -f ~/.android/debug.keystore ~/.config/.android/debug.keystore 2>/dev/null || true
+
       - name: 🔨 Build Universal APK
         run: |
           flutter build apk --release
