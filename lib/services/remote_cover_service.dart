@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:archive/archive.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -94,8 +95,71 @@ class RemoteCoverService {
   Future<Uint8List?> _extractFirstImageBytesFromRemote(ServerProfile server, RemoteFile file) async {
     if (server.serverType == ServerType.ftp) {
       return await _fetchFtpPartialZipCover(server, file.path);
+    } else {
+      return await _fetchHttpPartialZipCover(server, file.path);
     }
-    return null;
+  }
+
+  Future<Uint8List?> _fetchHttpPartialZipCover(ServerProfile server, String remoteFilePath) async {
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 15),
+        sendTimeout: const Duration(seconds: 8),
+        validateStatus: (status) => status != null && (status >= 200 && status < 400),
+      ),
+    );
+
+    var base = server.baseUrl;
+    if (!base.endsWith('/')) base = '$base/';
+
+    var cleanPath = remoteFilePath.trim();
+    var serverBasePath = Uri.parse(base).path.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+    var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+    if (cleanRelative == serverBasePath) {
+      cleanRelative = '';
+    } else if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
+      cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
+    }
+
+    final baseUri = Uri.parse(base);
+    final allSegments = [
+      ...baseUri.pathSegments.where((s) => s.isNotEmpty),
+      ...cleanRelative.split('/').where((s) => s.isNotEmpty),
+    ];
+    final fileUri = baseUri.replace(pathSegments: allSegments);
+    final fileUrl = fileUri.toString();
+
+    final headers = <String, String>{
+      'User-Agent': 'ComicStream-App/1.0',
+      'Range': 'bytes=0-2097151', // Fetch first 2 MB
+    };
+    if (server.username != null && server.username!.isNotEmpty) {
+      final authStr = '${server.username}:${server.password ?? ''}';
+      final base64Auth = base64Encode(utf8.encode(authStr));
+      headers['Authorization'] = 'Basic $base64Auth';
+    }
+
+    try {
+      final response = await dio.get<List<int>>(
+        fileUrl,
+        options: Options(
+          headers: headers,
+          responseType: ResponseType.bytes,
+          followRedirects: true,
+          maxRedirects: 5,
+        ),
+      );
+
+      final data = response.data;
+      if (data == null || data.isEmpty) return null;
+
+      final chunk = Uint8List.fromList(data);
+      return _tryParseZipFirstImage(chunk);
+    } catch (e) {
+      debugPrint('RemoteCoverService: HTTP Range cover extraction error on $fileUrl: $e');
+      return null;
+    }
   }
 
   Future<Uint8List?> _fetchFtpPartialZipCover(ServerProfile server, String remoteFilePath) async {
@@ -196,71 +260,80 @@ class RemoteCoverService {
   Uint8List? _tryParseZipFirstImage(Uint8List zipChunk) {
     if (zipChunk.length < 30) return null;
 
-    final view = ByteData.sublistView(zipChunk);
+    int offset = 0;
+    while (offset + 30 <= zipChunk.length) {
+      final view = ByteData.sublistView(zipChunk, offset);
 
-    // Check Local File Header Signature: 0x04034b50 (PK\x03\x04)
-    final sig = view.getUint32(0, Endian.little);
-    if (sig != 0x04034b50) return null;
-
-    final compressionMethod = view.getUint16(8, Endian.little);
-    final compressedSize = view.getUint32(18, Endian.little);
-    final fileNameLen = view.getUint16(26, Endian.little);
-    final extraFieldLen = view.getUint16(28, Endian.little);
-
-    if (30 + fileNameLen > zipChunk.length) return null;
-
-    final fileNameBytes = zipChunk.sublist(30, 30 + fileNameLen);
-    final fileName = utf8.decode(fileNameBytes, allowMalformed: true);
-
-    if (!CbzService.isImageFile(fileName)) {
-      // If first entry is a folder or metadata, try archive decoder on small chunk
-      try {
-        final archive = ZipDecoder().decodeBytes(zipChunk, verify: false);
-        for (final f in archive.files) {
-          if (f.isFile && CbzService.isImageFile(f.name)) {
-            final bytes = f.readBytes();
-            if (bytes != null && bytes.length > 100) {
-              return Uint8List.fromList(bytes);
-            }
-          }
+      // Check Local File Header Signature: 0x04034b50 (PK\x03\x04)
+      final sig = view.getUint32(0, Endian.little);
+      if (sig != 0x04034b50) {
+        // Try searching for next PK\x03\x04 header in the chunk
+        final nextSig = _findNextLocalHeader(zipChunk, offset + 4);
+        if (nextSig > 0) {
+          offset = nextSig;
+          continue;
         }
-      } catch (_) {}
-      return null;
-    }
+        break;
+      }
 
-    final dataOffset = 30 + fileNameLen + extraFieldLen;
-    if (dataOffset >= zipChunk.length) return null;
+      final compressionMethod = view.getUint16(8, Endian.little);
+      final compressedSize = view.getUint32(18, Endian.little);
+      final fileNameLen = view.getUint16(26, Endian.little);
+      final extraFieldLen = view.getUint16(28, Endian.little);
 
-    if (compressionMethod == 0) {
-      // Stored / uncompressed
-      final end = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
-          ? dataOffset + compressedSize
-          : zipChunk.length;
-      return zipChunk.sublist(dataOffset, end);
-    } else if (compressionMethod == 8) {
-      // Deflate
-      try {
-        final compressed = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
-            ? zipChunk.sublist(dataOffset, dataOffset + compressedSize)
-            : zipChunk.sublist(dataOffset);
+      if (offset + 30 + fileNameLen > zipChunk.length) break;
 
-        final decompressed = Inflate(compressed).getBytes();
-        return Uint8List.fromList(decompressed);
-      } catch (_) {
-        // Fallback to archive decoder
-        try {
-          final archive = ZipDecoder().decodeBytes(zipChunk, verify: false);
-          for (final f in archive.files) {
-            if (f.isFile && CbzService.isImageFile(f.name)) {
-              final bytes = f.readBytes();
-              if (bytes != null) return Uint8List.fromList(bytes);
+      final fileNameBytes = zipChunk.sublist(offset + 30, offset + 30 + fileNameLen);
+      final fileName = utf8.decode(fileNameBytes, allowMalformed: true);
+
+      final dataOffset = offset + 30 + fileNameLen + extraFieldLen;
+
+      if (CbzService.isImageFile(fileName) && dataOffset < zipChunk.length) {
+        if (compressionMethod == 0) {
+          // Stored / uncompressed
+          final end = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
+              ? dataOffset + compressedSize
+              : zipChunk.length;
+          final imgBytes = zipChunk.sublist(dataOffset, end);
+          if (imgBytes.length > 100) return imgBytes;
+        } else if (compressionMethod == 8) {
+          // Deflate
+          try {
+            final compressed = (compressedSize > 0 && dataOffset + compressedSize <= zipChunk.length)
+                ? zipChunk.sublist(dataOffset, dataOffset + compressedSize)
+                : zipChunk.sublist(dataOffset);
+
+            final decompressed = Inflate(compressed).getBytes();
+            if (decompressed.isNotEmpty) {
+              return Uint8List.fromList(decompressed);
             }
-          }
-        } catch (_) {}
+          } catch (_) {}
+        }
+      }
+
+      // Advance offset to next entry
+      if (compressedSize > 0 && dataOffset + compressedSize < zipChunk.length) {
+        offset = dataOffset + compressedSize;
+      } else {
+        final nextSig = _findNextLocalHeader(zipChunk, offset + 4);
+        if (nextSig > 0) {
+          offset = nextSig;
+        } else {
+          break;
+        }
       }
     }
 
     return null;
+  }
+
+  int _findNextLocalHeader(Uint8List bytes, int start) {
+    for (int i = start; i <= bytes.length - 4; i++) {
+      if (bytes[i] == 0x50 && bytes[i + 1] == 0x4B && bytes[i + 2] == 0x03 && bytes[i + 3] == 0x04) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   _FtpEndpoint _parsePasvResponse(String response, String fallbackHost) {

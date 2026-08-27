@@ -160,13 +160,20 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<void> navigateTo(String path) async {
-    _currentPath = path;
+    if (!path.startsWith('/') && rootPath != '/' && !path.startsWith(rootPath)) {
+      final base = rootPath.endsWith('/') ? rootPath : '$rootPath/';
+      _currentPath = '$base$path';
+    } else {
+      _currentPath = path;
+    }
     notifyListeners();
     await fetchRemoteFiles();
   }
 
   Future<void> navigateToRoot() async {
-    await navigateTo(rootPath);
+    _currentPath = rootPath;
+    notifyListeners();
+    await fetchRemoteFiles();
   }
 
   Future<void> navigateToBreadcrumbIndex(int index) async {

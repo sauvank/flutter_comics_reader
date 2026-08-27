@@ -23,8 +23,9 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _isSearching = false;
   int _activeViewIndex = 1; // Default to 1 (Collection / Folder Explorer with Local & Server badges)
+
+  bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
@@ -80,52 +81,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: _isSearching
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Rechercher un tome ou une BD...',
-                  border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.grey),
-                ),
-                onChanged: (query) => library.setSearchQuery(query),
-              )
-            : Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withAlpha(40),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _activeViewIndex == 0 ? Icons.menu_book_rounded : Icons.folder_copy_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  const Text('Ma Bibliothèque'),
-                ],
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withAlpha(40),
+                borderRadius: BorderRadius.circular(8),
               ),
-        actions: [
-          if (_activeViewIndex == 0) ...[
-            IconButton(
-              icon: Icon(_isSearching ? Icons.close : Icons.search),
-              onPressed: () {
-                setState(() {
-                  if (_isSearching) {
-                    _isSearching = false;
-                    _searchController.clear();
-                    library.setSearchQuery('');
-                  } else {
-                    _isSearching = true;
-                  }
-                });
-              },
+              child: Icon(
+                _activeViewIndex == 0 ? Icons.menu_book_rounded : Icons.folder_copy_rounded,
+                color: theme.colorScheme.primary,
+                size: 20,
+              ),
             ),
+            const SizedBox(width: 10),
+            const Text('Ma Bibliothèque'),
+          ],
+        ),
+        actions: [
+          if (_activeViewIndex == 0)
             PopupMenuButton<LibrarySort>(
               icon: const Icon(Icons.sort_rounded),
               tooltip: 'Trier par',
@@ -148,14 +123,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Text('Progression'),
                 ),
               ],
-            ),
-          ] else ...[
+            )
+          else
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
               tooltip: 'Actualiser le serveur',
               onPressed: () => serverProvider.fetchRemoteFiles(),
             ),
-          ],
         ],
       ),
       body: Column(
@@ -182,6 +156,57 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   _activeViewIndex = set.first;
                 });
               },
+            ),
+          ),
+
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withAlpha(50),
+                ),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: _activeViewIndex == 0
+                      ? 'Rechercher parmi les BD téléchargées...'
+                      : 'Rechercher un tome, une série ou un dossier...',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              library.setSearchQuery('');
+                            });
+                          },
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                onChanged: (val) {
+                  setState(() {
+                    library.setSearchQuery(val);
+                  });
+                },
+              ),
             ),
           ),
 
@@ -393,8 +418,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
       );
     }
 
-    final folders = remoteFiles.where((f) => f.isDirectory).toList();
-    final books = remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList();
+    final query = _searchController.text.trim().toLowerCase();
+    final folders = remoteFiles.where((f) {
+      if (!f.isDirectory) return false;
+      if (query.isEmpty) return true;
+      return f.name.toLowerCase().contains(query);
+    }).toList();
+
+    final books = remoteFiles.where((f) {
+      if (f.isDirectory || !f.isSupportedBook) return false;
+      if (query.isEmpty) return true;
+      return f.name.toLowerCase().contains(query);
+    }).toList();
 
     return Column(
       children: [
@@ -535,13 +570,39 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     )
                   : (folders.isEmpty && books.isEmpty)
                       ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.folder_open_outlined, size: 48, color: Colors.grey.shade600),
-                              const SizedBox(height: 12),
-                              const Text('Dossier vide', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  query.isNotEmpty ? Icons.search_off_rounded : Icons.folder_open_outlined,
+                                  size: 48,
+                                  color: Colors.grey.shade600,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  query.isNotEmpty
+                                      ? 'Aucun résultat pour "$query"'
+                                      : 'Dossier vide',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  textAlign: TextAlign.center,
+                                ),
+                                if (query.isNotEmpty) ...[
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        context.read<LibraryProvider>().setSearchQuery('');
+                                      });
+                                    },
+                                    icon: const Icon(Icons.clear_rounded, size: 16),
+                                    label: const Text('Effacer la recherche'),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
                         )
                       : RefreshIndicator(
