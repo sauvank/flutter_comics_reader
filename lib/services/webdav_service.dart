@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import '../models/remote_file.dart';
@@ -17,7 +18,22 @@ class WebDavService {
             sendTimeout: const Duration(seconds: 30),
             validateStatus: (status) => status != null && status >= 200 && status < 400,
           ),
-        );
+        ) {
+    if (!kIsWeb) {
+      final adapter = _dio.httpClientAdapter;
+      if (adapter is IOHttpClientAdapter) {
+        adapter.createHttpClient = () {
+          final client = HttpClient();
+          client.badCertificateCallback = (cert, host, port) => true;
+          client.idleTimeout = const Duration(seconds: 30);
+          client.connectionTimeout = const Duration(seconds: 15);
+          client.maxConnectionsPerHost = 16;
+          client.autoUncompress = false;
+          return client;
+        };
+      }
+    }
+  }
 
   Map<String, String> getHeaders(ServerProfile server) {
     final headers = <String, String>{
@@ -295,6 +311,44 @@ class WebDavService {
   }) async {
     final downloadUrl = buildTargetUrl(server, remoteRelativePath, isDirectory: false);
 
+    // 1. Probe Content-Length via HEAD
+    int totalBytes = -1;
+    try {
+      final headResp = await _dio.head(
+        downloadUrl,
+        cancelToken: cancelToken,
+        options: Options(
+          headers: getHeaders(server),
+          followRedirects: true,
+          maxRedirects: 10,
+          sendTimeout: const Duration(seconds: 4),
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      );
+      final len = headResp.headers.value(Headers.contentLengthHeader);
+      if (len != null && len.isNotEmpty) {
+        totalBytes = int.tryParse(len) ?? -1;
+      }
+    } catch (_) {}
+
+    // 2. High-speed multi-threaded parallel download for files >= 8MB
+    if (totalBytes >= 8 * 1024 * 1024) {
+      try {
+        await _downloadMultiPart(
+          downloadUrl: downloadUrl,
+          destinationLocalPath: destinationLocalPath,
+          server: server,
+          totalBytes: totalBytes,
+          onProgress: onProgress,
+          cancelToken: cancelToken,
+        );
+        return;
+      } catch (e) {
+        if (cancelToken?.isCancelled == true) rethrow;
+        debugPrint('Multi-part download fallback to direct stream: $e');
+      }
+    }
+
     final tempFile = File('$destinationLocalPath.tmp');
     if (await tempFile.exists()) {
       await tempFile.delete();
@@ -331,9 +385,9 @@ class WebDavService {
         }
 
         final lengthHeader = response.headers.value(Headers.contentLengthHeader);
-        final totalBytes = (lengthHeader != null && lengthHeader.isNotEmpty)
-            ? int.tryParse(lengthHeader) ?? -1
-            : -1;
+        if (totalBytes <= 0 && lengthHeader != null && lengthHeader.isNotEmpty) {
+          totalBytes = int.tryParse(lengthHeader) ?? -1;
+        }
 
         int receivedBytes = 0;
         final sink = tempFile.openWrite(mode: FileMode.writeOnly);
@@ -398,6 +452,103 @@ class WebDavService {
 
     if (lastError != null) {
       throw lastError;
+    }
+  }
+
+  /// Multi-connection segmented downloader (4 parallel threads for maximum WAN/VPS saturation)
+  Future<void> _downloadMultiPart({
+    required String downloadUrl,
+    required String destinationLocalPath,
+    required ServerProfile server,
+    required int totalBytes,
+    required void Function(int receivedBytes, int totalBytes) onProgress,
+    CancelToken? cancelToken,
+  }) async {
+    const int numParts = 4;
+    final partSize = (totalBytes / numParts).ceil();
+    final List<File> partFiles = [];
+    final List<int> partProgress = List.filled(numParts, 0);
+
+    for (int i = 0; i < numParts; i++) {
+      final partFile = File('$destinationLocalPath.part$i');
+      if (await partFile.exists()) await partFile.delete();
+      partFiles.add(partFile);
+    }
+
+    try {
+      final futures = <Future<void>>[];
+
+      for (int i = 0; i < numParts; i++) {
+        final start = i * partSize;
+        final end = (i == numParts - 1) ? totalBytes - 1 : ((i + 1) * partSize - 1);
+        final partIndex = i;
+        final partFile = partFiles[i];
+
+        futures.add(() async {
+          final partSink = partFile.openWrite(mode: FileMode.writeOnly);
+          try {
+            final response = await _dio.get<ResponseBody>(
+              downloadUrl,
+              cancelToken: cancelToken,
+              options: Options(
+                headers: {
+                  ...getHeaders(server),
+                  'Range': 'bytes=$start-$end',
+                },
+                responseType: ResponseType.stream,
+                followRedirects: true,
+                maxRedirects: 10,
+              ),
+            );
+
+            // Server must return 206 Partial Content or 200
+            final stream = response.data?.stream;
+            if (stream == null) throw Exception('Null stream for part $partIndex');
+
+            await for (final chunk in stream) {
+              if (cancelToken?.isCancelled == true) {
+                await partSink.close();
+                throw DioException(
+                  requestOptions: RequestOptions(path: downloadUrl),
+                  type: DioExceptionType.cancel,
+                );
+              }
+              partSink.add(chunk);
+              partProgress[partIndex] += chunk.length;
+              final currentTotal = partProgress.fold<int>(0, (sum, p) => sum + p);
+              onProgress(currentTotal, totalBytes);
+            }
+            await partSink.flush();
+          } finally {
+            await partSink.close();
+          }
+        }());
+      }
+
+      await Future.wait(futures);
+
+      // Concatenate all parts into the final destination file
+      final finalFile = File(destinationLocalPath);
+      if (await finalFile.exists()) await finalFile.delete();
+
+      final finalSink = finalFile.openWrite(mode: FileMode.writeOnly);
+      try {
+        for (final partFile in partFiles) {
+          await finalSink.addStream(partFile.openRead());
+        }
+        await finalSink.flush();
+      } finally {
+        await finalSink.close();
+      }
+    } finally {
+      // Clean up part files
+      for (final partFile in partFiles) {
+        if (await partFile.exists()) {
+          try {
+            await partFile.delete();
+          } catch (_) {}
+        }
+      }
     }
   }
 }
