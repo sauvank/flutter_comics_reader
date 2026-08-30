@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/download_provider.dart';
+import '../services/update_service.dart';
 import 'downloads_screen.dart';
 import 'library_screen.dart';
 import 'server_screen.dart';
@@ -15,6 +16,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final info = await UpdateService().checkUpdate();
+      if (info != null && info.hasUpdate && mounted) {
+        UpdateService().promptUpdateDialog(context, info);
+      }
+    });
+  }
 
   void _onTabSelected(int index) {
     setState(() {

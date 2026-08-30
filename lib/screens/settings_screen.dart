@@ -1,14 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../constants/app_version.dart';
 import '../providers/library_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/database_service.dart';
 import '../services/reader_settings_service.dart';
+import '../services/update_service.dart';
 import '../utils/format_utils.dart';
 import '../widgets/reader_controls.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isCheckingUpdate = false;
+
+  Future<void> _checkUpdateManual() async {
+    if (_isCheckingUpdate) return;
+    setState(() {
+      _isCheckingUpdate = true;
+    });
+
+    try {
+      final info = await UpdateService().checkUpdate();
+      if (!mounted) return;
+
+      if (info != null && info.hasUpdate) {
+        UpdateService().promptUpdateDialog(context, info);
+      } else {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 20),
+                const SizedBox(width: 10),
+                Text('ComicStream est à jour (${AppVersion.fullVersion}) !'),
+              ],
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCheckingUpdate = false;
+        });
+      }
+    }
+  }
 
   void _clearCoversCache(BuildContext context) async {
     final db = DatabaseService();
@@ -378,6 +423,46 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
+          // Updates Section
+          _buildSectionHeader('Mises à jour', theme),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.system_update_rounded, color: theme.colorScheme.primary, size: 22),
+              ),
+              title: const Text('Rechercher une mise à jour'),
+              subtitle: Text(
+                'Version installée : ${AppVersion.fullVersion}',
+                style: const TextStyle(fontSize: 12),
+              ),
+              trailing: _isCheckingUpdate
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : FilledButton.tonal(
+                      onPressed: () => _checkUpdateManual(),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Vérifier', style: TextStyle(fontSize: 12)),
+                    ),
+              onTap: _isCheckingUpdate ? null : () => _checkUpdateManual(),
+            ),
+          ),
+          const SizedBox(height: 18),
+
           // Guide & Help
           _buildSectionHeader('Aide & Configuration', theme),
           Container(
@@ -412,7 +497,7 @@ class SettingsScreen extends StatelessWidget {
                       Icon(Icons.auto_stories_rounded, size: 16, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'ComicStream v1.0.28',
+                        'ComicStream ${AppVersion.fullVersion}',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
