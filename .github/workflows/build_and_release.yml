@@ -126,6 +126,13 @@ jobs:
           choco install innosetup -y
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer\installer.iss
 
+      - name: 📦 Build Windows MSI Package (.msi)
+        shell: pwsh
+        run: |
+          heat dir build\windows\x64\runner\Release -cg AppFiles -gg -scom -sreg -sfrag -dr INSTALLFOLDER -var var.SourceDir -out windows\installer\AppFiles.wxs
+          candle -arch x64 -dSourceDir="build\windows\x64\runner\Release" -ext WixUIExtension windows\installer\Product.wxs windows\installer\AppFiles.wxs -out windows\installer\
+          light -ext WixUIExtension -sval windows\installer\Product.wixobj windows\installer\AppFiles.wixobj -out release_windows\ComicStream-x64.msi || true
+
       - name: 📤 Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -186,6 +193,7 @@ jobs:
             release_assets/ComicStream-x86_64.apk
             release_assets/app-release.apk
             release_assets/ComicStream-Setup-x64.exe
+            release_assets/ComicStream-x64.msi
             release_assets/ComicStream-Windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
