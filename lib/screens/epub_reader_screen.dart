@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
 import '../providers/library_provider.dart';
