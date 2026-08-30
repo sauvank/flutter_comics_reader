@@ -32,7 +32,12 @@ if ! command -v rclone &> /dev/null; then
 fi
 
 # 2. Dossier source local
-DEFAULT_SOURCE="/mnt/bd"
+if [ -d "/mnt/books" ]; then
+    DEFAULT_SOURCE="/mnt/books"
+else
+    DEFAULT_SOURCE="/mnt/bd"
+fi
+
 if [ -z "$1" ]; then
     echo ""
     read -p "📂 Chemin du dossier source à synchroniser [Défaut: $DEFAULT_SOURCE] : " SOURCE_PATH
@@ -43,7 +48,7 @@ fi
 
 if [ ! -d "$SOURCE_PATH" ]; then
     echo -e "${RED}❌ Erreur : Le dossier source '$SOURCE_PATH' n'existe pas ou n'est pas monté.${NC}"
-    echo "💡 Rappel : Si c'est un partage réseau (\\192.168.1.12\...), montez-le d'abord dans /mnt/bd"
+    echo "💡 Rappel : Si c'est un partage réseau (\\\\192.168.1.12\\...), montez-le d'abord dans /mnt/books"
     exit 1
 fi
 
@@ -93,15 +98,16 @@ echo ""
 
 # Options :
 # -P : Affichage de la progression en temps réel
+# --track-renames : Détecte les fichiers renommés/déplacés et les renomme sur le cloud sans ré-upload
 # --fast-list : Optimise les requêtes pour lister les fichiers
 # --transfers 2 : Téléverse 2 gros fichiers en parallèle
-# --tpslimit 5 : Limite le nombre de requêtes par seconde pour éviter les blocages API TeraBox
+# --tpslimit 5 : Limite le nombre de requêtes par seconde pour éviter les blocages API
 # --retries 5 : Réessaie automatiquement les fichiers en échec
 # --low-level-retries 10 : Réessaie les paquets/requêtes individuelles
-# --ignore-existing : Ne tente pas d'écraser un fichier déjà présent
 # --timeout 30m : Laisse le temps pour les très gros fichiers
 rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --progress \
+    --track-renames \
     --transfers 2 \
     --tpslimit 5 \
     --checkers 4 \
@@ -110,7 +116,6 @@ rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --retries-sleep 3s \
     --timeout 30m \
     --buffer-size 64M \
-    --ignore-existing \
     --fast-list
 
 echo ""

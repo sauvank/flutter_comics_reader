@@ -114,13 +114,19 @@ jobs:
       - name: 🔨 Build Windows App
         run: flutter build windows --release
 
-      - name: 📦 Compress Windows Release
+      - name: 📦 Compress Windows Release (Portable ZIP)
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path release_windows
           Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath release_windows\ComicStream-Windows-x64.zip
 
-      - name: 📤 Upload Windows Artifact
+      - name: 🛠️ Build Windows Installer (.exe Setup)
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer\installer.iss
+
+      - name: 📤 Upload Windows Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-windows
@@ -179,6 +185,7 @@ jobs:
             release_assets/ComicStream-armeabi-v7a.apk
             release_assets/ComicStream-x86_64.apk
             release_assets/app-release.apk
+            release_assets/ComicStream-Setup-x64.exe
             release_assets/ComicStream-Windows-x64.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

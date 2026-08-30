@@ -177,8 +177,8 @@ class RemoteCoverService {
   Uint8List? _extractFirstImage(Uint8List bytes, String filename) {
     final lower = filename.toLowerCase();
 
-    // 1. If CBZ/ZIP, try ZIP parser first
-    if (lower.endsWith('.cbz') || lower.endsWith('.zip')) {
+    // 1. If CBZ/ZIP/EPUB, try ZIP parser first
+    if (lower.endsWith('.cbz') || lower.endsWith('.zip') || lower.endsWith('.epub')) {
       final zipImg = _tryParseZipFirstImage(bytes);
       if (zipImg != null && zipImg.isNotEmpty) return zipImg;
     }

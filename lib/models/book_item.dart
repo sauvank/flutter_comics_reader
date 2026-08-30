@@ -5,6 +5,7 @@ enum BookFormat {
   cbr,
   pdf,
   zip,
+  epub,
   unknown,
 }
 
@@ -53,6 +54,7 @@ class BookItem {
     if (lower.endsWith('.cbr')) return BookFormat.cbr;
     if (lower.endsWith('.pdf')) return BookFormat.pdf;
     if (lower.endsWith('.zip')) return BookFormat.zip;
+    if (lower.endsWith('.epub')) return BookFormat.epub;
     return BookFormat.unknown;
   }
 
@@ -66,6 +68,8 @@ class BookItem {
         return 'PDF';
       case BookFormat.zip:
         return 'ZIP';
+      case BookFormat.epub:
+        return 'EPUB';
       default:
         return 'LIVRE';
     }

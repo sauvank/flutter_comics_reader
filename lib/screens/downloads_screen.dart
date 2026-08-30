@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/book_item.dart';
 import '../models/download_task.dart';
 import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/server_provider.dart';
 import '../utils/format_utils.dart';
 import 'cbz_reader_screen.dart';
+import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
 
 class DownloadsScreen extends StatelessWidget {
@@ -268,9 +270,13 @@ class DownloadsScreen extends StatelessWidget {
                 final library = context.read<LibraryProvider>();
                 final book = library.getBookById(task.bookId);
                 if (book != null) {
-                  if (book.format.name == 'pdf') {
+                  if (book.format == BookFormat.pdf) {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => PdfReaderScreen(book: book)),
+                    );
+                  } else if (book.format == BookFormat.epub) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => EpubReaderScreen(book: book)),
                     );
                   } else {
                     Navigator.of(context).push(

@@ -326,6 +326,8 @@ class BookCard extends StatelessWidget {
         return const Color(0xFFEF4444); // Red
       case BookFormat.zip:
         return const Color(0xFF10B981); // Emerald
+      case BookFormat.epub:
+        return const Color(0xFFF59E0B); // Amber / Orange
       default:
         return const Color(0xFF6B7280); // Gray
     }
