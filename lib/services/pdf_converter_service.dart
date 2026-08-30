@@ -38,6 +38,7 @@ class PdfConverterService {
     String? outputCbzPath,
     double? targetDpiScale, // Supersampled resolution matching user preference (default 2.6x ~ 2600px)
     bool registerInDatabase = true,
+    BookItem? originalBook,
   }) async* {
     final pdfFile = File(pdfFilePath);
     if (!await pdfFile.exists()) {
@@ -100,11 +101,14 @@ class PdfConverterService {
           final pageFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.jpg'));
 
           try {
+            final isBgra = pdfImage.format.name.toLowerCase().contains('bgra');
+            final channelOrder = isBgra ? img.ChannelOrder.bgra : img.ChannelOrder.rgba;
             final image = img.Image.fromBytes(
               width: pdfImage.width,
               height: pdfImage.height,
               bytes: pdfImage.pixels.buffer,
               numChannels: 4,
+              order: channelOrder,
             );
             final jpgBytes = img.encodeJpg(image, quality: 88);
             await pageFile.writeAsBytes(jpgBytes, flush: true);
@@ -171,18 +175,29 @@ class PdfConverterService {
         statusText: 'Finalisation et extraction de la couverture...',
       );
 
-        BookItem? newBook;
-        if (registerInDatabase) {
-          final db = DatabaseService();
-          final coversDir = await db.getCoversDirectory();
-          final bookId = 'cbz_${DateTime.now().millisecondsSinceEpoch}';
-          final coverPath = p.join(coversDir.path, '$bookId.jpg');
+      BookItem? newBook;
+      if (registerInDatabase) {
+        final db = DatabaseService();
+        final coversDir = await db.getCoversDirectory();
+        final bookId = originalBook?.id ?? 'cbz_${DateTime.now().millisecondsSinceEpoch}';
+        final coverPath = p.join(coversDir.path, '$bookId.jpg');
 
-          await CbzService.extractCover(
-            cbzFilePath: targetPath,
-            targetCoverPath: coverPath,
+        await CbzService.extractCover(
+          cbzFilePath: targetPath,
+          targetCoverPath: coverPath,
+        );
+
+        if (originalBook != null) {
+          newBook = originalBook.copyWith(
+            localPath: targetPath,
+            originalFilename: p.basename(targetPath),
+            format: BookFormat.cbz,
+            coverPath: File(coverPath).existsSync() ? coverPath : originalBook.coverPath,
+            totalPages: totalPages,
+            fileSize: File(targetPath).existsSync() ? await File(targetPath).length() : originalBook.fileSize,
           );
-
+          await db.updateBook(newBook);
+        } else {
           newBook = BookItem(
             id: bookId,
             title: baseName,
@@ -198,9 +213,9 @@ class PdfConverterService {
             fileSize: File(targetPath).existsSync() ? await File(targetPath).length() : 0,
             bookmarks: [],
           );
-
           await db.addBook(newBook);
         }
+      }
 
         yield PdfConverterProgress(
           currentPage: totalPages,
