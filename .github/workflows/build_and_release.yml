@@ -88,12 +88,15 @@ jobs:
   # -------------------------------------------------------------
   build-windows:
     name: 🪟 Build Windows Release
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: 🛠️ Set up Visual Studio C++ Environment
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: 🐦 Set up Flutter
         uses: subosito/flutter-action@v2
@@ -101,6 +104,9 @@ jobs:
           flutter-version: '3.27.4'
           channel: 'stable'
           cache: true
+
+      - name: ⚙️ Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
 
       - name: 📦 Install dependencies
         run: flutter pub get
