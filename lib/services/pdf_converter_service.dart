@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:archive/archive.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -10,6 +11,47 @@ import '../services/cbz_service.dart';
 import '../services/database_service.dart';
 import '../services/reader_settings_service.dart';
 import '../utils/format_utils.dart';
+
+class _JpgTask {
+  final int width;
+  final int height;
+  final Uint8List pixels;
+  final bool isBgra;
+  final int quality;
+
+  _JpgTask({
+    required this.width,
+    required this.height,
+    required this.pixels,
+    required this.isBgra,
+    required this.quality,
+  });
+}
+
+Uint8List _encodeJpgIsolate(_JpgTask params) {
+  final image = img.Image.fromBytes(
+    width: params.width,
+    height: params.height,
+    bytes: params.pixels.buffer,
+    numChannels: 4,
+    order: params.isBgra ? img.ChannelOrder.bgra : img.ChannelOrder.rgba,
+  );
+  return img.encodeJpg(image, quality: params.quality);
+}
+
+class _ArchiveItem {
+  final String name;
+  final List<int> bytes;
+  _ArchiveItem({required this.name, required this.bytes});
+}
+
+List<int> _encodeZipIsolate(List<_ArchiveItem> items) {
+  final archive = Archive();
+  for (final item in items) {
+    archive.addFile(ArchiveFile(item.name, item.bytes.length, item.bytes));
+  }
+  return ZipEncoder().encode(archive);
+}
 
 class PdfConverterProgress {
   final int currentPage;
@@ -102,15 +144,16 @@ class PdfConverterService {
 
           try {
             final isBgra = pdfImage.format.name.toLowerCase().contains('bgra');
-            final channelOrder = isBgra ? img.ChannelOrder.bgra : img.ChannelOrder.rgba;
-            final image = img.Image.fromBytes(
+            final task = _JpgTask(
               width: pdfImage.width,
               height: pdfImage.height,
-              bytes: pdfImage.pixels.buffer,
-              numChannels: 4,
-              order: channelOrder,
+              pixels: pdfImage.pixels,
+              isBgra: isBgra,
+              quality: 88,
             );
-            final jpgBytes = img.encodeJpg(image, quality: 88);
+
+            // Execute heavy JPEG compression in a background isolate to keep UI 100% fluid
+            final jpgBytes = await compute(_encodeJpgIsolate, task);
             await pageFile.writeAsBytes(jpgBytes, flush: true);
           } catch (eImg) {
             // Fallback via Flutter ui.Image to PNG with accurate offset & length
@@ -125,6 +168,9 @@ class PdfConverterService {
           } finally {
             pdfImage.dispose();
           }
+
+          // Small yield to let Flutter's UI engine breathe and render frames smoothly
+          await Future.delayed(const Duration(milliseconds: 10));
         }
       }
 
@@ -146,17 +192,17 @@ class PdfConverterService {
         throw Exception('Aucune page n\'a pu être générée depuis le PDF.');
       }
 
-      final archive = Archive();
+      final items = <_ArchiveItem>[];
       for (final imageFile in generatedImages) {
         final fileBytes = await imageFile.readAsBytes();
-        archive.addFile(ArchiveFile(
-          p.basename(imageFile.path),
-          fileBytes.length,
-          fileBytes,
+        items.add(_ArchiveItem(
+          name: p.basename(imageFile.path),
+          bytes: fileBytes,
         ));
       }
 
-      final encodedZip = ZipEncoder().encode(archive);
+      // Execute ZIP compression in background isolate
+      final encodedZip = await compute(_encodeZipIsolate, items);
       if (encodedZip.isEmpty) {
         throw Exception('Échec de l\'encodage de l\'archive CBZ.');
       }
