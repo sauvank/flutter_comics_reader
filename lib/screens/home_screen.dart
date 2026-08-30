@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final List<Widget> screens = [
       LibraryScreen(onNavigateTab: _onTabSelected),
-      const ServerScreen(),
+      ServerScreen(onNavigateTab: _onTabSelected),
       const DownloadsScreen(),
       const SettingsScreen(),
     ];

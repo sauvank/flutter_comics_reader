@@ -5,14 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/server_profile.dart';
 import '../providers/server_provider.dart';
-import '../providers/library_provider.dart';
-import '../providers/download_provider.dart';
 import '../widgets/server_form_dialog.dart';
-import '../widgets/remote_book_card.dart';
-import '../widgets/instant_read_modal.dart';
 
 class ServerScreen extends StatefulWidget {
-  const ServerScreen({super.key});
+  final ValueChanged<int>? onNavigateTab;
+  const ServerScreen({super.key, this.onNavigateTab});
 
   @override
   State<ServerScreen> createState() => _ServerScreenState();
@@ -840,27 +837,67 @@ class _ServerScreenState extends State<ServerScreen> {
                                 child: ListView(
                                   padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
                                   children: [
-                                    // Info pill if current folder contains books
+                                    // Folder info banner when current folder contains comics
                                     if (books.isNotEmpty)
                                       Container(
-                                        margin: const EdgeInsets.only(bottom: 12),
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        margin: const EdgeInsets.only(bottom: 14),
+                                        padding: const EdgeInsets.all(16),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF10B981).withAlpha(25),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: const Color(0xFF10B981).withAlpha(60)),
+                                          color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(80)),
                                         ),
-                                        child: Row(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Icon(Icons.auto_stories_rounded, color: Color(0xFF10B981), size: 18),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Text(
-                                                'Ce dossier contient ${books.length} tome(s) de BD',
-                                                style: const TextStyle(
-                                                  color: Color(0xFF10B981),
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 13,
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.all(10),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF8B5CF6).withAlpha(30),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                  ),
+                                                  child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF8B5CF6), size: 22),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        '${books.length} tome(s) de BD détecté(s)',
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 15,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        'Dossier de lecture prêt',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color: theme.colorScheme.onSurfaceVariant,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: FilledButton.icon(
+                                                onPressed: () {
+                                                  widget.onNavigateTab?.call(0);
+                                                },
+                                                icon: const Icon(Icons.menu_book_rounded, size: 18),
+                                                label: const Text('Ouvrir et lire dans la Bibliothèque'),
+                                                style: FilledButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF8B5CF6),
+                                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                                 ),
                                               ),
                                             ),
@@ -868,7 +905,7 @@ class _ServerScreenState extends State<ServerScreen> {
                                         ),
                                       ),
 
-                                    // List of Folders
+                                    // List of Subfolders
                                     if (folders.isNotEmpty) ...[
                                       Padding(
                                         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
@@ -906,49 +943,6 @@ class _ServerScreenState extends State<ServerScreen> {
                                               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                                             ),
                                           )),
-                                    ],
-                                    if (books.isNotEmpty) ...[
-                                      const SizedBox(height: 16),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                        child: Text(
-                                          'Bandes dessinées (${books.length})',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                      GridView.builder(
-                                        shrinkWrap: true,
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 2,
-                                          childAspectRatio: 0.65,
-                                          crossAxisSpacing: 12,
-                                          mainAxisSpacing: 12,
-                                        ),
-                                        itemCount: books.length,
-                                        itemBuilder: (context, index) {
-                                          final file = books[index];
-                                          final isDownloaded = context.watch<LibraryProvider>().getBookByServerPath(activeServer.id, file.path) != null;
-                                          final downloadTask = context.watch<DownloadProvider>().getTaskForRemotePath(file.path);
-                                          return RemoteBookCard(
-                                            server: activeServer,
-                                            file: file,
-                                            isDownloaded: isDownloaded,
-                                            downloadTask: downloadTask,
-                                            onTap: () {
-                                              InstantReadModal.show(context, server: activeServer, file: file);
-                                            },
-                                            onDownload: () {
-                                              context.read<DownloadProvider>().enqueueDownload(server: activeServer, remoteFile: file);
-                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Téléchargement de ${file.name} ajouté à la file d\'attente.')));
-                                            },
-                                          );
-                                        },
-                                      ),
                                     ],
                                   ],
                                 ),
