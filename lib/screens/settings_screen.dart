@@ -7,6 +7,7 @@ import '../services/database_service.dart';
 import '../services/reader_settings_service.dart';
 import '../services/update_service.dart';
 import '../utils/format_utils.dart';
+import 'package:flutter/services.dart';
 import '../widgets/reader_controls.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -46,6 +47,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la vérification de la mise à jour')),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -55,14 +62,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _clearCoversCache(BuildContext context) async {
+  Future<void> _clearCoversCache(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Vider le cache ?'),
+        content: const Text('Les couvertures seront rechargées automatiquement.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Vider')),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
     final db = DatabaseService();
     final coversDir = await db.getCoversDirectory();
     if (await coversDir.exists()) {
       final files = coversDir.listSync();
       for (final f in files) {
         try {
-          f.deleteSync();
+          await f.delete();
         } catch (_) {}
       }
     }
@@ -90,12 +110,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () async {
               Navigator.of(ctx).pop();
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => const Center(child: CircularProgressIndicator()),
+              );
+
               final library = context.read<LibraryProvider>();
               final books = List.from(library.books);
               for (final b in books) {
                 await library.deleteBook(b.id);
               }
               if (context.mounted) {
+                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Tous les fichiers locaux ont été supprimés.')),
                 );
@@ -109,10 +137,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showServerGuide(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    Widget buildCommandBox(String commandText) {
+      return Container(
+        padding: const EdgeInsets.only(left: 12, right: 4, top: 4, bottom: 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SelectableText(
+                commandText,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: commandText));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Commande copiée !'), duration: Duration(seconds: 1)),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF13151F),
+      backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -127,7 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.help_outline_rounded, color: Color(0xFF8B5CF6)),
+                Icon(Icons.help_outline_rounded, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
                 const Text('Guide Serveur Local', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
@@ -135,58 +198,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             const Divider(height: 24),
-            const Text(
+            Text(
               'Option 1 : Serveur WebDAV Docker (Recommandé)',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Lancez un serveur WebDAV léger avec Docker en 1 ligne en pointant vers votre dossier de BDs :',
-              style: TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const SelectableText(
-                'docker run -d -p 8080:80 -v /chemin/vers/vos/bds:/var/webdav/public bytemark/webdav',
-                style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.greenAccent),
-              ),
-            ),
+            buildCommandBox('docker run -d -p 8080:80 -v /chemin/vers/vos/bds:/var/webdav/public bytemark/webdav'),
             const SizedBox(height: 18),
             const Text(
               'Option 2 : Script Python prêt à l\'emploi',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF06B6D4)),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Un serveur Python dédié est fourni dans le dossier `server_example/comic_server.py`. Pour le lancer :',
-              style: TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.black,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const SelectableText(
-                'python3 server_example/comic_server.py --port 8080 --dir ~/Comics',
-                style: TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.greenAccent),
-              ),
-            ),
+            buildCommandBox('python3 server_example/comic_server.py --port 8080 --dir ~/Comics'),
             const SizedBox(height: 18),
             const Text(
               'Option 3 : NAS Synology / TrueNAS / Nextcloud',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.amber),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Activez simplement le service WebDAV dans le panneau d\'administration de votre NAS (port 5005 par défaut sur Synology) et entrez vos identifiants dans l\'application.',
-              style: TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -362,6 +405,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          
+          // E-Books & EPUB Section
+          _buildSectionHeader('E-Books & EPUB', theme),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Taille de la police', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Slider(
+                  value: readerSettings.epubFontSize,
+                  min: 12,
+                  max: 32,
+                  divisions: 20,
+                  label: '${readerSettings.epubFontSize.toInt()} px',
+                  onChanged: (val) => readerSettings.setEpubFontSize(val),
+                ),
+                const Divider(height: 24),
+                const Text('Police', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 10),
+                SegmentedButton<EpubFontFamily>(
+                  segments: const [
+                    ButtonSegment(value: EpubFontFamily.sansSerif, label: Text('Sans-serif')),
+                    ButtonSegment(value: EpubFontFamily.serif, label: Text('Serif')),
+                    ButtonSegment(value: EpubFontFamily.monospace, label: Text('Mono')),
+                  ],
+                  selected: {readerSettings.epubFontFamily},
+                  onSelectionChanged: (set) => readerSettings.setEpubFontFamily(set.first),
+                ),
+                const Divider(height: 24),
+                const Text('Interligne', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  children: EpubLineHeight.values.map((val) {
+                    final label = val == EpubLineHeight.compact ? 'Compact' : val == EpubLineHeight.normal ? 'Normal' : 'Relaxed';
+                    return ChoiceChip(
+                      label: Text(label),
+                      selected: readerSettings.epubLineHeight == val,
+                      onSelected: (_) => readerSettings.setEpubLineHeight(val),
+                    );
+                  }).toList(),
+                ),
+                const Divider(height: 24),
+                const Text('Marge', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  children: EpubMargin.values.map((val) {
+                    final label = val == EpubMargin.narrow ? 'Etroit' : val == EpubMargin.normal ? 'Normal' : 'Large';
+                    return ChoiceChip(
+                      label: Text(label),
+                      selected: readerSettings.epubMargin == val,
+                      onSelected: (_) => readerSettings.setEpubMargin(val),
+                    );
+                  }).toList(),
+                ),
+                const Divider(height: 24),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Texte justifié', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  value: readerSettings.epubTextAlign == EpubTextAlign.justify,
+                  onChanged: (val) => readerSettings.setEpubTextAlign(val ? EpubTextAlign.justify : EpubTextAlign.left),
+                ),
               ],
             ),
           ),

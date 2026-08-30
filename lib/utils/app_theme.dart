@@ -1,6 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AppTheme {
+  // Light Theme
+  static final ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+    colorScheme: const ColorScheme.light(
+      primary: Color(0xFF8B5CF6),
+      secondary: Color(0xFF06B6D4),
+    ),
+    cardTheme: CardThemeData(
+      color: Colors.white,
+      elevation: 1,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.white,
+      foregroundColor: Color(0xFF0F172A),
+      elevation: 0,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.white,
+      indicatorColor: const Color(0xFF8B5CF6).withAlpha(40),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+    dialogTheme: DialogThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+    ),
+  );
+
   // Dark Theme (Default)
   static final ThemeData darkTheme = ThemeData(
     useMaterial3: true,
@@ -128,6 +165,10 @@ class AppTheme {
       backgroundColor: Colors.black,
       selectedItemColor: Color(0xFF8B5CF6),
       unselectedItemColor: Color(0xFF555555),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: Colors.black,
+      indicatorColor: const Color(0xFF8B5CF6).withAlpha(60),
     ),
   );
 }

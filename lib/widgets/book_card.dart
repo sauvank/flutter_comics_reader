@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/book_item.dart';
 import '../utils/format_utils.dart';
 import 'pdf_to_cbz_dialog.dart';
@@ -28,6 +29,7 @@ class BookCard extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
+      focusColor: theme.colorScheme.primary.withAlpha(60),
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -57,6 +59,16 @@ class BookCard extends StatelessWidget {
                     Image.file(
                       File(book.coverPath!),
                       fit: BoxFit.cover,
+                      cacheWidth: 400,
+                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded) return child;
+                        return AnimatedOpacity(
+                          opacity: frame == null ? 0 : 1,
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOut,
+                          child: child,
+                        );
+                      },
                       errorBuilder: (_, __, ___) => _buildPlaceholder(theme),
                     )
                   else
@@ -110,10 +122,15 @@ class BookCard extends StatelessWidget {
                       right: 32,
                       child: Material(
                         color: Colors.transparent,
-                        child: InkWell(
-                          onTap: onToggleFavorite,
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
+                        child: IconButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            onToggleFavorite?.call();
+                          },
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          tooltip: book.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                          padding: EdgeInsets.zero,
+                          icon: Container(
                             padding: const EdgeInsets.all(5),
                             decoration: BoxDecoration(
                               color: book.isFavorite
@@ -150,6 +167,7 @@ class BookCard extends StatelessWidget {
                           } else if (value == 'convert') {
                             PdfToCbzDialog.show(context, book: book);
                           } else if (value == 'favorite') {
+                            HapticFeedback.selectionClick();
                             onToggleFavorite?.call();
                           }
                         },
@@ -256,11 +274,11 @@ class BookCard extends StatelessWidget {
                 children: [
                   Text(
                     book.title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 13,
+                      fontSize: 12,
                     ),
                   ),
                   const SizedBox(height: 3),

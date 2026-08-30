@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 enum ReadingMode {
   leftToRight, // BD / Comics / Standard
@@ -241,7 +242,7 @@ class ReaderSettingsService extends ChangeNotifier {
     _keepScreenOn = prefs.getBool('reader_keep_screen_on') ?? true;
     _showPageNumbers = prefs.getBool('reader_show_page_numbers') ?? true;
     _volumeButtonsNavigation = prefs.getBool('reader_volume_nav') ?? false;
-    _autoConvertPdfToCbz = prefs.getBool('auto_convert_pdf_to_cbz') ?? true;
+    _autoConvertPdfToCbz = prefs.getBool('auto_convert_pdf_to_cbz') ?? false;
 
     // Load EPUB settings
     final epubThemeStr = prefs.getString('epub_theme');
@@ -266,6 +267,7 @@ class ReaderSettingsService extends ChangeNotifier {
       _epubTextAlign = EpubTextAlign.values.firstWhere((e) => e.name == epubAlignStr, orElse: () => EpubTextAlign.justify);
     }
 
+    WakelockPlus.toggle(enable: _keepScreenOn);
     notifyListeners();
   }
 
@@ -295,6 +297,14 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('reader_keep_screen_on', value);
+    WakelockPlus.toggle(enable: value);
+  }
+
+  Future<void> setVolumeButtonsNavigation(bool value) async {
+    _volumeButtonsNavigation = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('volumeButtonsNavigation', value);
   }
 
   Future<void> setShowPageNumbers(bool value) async {

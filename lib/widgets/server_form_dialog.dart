@@ -28,6 +28,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   bool _isTesting = false;
   String? _testResult;
   bool? _testSuccess;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -52,6 +53,45 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     _userController.dispose();
     _passController.dispose();
     super.dispose();
+  }
+
+  void _onHostChanged(String value) {
+    String input = value.trim();
+    bool changed = false;
+
+    if (input.startsWith('http://')) {
+      input = input.replaceFirst('http://', '');
+      _isHttps = false;
+      changed = true;
+    } else if (input.startsWith('https://')) {
+      input = input.replaceFirst('https://', '');
+      _isHttps = true;
+      changed = true;
+    }
+
+    // Extract path
+    if (input.contains('/')) {
+      final parts = input.split('/');
+      input = parts.first;
+      final path = '/${parts.skip(1).join('/')}';
+      _pathController.text = path;
+      changed = true;
+    }
+
+    // Extract port
+    if (input.contains(':')) {
+      final parts = input.split(':');
+      input = parts.first;
+      _portController.text = parts.last;
+      changed = true;
+    }
+
+    if (changed) {
+      _hostController.text = input;
+      // Move cursor to end
+      _hostController.selection = TextSelection.fromPosition(TextPosition(offset: input.length));
+      setState(() {});
+    }
   }
 
   ServerProfile _buildProfile() {
@@ -189,7 +229,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Container(
         padding: const EdgeInsets.all(20),
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: BoxConstraints(
+          maxWidth: 500,
+          maxHeight: MediaQuery.of(context).size.height * 0.85,
+        ),
         child: SingleChildScrollView(
           child: Form(
             key: _formKey,
@@ -281,6 +324,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                       flex: 3,
                       child: TextFormField(
                         controller: _hostController,
+                        onChanged: _onHostChanged,
                         decoration: const InputDecoration(
                           labelText: 'Hôte / IP',
                           prefixIcon: Icon(Icons.router_outlined),
@@ -342,10 +386,14 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _passController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
                     labelText: 'Mot de passe',
-                    prefixIcon: Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),

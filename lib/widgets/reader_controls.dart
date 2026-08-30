@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/reader_settings_service.dart';
 
 class ReaderTopBar extends StatelessWidget {
+  final bool visible;
   final String title;
   final int currentPage;
   final int totalPages;
@@ -14,6 +15,7 @@ class ReaderTopBar extends StatelessWidget {
 
   const ReaderTopBar({
     super.key,
+    this.visible = true,
     required this.title,
     required this.currentPage,
     required this.totalPages,
@@ -27,77 +29,90 @@ class ReaderTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withAlpha(220),
-            Colors.black.withAlpha(150),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-                onPressed: onBack,
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedSlide(
+        offset: visible ? Offset.zero : const Offset(0, -1),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOutCubic,
+        child: AnimatedOpacity(
+          opacity: visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOutCubic,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withAlpha(220),
+                  Colors.black.withAlpha(150),
+                  Colors.transparent,
+                ],
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
                   children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                      onPressed: onBack,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (totalPages > 0)
+                            Text(
+                              'Page ${currentPage + 1} sur $totalPages',
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(180),
+                                fontSize: 12,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    if (totalPages > 0)
-                      Text(
-                        'Page ${currentPage + 1} sur $totalPages',
-                        style: TextStyle(
-                          color: Colors.white.withAlpha(180),
-                          fontSize: 12,
-                        ),
+                    IconButton(
+                      icon: Icon(
+                        isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                        color: isBookmarked ? Colors.amber : Colors.white,
                       ),
+                      onPressed: onToggleBookmark,
+                      tooltip: 'Marque-page',
+                    ),
+                    if (onToggleFavorite != null)
+                      IconButton(
+                        icon: Icon(
+                          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          color: isFavorite ? Colors.redAccent : Colors.white,
+                        ),
+                        onPressed: onToggleFavorite,
+                        tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                      onPressed: onOpenSettings,
+                      tooltip: 'Paramètres de lecture',
+                    ),
                   ],
                 ),
               ),
-              IconButton(
-                icon: Icon(
-                  isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                  color: isBookmarked ? Colors.amber : Colors.white,
-                ),
-                onPressed: onToggleBookmark,
-                tooltip: 'Marque-page',
-              ),
-              if (onToggleFavorite != null)
-                IconButton(
-                  icon: Icon(
-                    isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFavorite ? Colors.redAccent : Colors.white,
-                  ),
-                  onPressed: onToggleFavorite,
-                  tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
-                ),
-              IconButton(
-                icon: const Icon(Icons.tune_rounded, color: Colors.white),
-                onPressed: onOpenSettings,
-                tooltip: 'Paramètres de lecture',
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -106,6 +121,7 @@ class ReaderTopBar extends StatelessWidget {
 }
 
 class ReaderBottomBar extends StatelessWidget {
+  final bool visible;
   final int currentPage;
   final int totalPages;
   final ReadingMode readingMode;
@@ -115,6 +131,7 @@ class ReaderBottomBar extends StatelessWidget {
 
   const ReaderBottomBar({
     super.key,
+    this.visible = true,
     required this.currentPage,
     required this.totalPages,
     required this.readingMode,
@@ -127,93 +144,101 @@ class ReaderBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final isRTL = readingMode == ReadingMode.rightToLeft;
 
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            Colors.black.withAlpha(230),
-            Colors.black.withAlpha(160),
-            Colors.transparent,
-          ],
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Page Scrubber Slider
-              if (totalPages > 1)
-                Row(
+    return IgnorePointer(
+      ignoring: !visible,
+      child: AnimatedSlide(
+        offset: visible ? Offset.zero : const Offset(0, 1),
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOutCubic,
+        child: AnimatedOpacity(
+          opacity: visible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOutCubic,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withAlpha(230),
+                  Colors.black.withAlpha(160),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      '${currentPage + 1}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    Expanded(
-                      child: Directionality(
-                        textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
-                        child: SliderTheme(
-                          data: SliderTheme.of(context).copyWith(
-                            activeTrackColor: const Color(0xFF8B5CF6),
-                            inactiveTrackColor: Colors.white24,
-                            thumbColor: const Color(0xFF8B5CF6),
-                            overlayColor: const Color(0xFF8B5CF6).withAlpha(50),
-                            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                    // Page Scrubber Slider
+                    if (totalPages > 1)
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${currentPage + 1} / $totalPages',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                           ),
-                          child: Slider(
-                            value: currentPage.toDouble().clamp(0.0, (totalPages - 1).toDouble()),
-                            min: 0,
-                            max: (totalPages - 1).toDouble(),
-                            divisions: totalPages > 1 ? totalPages - 1 : 1,
-                            onChanged: (val) {
-                              onPageChanged(val.toInt());
-                            },
+                          Directionality(
+                            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+                            child: SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: const Color(0xFF8B5CF6),
+                                inactiveTrackColor: Colors.white24,
+                                thumbColor: const Color(0xFF8B5CF6),
+                                overlayColor: const Color(0xFF8B5CF6).withAlpha(50),
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                              ),
+                              child: Slider(
+                                value: currentPage.toDouble().clamp(0.0, (totalPages - 1).toDouble()),
+                                min: 0,
+                                max: (totalPages - 1).toDouble(),
+                                divisions: totalPages > 1 ? totalPages - 1 : 1,
+                                onChanged: (val) {
+                                  onPageChanged(val.toInt());
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+      
+                    // Control buttons row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        // Mode Switcher (LTR / Manga RTL / Webtoon)
+                        TextButton.icon(
+                          onPressed: () {
+                            final nextMode = readingMode == ReadingMode.leftToRight
+                                ? ReadingMode.rightToLeft
+                                : readingMode == ReadingMode.rightToLeft
+                                    ? ReadingMode.vertical
+                                    : ReadingMode.leftToRight;
+                            onReadingModeChanged(nextMode);
+                          },
+                          icon: Icon(_getReadingModeIcon(readingMode), color: const Color(0xFF8B5CF6), size: 18),
+                          label: Text(
+                            _getReadingModeLabel(readingMode),
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
                           ),
                         ),
-                      ),
-                    ),
-                    Text(
-                      '$totalPages',
-                      style: TextStyle(color: Colors.white.withAlpha(180), fontSize: 13),
+      
+                        // Thumbnails Gallery button
+                        IconButton(
+                          icon: const Icon(Icons.grid_view_rounded, color: Colors.white),
+                          onPressed: onOpenThumbnails,
+                          tooltip: 'Grille des pages',
+                        ),
+                      ],
                     ),
                   ],
                 ),
-
-              // Control buttons row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Mode Switcher (LTR / Manga RTL / Webtoon)
-                  TextButton.icon(
-                    onPressed: () {
-                      final nextMode = readingMode == ReadingMode.leftToRight
-                          ? ReadingMode.rightToLeft
-                          : readingMode == ReadingMode.rightToLeft
-                              ? ReadingMode.vertical
-                              : ReadingMode.leftToRight;
-                      onReadingModeChanged(nextMode);
-                    },
-                    icon: Icon(_getReadingModeIcon(readingMode), color: const Color(0xFF8B5CF6), size: 18),
-                    label: Text(
-                      _getReadingModeLabel(readingMode),
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ),
-
-                  // Thumbnails Gallery button
-                  IconButton(
-                    icon: const Icon(Icons.grid_view_rounded, color: Colors.white),
-                    onPressed: onOpenThumbnails,
-                    tooltip: 'Grille des pages',
-                  ),
-                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

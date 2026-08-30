@@ -5,7 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/server_profile.dart';
 import '../providers/server_provider.dart';
+import '../providers/library_provider.dart';
+import '../providers/download_provider.dart';
 import '../widgets/server_form_dialog.dart';
+import '../widgets/remote_book_card.dart';
+import '../widgets/instant_read_modal.dart';
 
 class ServerScreen extends StatefulWidget {
   const ServerScreen({super.key});
@@ -656,11 +660,11 @@ class _ServerScreenState extends State<ServerScreen> {
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                decoration: InputDecoration(
                   hintText: 'Filtrer ce dossier...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: Colors.grey),
+                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 onChanged: (val) {
                   setState(() {
@@ -902,6 +906,49 @@ class _ServerScreenState extends State<ServerScreen> {
                                               trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
                                             ),
                                           )),
+                                    ],
+                                    if (books.isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                        child: Text(
+                                          'Bandes dessinées (${books.length})',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                      GridView.builder(
+                                        shrinkWrap: true,
+                                        physics: const NeverScrollableScrollPhysics(),
+                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          childAspectRatio: 0.65,
+                                          crossAxisSpacing: 12,
+                                          mainAxisSpacing: 12,
+                                        ),
+                                        itemCount: books.length,
+                                        itemBuilder: (context, index) {
+                                          final file = books[index];
+                                          final isDownloaded = context.watch<LibraryProvider>().getBookByServerPath(activeServer.id, file.path) != null;
+                                          final downloadTask = context.watch<DownloadProvider>().getTaskForRemotePath(file.path);
+                                          return RemoteBookCard(
+                                            server: activeServer,
+                                            file: file,
+                                            isDownloaded: isDownloaded,
+                                            downloadTask: downloadTask,
+                                            onTap: () {
+                                              InstantReadModal.show(context, server: activeServer, file: file);
+                                            },
+                                            onDownload: () {
+                                              context.read<DownloadProvider>().enqueueDownload(server: activeServer, remoteFile: file);
+                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Téléchargement de ${file.name} ajouté à la file d\'attente.')));
+                                            },
+                                          );
+                                        },
+                                      ),
                                     ],
                                   ],
                                 ),
