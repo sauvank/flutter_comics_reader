@@ -314,10 +314,8 @@ class WebDavService {
       }
 
       try {
-        await _dio.download(
+        final response = await _dio.get<ResponseBody>(
           downloadUrl,
-          tempFile.path,
-          onReceiveProgress: onProgress,
           cancelToken: cancelToken,
           options: Options(
             headers: getHeaders(server),
@@ -326,6 +324,37 @@ class WebDavService {
             maxRedirects: 10,
           ),
         );
+
+        final responseBody = response.data;
+        if (responseBody == null) {
+          throw Exception('Réponse vide du serveur');
+        }
+
+        final lengthHeader = response.headers.value(Headers.contentLengthHeader);
+        final totalBytes = (lengthHeader != null && lengthHeader.isNotEmpty)
+            ? int.tryParse(lengthHeader) ?? -1
+            : -1;
+
+        int receivedBytes = 0;
+        final sink = tempFile.openWrite(mode: FileMode.writeOnly);
+
+        try {
+          await for (final chunk in responseBody.stream) {
+            if (cancelToken?.isCancelled == true) {
+              await sink.close();
+              throw DioException(
+                requestOptions: RequestOptions(path: downloadUrl),
+                type: DioExceptionType.cancel,
+              );
+            }
+            sink.add(chunk);
+            receivedBytes += chunk.length;
+            onProgress(receivedBytes, totalBytes);
+          }
+          await sink.flush();
+        } finally {
+          await sink.close();
+        }
 
         // Rename temp file to final destination
         final finalFile = File(destinationLocalPath);

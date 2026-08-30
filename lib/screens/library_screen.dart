@@ -142,91 +142,96 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
-        child: Column(
-          children: [
-          // View Switcher (Ma Collection / Dossiers vs Téléchargés)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-            child: SegmentedButton<int>(
-              segments: [
-                const ButtonSegment(
-                  value: 1,
-                  label: Text('Ma Collection (Dossiers)'),
-                  icon: Icon(Icons.folder_copy_rounded, size: 16),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1350),
+            child: Column(
+              children: [
+                // View Switcher (Ma Collection / Dossiers vs Téléchargés)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                  child: SegmentedButton<int>(
+                    segments: [
+                      const ButtonSegment(
+                        value: 1,
+                        label: Text('Ma Collection (Dossiers)'),
+                        icon: Icon(Icons.folder_copy_rounded, size: 16),
+                      ),
+                      ButtonSegment(
+                        value: 0,
+                        label: Text('Téléchargés (${library.books.length})'),
+                        icon: const Icon(Icons.download_done_rounded, size: 16),
+                      ),
+                    ],
+                    selected: {_activeViewIndex},
+                    onSelectionChanged: (set) {
+                      setState(() {
+                        _activeViewIndex = set.first;
+                      });
+                    },
+                  ),
                 ),
-                ButtonSegment(
-                  value: 0,
-                  label: Text('Téléchargés (${library.books.length})'),
-                  icon: const Icon(Icons.download_done_rounded, size: 16),
+
+                // Search Bar
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Container(
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withAlpha(50),
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: _activeViewIndex == 0
+                            ? 'Rechercher parmi les BD téléchargées...'
+                            : 'Rechercher un tome, une série ou un dossier...',
+                        hintStyle: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          size: 20,
+                          color: theme.colorScheme.primary,
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear_rounded, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchController.clear();
+                                    library.setSearchQuery('');
+                                  });
+                                },
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          library.setSearchQuery(val);
+                        });
+                      },
+                    ),
+                  ),
+                ),
+
+                Expanded(
+                  child: _activeViewIndex == 0
+                      ? _buildLocalLibraryView(context, library, theme)
+                      : _buildServerExplorerView(context, serverProvider, theme),
                 ),
               ],
-              selected: {_activeViewIndex},
-              onSelectionChanged: (set) {
-                setState(() {
-                  _activeViewIndex = set.first;
-                });
-              },
             ),
           ),
-
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Container(
-              height: 46,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withAlpha(50),
-                ),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: _activeViewIndex == 0
-                      ? 'Rechercher parmi les BD téléchargées...'
-                      : 'Rechercher un tome, une série ou un dossier...',
-                  hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    size: 20,
-                    color: theme.colorScheme.primary,
-                  ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded, size: 18),
-                          onPressed: () {
-                            setState(() {
-                              _searchController.clear();
-                              library.setSearchQuery('');
-                            });
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-                onChanged: (val) {
-                  setState(() {
-                    library.setSearchQuery(val);
-                  });
-                },
-              ),
-            ),
-          ),
-
-          Expanded(
-            child: _activeViewIndex == 0
-                ? _buildLocalLibraryView(context, library, theme)
-                : _buildServerExplorerView(context, serverProvider, theme),
-          ),
-        ],
-      ),
+        ),
       ),
     );
   }
