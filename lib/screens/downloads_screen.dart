@@ -176,24 +176,30 @@ class DownloadsScreen extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ),
-              if (task.etaString != null)
-                Text(
-                  task.etaString!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                )
-              else if (task.speedBytesPerSec > 0)
-                Text(
-                  FormatUtils.formatSpeed(task.speedBytesPerSec),
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (task.speedBytesPerSec > 0) ...[
+                    Text(
+                      FormatUtils.formatSpeed(task.speedBytesPerSec),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    if (task.etaString != null) const SizedBox(width: 6),
+                  ],
+                  if (task.etaString != null)
+                    Text(
+                      '(${task.etaString})',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                ],
+              ),
             ],
           ),
         ],
