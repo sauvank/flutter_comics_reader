@@ -47,6 +47,7 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
 
     final stream = PdfConverterService().convertPdfToCbz(
       pdfFilePath: widget.book.localPath,
+      originalBook: widget.book,
     );
 
     _sub = stream.listen(
