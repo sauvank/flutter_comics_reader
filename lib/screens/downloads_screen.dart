@@ -68,9 +68,12 @@ class DownloadsScreen extends StatelessWidget {
                 ),
               ),
             )
-          : ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
+          : Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: ListView(
+                  padding: const EdgeInsets.all(12),
+                  children: [
                 // Active Section
                 if (activeTasks.isNotEmpty) ...[
                   Padding(
@@ -109,6 +112,8 @@ class DownloadsScreen extends StatelessWidget {
                 ],
               ],
             ),
+          ),
+        ),
     );
   }
 

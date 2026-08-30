@@ -372,11 +372,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
                   childAspectRatio: 0.65,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
@@ -643,19 +643,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     ),
                                   ),
                                 ),
-                                SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, index) {
-                                      final folder = folders[index];
-                                      final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
-                                      return FolderCard(
-                                        name: folder.name,
-                                        isFavorite: isFav,
-                                        onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
-                                        onTap: () => serverProvider.navigateTo(folder.path),
-                                      );
-                                    },
-                                    childCount: folders.length,
+                                SliverPadding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  sliver: SliverGrid(
+                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 380,
+                                      mainAxisExtent: 68,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                    ),
+                                    delegate: SliverChildBuilderDelegate(
+                                      (context, index) {
+                                        final folder = folders[index];
+                                        final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
+                                        return FolderCard(
+                                          name: folder.name,
+                                          isFavorite: isFav,
+                                          onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
+                                          onTap: () => serverProvider.navigateTo(folder.path),
+                                        );
+                                      },
+                                      childCount: folders.length,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -680,11 +689,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 SliverPadding(
                                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                                   sliver: SliverGrid(
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
+                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 200,
                                       childAspectRatio: 0.65,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
+                                      crossAxisSpacing: 14,
+                                      mainAxisSpacing: 14,
                                     ),
                                     delegate: SliverChildBuilderDelegate(
                                       (context, index) {

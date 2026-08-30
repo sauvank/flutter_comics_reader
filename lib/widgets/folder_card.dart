@@ -5,6 +5,7 @@ class FolderCard extends StatelessWidget {
   final VoidCallback onTap;
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
+  final EdgeInsetsGeometry? margin;
 
   const FolderCard({
     super.key,
@@ -12,6 +13,7 @@ class FolderCard extends StatelessWidget {
     required this.onTap,
     this.isFavorite = false,
     this.onToggleFavorite,
+    this.margin,
   });
 
   @override
@@ -20,7 +22,7 @@ class FolderCard extends StatelessWidget {
     final displayName = name.replaceAll('_', ' ');
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: margin ?? EdgeInsets.zero,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         color: theme.colorScheme.surfaceContainerHighest.withAlpha(70),

@@ -322,6 +322,8 @@ class WebDavService {
           options: Options(
             headers: getHeaders(server),
             responseType: ResponseType.stream,
+            followRedirects: true,
+            maxRedirects: 10,
           ),
         );
 

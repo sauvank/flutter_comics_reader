@@ -162,25 +162,32 @@ class DownloadProvider extends ChangeNotifier {
     final localBookPath = p.join(booksDir.path, '${task.bookId}$extension');
 
     int lastBytes = 0;
-    DateTime lastTime = DateTime.now();
+    DateTime lastSpeedTime = DateTime.now();
+    DateTime lastUiUpdateTime = DateTime.fromMillisecondsSinceEpoch(0);
+    double currentSpeed = 0.0;
 
     void onProgress(int received, int total) {
       final now = DateTime.now();
       if (received == 0 || received < lastBytes) {
         lastBytes = 0;
-        lastTime = now;
+        lastSpeedTime = now;
       }
-      final timeDiff = now.difference(lastTime).inMilliseconds;
-      double speed = 0.0;
-      if (timeDiff >= 500) {
+      final speedTimeDiff = now.difference(lastSpeedTime).inMilliseconds;
+      if (speedTimeDiff >= 500) {
         final byteDiff = received - lastBytes;
-        speed = (byteDiff / (timeDiff / 1000.0));
+        currentSpeed = (byteDiff / (speedTimeDiff / 1000.0));
         lastBytes = received;
-        lastTime = now;
+        lastSpeedTime = now;
       }
 
       final progress = total > 0 ? (received / total).clamp(0.0, 1.0) : 0.0;
-      _updateTaskProgress(task.id, progress, received, total, speed);
+
+      // Throttle UI update notifications to prevent desktop UI freezing
+      final uiTimeDiff = now.difference(lastUiUpdateTime).inMilliseconds;
+      if (uiTimeDiff >= 250 || received == total) {
+        lastUiUpdateTime = now;
+        _updateTaskProgress(task.id, progress, received, total, currentSpeed);
+      }
     }
 
     try {
