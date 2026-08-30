@@ -10,6 +10,7 @@ import '../models/download_task.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
 import '../services/cbz_service.dart';
+import '../services/epub_service.dart';
 import '../services/database_service.dart';
 import '../services/ftp_service.dart';
 import '../services/pdf_converter_service.dart';
@@ -254,6 +255,15 @@ class DownloadProvider extends ChangeNotifier {
           targetCoverPath: targetCover,
         );
         totalPages = await CbzService.getPageCount(finalLocalPath);
+      } else if (finalFormat == BookFormat.epub) {
+        final coversDir = await _db.getCoversDirectory();
+        final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
+        coverPath = await EpubService.extractCover(
+          epubFilePath: finalLocalPath,
+          targetCoverPath: targetCover,
+        );
+        final chapters = await EpubService.loadChapters(finalLocalPath);
+        totalPages = chapters.isNotEmpty ? chapters.length : 1;
       } else if (finalFormat == BookFormat.pdf) {
         try {
           final coversDir = await _db.getCoversDirectory();

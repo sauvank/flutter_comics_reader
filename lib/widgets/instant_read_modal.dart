@@ -7,6 +7,7 @@ import '../models/server_profile.dart';
 import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
 import '../screens/cbz_reader_screen.dart';
+import '../screens/epub_reader_screen.dart';
 import '../screens/pdf_reader_screen.dart';
 
 class InstantReadModal extends StatefulWidget {
@@ -51,6 +52,12 @@ class InstantReadModal extends StatefulWidget {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PdfReaderScreen(book: book),
+        ),
+      );
+    } else if (book.format == BookFormat.epub) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => EpubReaderScreen(book: book),
         ),
       );
     } else {

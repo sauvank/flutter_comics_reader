@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:pdfrx/pdfrx.dart';
 import '../models/book_item.dart';
 import '../services/cbz_service.dart';
+import '../services/epub_service.dart';
 import '../services/database_service.dart';
 import '../utils/format_utils.dart';
 
@@ -16,6 +17,7 @@ enum LibraryFilter {
   completed,
   cbz,
   pdf,
+  epub,
 }
 
 enum LibrarySort {
@@ -68,6 +70,9 @@ class LibraryProvider extends ChangeNotifier {
         break;
       case LibraryFilter.pdf:
         list = list.where((b) => b.format == BookFormat.pdf).toList();
+        break;
+      case LibraryFilter.epub:
+        list = list.where((b) => b.format == BookFormat.epub).toList();
         break;
     }
 
@@ -147,6 +152,11 @@ class LibraryProvider extends ChangeNotifier {
         if (book.format == BookFormat.cbz || book.format == BookFormat.zip) {
           newCover = await CbzService.extractCover(
             cbzFilePath: book.localPath,
+            targetCoverPath: targetCover,
+          );
+        } else if (book.format == BookFormat.epub) {
+          newCover = await EpubService.extractCover(
+            epubFilePath: book.localPath,
             targetCoverPath: targetCover,
           );
         } else if (book.format == BookFormat.pdf) {

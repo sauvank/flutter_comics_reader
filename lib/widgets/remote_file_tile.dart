@@ -102,6 +102,10 @@ class RemoteFileTile extends StatelessWidget {
         color = const Color(0xFFEF4444);
         icon = Icons.picture_as_pdf;
         break;
+      case BookFormat.epub:
+        color = const Color(0xFFF59E0B);
+        icon = Icons.menu_book;
+        break;
       default:
         color = Colors.blueGrey;
         icon = Icons.insert_drive_file_outlined;

@@ -147,6 +147,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
         return const Color(0xFF8B5CF6);
       case BookFormat.pdf:
         return const Color(0xFFEF4444);
+      case BookFormat.epub:
+        return const Color(0xFFF59E0B);
       default:
         return Colors.blueGrey;
     }
@@ -160,6 +162,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
         return Icons.auto_stories_rounded;
       case BookFormat.pdf:
         return Icons.picture_as_pdf_rounded;
+      case BookFormat.epub:
+        return Icons.menu_book_rounded;
       default:
         return Icons.insert_drive_file_outlined;
     }

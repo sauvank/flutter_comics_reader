@@ -10,6 +10,7 @@ import '../widgets/folder_card.dart';
 import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import 'cbz_reader_screen.dart';
+import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -38,6 +39,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => PdfReaderScreen(book: book),
+        ),
+      );
+    } else if (book.format == BookFormat.epub) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => EpubReaderScreen(book: book),
         ),
       );
     } else {
@@ -248,6 +255,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
                   const SizedBox(width: 8),
                   _buildFilterChip('PDF', LibraryFilter.pdf, library),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
                   const SizedBox(width: 8),
                   _buildFilterChip('Terminés', LibraryFilter.completed, library),
                 ],
