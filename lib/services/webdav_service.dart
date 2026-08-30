@@ -93,31 +93,46 @@ class WebDavService {
     }
 
     final baseUri = Uri.parse(base);
-    var serverBasePath = baseUri.path;
-    serverBasePath = serverBasePath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+    final baseSegments = baseUri.pathSegments
+        .where((s) => s.isNotEmpty)
+        .map((s) => _safeDecode(s))
+        .toList();
 
     var cleanRelative = cleanPath.replaceAll(RegExp(r'^/+'), '').replaceAll(RegExp(r'/+$'), '');
+    final relativeSegments = cleanRelative
+        .split('/')
+        .where((s) => s.isNotEmpty)
+        .map((s) => _safeDecode(s))
+        .toList();
 
-    if (cleanRelative == serverBasePath || cleanRelative.isEmpty) {
-      return base;
+    // Check if relativeSegments already includes baseSegments prefix
+    if (baseSegments.isNotEmpty && relativeSegments.length >= baseSegments.length) {
+      bool startsWithBase = true;
+      for (int i = 0; i < baseSegments.length; i++) {
+        if (baseSegments[i].toLowerCase() != relativeSegments[i].toLowerCase()) {
+          startsWithBase = false;
+          break;
+        }
+      }
+      if (startsWithBase) {
+        relativeSegments.removeRange(0, baseSegments.length);
+      }
     }
 
-    if (serverBasePath.isNotEmpty && cleanRelative.startsWith('$serverBasePath/')) {
-      cleanRelative = cleanRelative.substring(serverBasePath.length + 1);
+    // Check if relativeSegments overlaps with baseSegments suffix (e.g. /dav/Comics and Comics/BD)
+    while (baseSegments.isNotEmpty &&
+        relativeSegments.isNotEmpty &&
+        baseSegments.last.toLowerCase() == relativeSegments.first.toLowerCase()) {
+      relativeSegments.removeAt(0);
     }
 
-    if (cleanRelative.isEmpty) {
-      return base;
-    }
+    final encodedBase = baseSegments.map(Uri.encodeComponent).toList();
+    final encodedRelative = relativeSegments.map(Uri.encodeComponent).toList();
 
-    // Split cleanRelative into segments, decode first to prevent double-encoding, then encode each segment
-    final baseSegments = baseUri.pathSegments.where((s) => s.isNotEmpty).toList();
-    final relativeSegments = cleanRelative.split('/').where((s) => s.isNotEmpty).map((seg) {
-      return Uri.encodeComponent(_safeDecode(seg));
-    }).toList();
-
-    final allSegments = [...baseSegments, ...relativeSegments];
-    final fullPath = '/${allSegments.join('/')}${isDirectory ? '/' : ''}';
+    final allSegments = [...encodedBase, ...encodedRelative];
+    final fullPath = allSegments.isEmpty
+        ? '/'
+        : '/${allSegments.join('/')}${isDirectory ? '/' : ''}';
 
     return baseUri.replace(path: fullPath).toString();
   }

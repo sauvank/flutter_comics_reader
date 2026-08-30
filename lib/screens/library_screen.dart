@@ -103,7 +103,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Text('Ma Bibliothèque'),
+            const Flexible(
+              child: Text(
+                'Ma Bibliothèque',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         actions: [
