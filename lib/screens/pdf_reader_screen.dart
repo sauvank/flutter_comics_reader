@@ -75,19 +75,34 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   void _nextPage() {
     if (_totalPages > 0 && _currentPage < _totalPages - 1) {
-      _pdfController.goToPage(pageNumber: _currentPage + 2);
+      final settings = context.read<ReaderSettingsService>();
+      final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+      _pdfController.goToPage(
+        pageNumber: _currentPage + 2,
+        anchor: isRTL ? PdfPageAnchor.topRight : PdfPageAnchor.topLeft,
+      );
     }
   }
 
   void _prevPage() {
     if (_currentPage > 0) {
-      _pdfController.goToPage(pageNumber: _currentPage);
+      final settings = context.read<ReaderSettingsService>();
+      final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+      _pdfController.goToPage(
+        pageNumber: _currentPage,
+        anchor: isRTL ? PdfPageAnchor.topRight : PdfPageAnchor.topLeft,
+      );
     }
   }
 
   void _jumpToPage(int pageIndex) {
     if (pageIndex < 0 || (_totalPages > 0 && pageIndex >= _totalPages)) return;
-    _pdfController.goToPage(pageNumber: pageIndex + 1, anchor: PdfPageAnchor.top);
+    final settings = context.read<ReaderSettingsService>();
+    final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+    _pdfController.goToPage(
+      pageNumber: pageIndex + 1,
+      anchor: isRTL ? PdfPageAnchor.topRight : PdfPageAnchor.topLeft,
+    );
   }
 
   void _toggleBookmark() {
