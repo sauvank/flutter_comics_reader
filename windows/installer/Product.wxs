@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="*" Name="ComicStream" Language="1036" Version="1.0.24" Manufacturer="ComicStream" UpgradeCode="7E5A4B2C-9C1D-4E8F-A3B5-8F12C6E9D0A4">
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
+
+    <MajorUpgrade DowngradeErrorMessage="Une version plus récente de ComicStream est déjà installée." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="windows\runner\resources\app_icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+
+    <Feature Id="ProductFeature" Title="ComicStream" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="ApplicationShortcut" />
+      <ComponentRef Id="DesktopShortcut" />
+    </Feature>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="INSTALLFOLDER" Name="ComicStream" />
+      </Directory>
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="ComicStream"/>
+      </Directory>
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <DirectoryRef Id="ApplicationProgramsFolder">
+      <Component Id="ApplicationShortcut" Guid="B8F1A2C3-4D5E-6F7A-8B9C-0D1E2F3A4B5C">
+        <Shortcut Id="ApplicationStartMenuShortcut"
+                  Name="ComicStream"
+                  Description="Lecteur BD, Manga &amp; Comics"
+                  Target="[INSTALLFOLDER]comic_reader_app.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon"/>
+        <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall"/>
+        <RegistryValue Root="HKCU" Key="Software\ComicStream" Name="installed" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <DirectoryRef Id="DesktopFolder">
+      <Component Id="DesktopShortcut" Guid="C9A2B3D4-5E6F-7A8B-9C0D-1E2F3A4B5C6D">
+        <Shortcut Id="ApplicationDesktopShortcut"
+                  Name="ComicStream"
+                  Description="Lecteur BD, Manga &amp; Comics"
+                  Target="[INSTALLFOLDER]comic_reader_app.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon"/>
+        <RegistryValue Root="HKCU" Key="Software\ComicStream" Name="desktopShortcut" Type="integer" Value="1" KeyPath="yes"/>
+      </Component>
+    </DirectoryRef>
+
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
+    <UIRef Id="WixUI_InstallDir" />
+  </Product>
+</Wix>
