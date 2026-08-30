@@ -13,8 +13,6 @@ import '../services/cbz_service.dart';
 import '../services/epub_service.dart';
 import '../services/database_service.dart';
 import '../services/ftp_service.dart';
-import '../services/pdf_converter_service.dart';
-import '../services/reader_settings_service.dart';
 import '../services/remote_cover_service.dart';
 import '../services/webdav_service.dart';
 import 'library_provider.dart';
@@ -208,51 +206,12 @@ class DownloadProvider extends ChangeNotifier {
         );
       }
 
-      // Post-processing: extract cover and metadata, and auto-convert PDF in background if enabled
+      // Post-processing: extract cover and metadata instantly without heavy conversion
       final format = BookItem.formatFromExtension(task.fileName);
       String? coverPath;
       int totalPages = 0;
-      String finalLocalPath = localBookPath;
-      BookFormat finalFormat = format;
-
-      if (format == BookFormat.pdf && ReaderSettingsService().autoConvertPdfToCbz) {
-        _updateTaskStatus(
-          task.id,
-          DownloadStatus.converting,
-          progress: 0.85,
-          statusDescription: 'Conversion HD en cours...',
-        );
-
-        final cbzPath = p.join(booksDir.path, '${task.bookId}.cbz');
-        final converterStream = PdfConverterService().convertPdfToCbz(
-          pdfFilePath: localBookPath,
-          outputCbzPath: cbzPath,
-          registerInDatabase: false,
-        );
-
-        await for (final prog in converterStream) {
-          final mappedProgress = 0.85 + (prog.progress * 0.15);
-          final remainingPages = prog.totalPages - prog.currentPage;
-          final approxSec = (remainingPages * 0.4).round();
-          final etaText = approxSec > 0 ? ' ~ ${approxSec}s restantes' : '';
-
-          _updateTaskStatus(
-            task.id,
-            DownloadStatus.converting,
-            progress: mappedProgress,
-            statusDescription: 'Conversion HD (${prog.currentPage}/${prog.totalPages} pages)$etaText',
-          );
-        }
-
-        // Delete raw PDF file after successful CBZ creation
-        final rawPdfFile = File(localBookPath);
-        if (await rawPdfFile.exists()) {
-          await rawPdfFile.delete();
-        }
-
-        finalLocalPath = cbzPath;
-        finalFormat = BookFormat.cbz;
-      }
+      final String finalLocalPath = localBookPath;
+      final BookFormat finalFormat = format;
 
       if (finalFormat == BookFormat.cbz || finalFormat == BookFormat.zip) {
         final coversDir = await _db.getCoversDirectory();
