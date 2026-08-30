@@ -485,12 +485,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       final tapPos = details?.localPosition ?? const Offset(200, 300);
       const targetScale = 2.5;
 
-      final dx = -tapPos.dx * (targetScale - 1);
-      final dy = -tapPos.dy * (targetScale - 1);
-
       final target = Matrix4.identity()
-        ..translate(dx, dy)
-        ..scale(targetScale);
+        ..translate(tapPos.dx, tapPos.dy)
+        ..scale(targetScale)
+        ..translate(-tapPos.dx, -tapPos.dy);
 
       _animateTransformation(
         controller,
@@ -591,18 +589,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       );
     }
 
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevPage,
-        const SingleActivator(LogicalKeyboardKey.space): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
-      },
-      child: Focus(
-        autofocus: true,
-        focusNode: _focusNode,
-        child: Scaffold(
+    return PopScope(
+      canPop: true,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.space): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.backspace): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+        },
+        child: Focus(
+          autofocus: true,
+          focusNode: _focusNode,
+          child: Scaffold(
           backgroundColor: settings.actualBackgroundColor,
           body: Stack(
             children: [
@@ -672,8 +674,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildHorizontalReader(ReaderSettingsService settings) {
     final isRTL = settings.readingMode == ReadingMode.rightToLeft;
@@ -710,9 +713,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               minScale: 1.0,
               maxScale: 6.0,
               panAxis: PanAxis.free,
-              panEnabled: _isCurrentPageZoomed,
-              boundaryMargin: const EdgeInsets.all(48),
+              panEnabled: true,
+              scaleEnabled: true,
+              boundaryMargin: const EdgeInsets.symmetric(horizontal: 100, vertical: 100),
               clipBehavior: Clip.hardEdge,
+              onInteractionStart: (_) {
+                if (!_isCurrentPageZoomed) {
+                  setState(() => _isCurrentPageZoomed = true);
+                }
+              },
+              onInteractionUpdate: (_) {
+                final scale = transformCtrl.value.getMaxScaleOnAxis();
+                final isZoomed = scale > 1.05;
+                if (isZoomed != _isCurrentPageZoomed) {
+                  setState(() => _isCurrentPageZoomed = isZoomed);
+                }
+              },
               onInteractionEnd: (_) => _synchronizeTransformation(index),
               child: Center(
                 child: Image.memory(
@@ -781,9 +797,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                     minScale: 1.0,
                     maxScale: 6.0,
                     panAxis: PanAxis.free,
-                    panEnabled: _isCurrentPageZoomed,
-                    boundaryMargin: const EdgeInsets.all(48),
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    boundaryMargin: const EdgeInsets.symmetric(horizontal: 100, vertical: 100),
                     clipBehavior: Clip.hardEdge,
+                    onInteractionStart: (_) {
+                      if (!_isCurrentPageZoomed) {
+                        setState(() => _isCurrentPageZoomed = true);
+                      }
+                    },
+                    onInteractionUpdate: (_) {
+                      final scale = transformCtrl.value.getMaxScaleOnAxis();
+                      final isZoomed = scale > 1.05;
+                      if (isZoomed != _isCurrentPageZoomed) {
+                        setState(() => _isCurrentPageZoomed = isZoomed);
+                      }
+                    },
                     onInteractionEnd: (_) => _synchronizeTransformation(index),
                     child: Image.memory(
                       page.bytes,

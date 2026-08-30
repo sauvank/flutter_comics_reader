@@ -1,5 +1,5 @@
 #define MyAppName "ComicStream"
-#define MyAppVersion "1.0.30"
+#define MyAppVersion "1.0.31"
 #define MyAppPublisher "ComicStream"
 #define MyAppURL "https://github.com/sauvank/flutter_comics_reader"
 #define MyAppExeName "comic_reader_app.exe"

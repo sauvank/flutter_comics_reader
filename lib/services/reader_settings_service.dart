@@ -31,6 +31,37 @@ enum PdfRenderQuality {
   screenMatch, // Standard 1:1 (Rapide)
 }
 
+enum EpubTheme {
+  dark,
+  oled,
+  sepia,
+  mint,
+  light,
+}
+
+enum EpubFontFamily {
+  serif,
+  sansSerif,
+  monospace,
+}
+
+enum EpubLineHeight {
+  compact,
+  normal,
+  relaxed,
+}
+
+enum EpubMargin {
+  narrow,
+  normal,
+  wide,
+}
+
+enum EpubTextAlign {
+  justify,
+  left,
+}
+
 class ReaderSettingsService extends ChangeNotifier {
   static final ReaderSettingsService _instance = ReaderSettingsService._internal();
   factory ReaderSettingsService() => _instance;
@@ -49,6 +80,14 @@ class ReaderSettingsService extends ChangeNotifier {
   bool _autoConvertPdfToCbz = false; // Native PDF reading by default (instant and smooth)
   PdfRenderQuality _pdfRenderQuality = PdfRenderQuality.autoAdaptive;
 
+  // EPUB custom settings
+  EpubTheme _epubTheme = EpubTheme.dark;
+  double _epubFontSize = 17.0;
+  EpubFontFamily _epubFontFamily = EpubFontFamily.serif;
+  EpubLineHeight _epubLineHeight = EpubLineHeight.normal;
+  EpubMargin _epubMargin = EpubMargin.normal;
+  EpubTextAlign _epubTextAlign = EpubTextAlign.justify;
+
   ReadingMode get readingMode => _readingMode;
   FitMode get fitMode => _fitMode;
   ReaderBgColor get bgColor => _bgColor;
@@ -57,6 +96,75 @@ class ReaderSettingsService extends ChangeNotifier {
   bool get volumeButtonsNavigation => _volumeButtonsNavigation;
   bool get autoConvertPdfToCbz => _autoConvertPdfToCbz;
   PdfRenderQuality get pdfRenderQuality => _pdfRenderQuality;
+
+  EpubTheme get epubTheme => _epubTheme;
+  double get epubFontSize => _epubFontSize;
+  EpubFontFamily get epubFontFamily => _epubFontFamily;
+  EpubLineHeight get epubLineHeight => _epubLineHeight;
+  EpubMargin get epubMargin => _epubMargin;
+  EpubTextAlign get epubTextAlign => _epubTextAlign;
+
+  Color get epubBackgroundColor {
+    switch (_epubTheme) {
+      case EpubTheme.oled:
+        return Colors.black;
+      case EpubTheme.dark:
+        return const Color(0xFF1C1C1E);
+      case EpubTheme.sepia:
+        return const Color(0xFFFBF0D9);
+      case EpubTheme.mint:
+        return const Color(0xFF182420);
+      case EpubTheme.light:
+        return const Color(0xFFF8F9FA);
+    }
+  }
+
+  Color get epubTextColor {
+    switch (_epubTheme) {
+      case EpubTheme.oled:
+      case EpubTheme.dark:
+        return const Color(0xFFE2E2E6);
+      case EpubTheme.sepia:
+        return const Color(0xFF3C2F1F);
+      case EpubTheme.mint:
+        return const Color(0xFFD2E8DD);
+      case EpubTheme.light:
+        return const Color(0xFF1C1B1F);
+    }
+  }
+
+  double get epubLineHeightValue {
+    switch (_epubLineHeight) {
+      case EpubLineHeight.compact:
+        return 1.35;
+      case EpubLineHeight.normal:
+        return 1.65;
+      case EpubLineHeight.relaxed:
+        return 1.95;
+    }
+  }
+
+  String get epubFontFamilyName {
+    switch (_epubFontFamily) {
+      case EpubFontFamily.serif:
+        return 'serif';
+      case EpubFontFamily.sansSerif:
+        return 'sans-serif';
+      case EpubFontFamily.monospace:
+        return 'monospace';
+    }
+  }
+
+  double get epubHorizontalPadding {
+    switch (_epubMargin) {
+      case EpubMargin.narrow:
+        return 16.0;
+      case EpubMargin.normal:
+        return 28.0;
+      case EpubMargin.wide:
+        return 48.0;
+    }
+  }
 
   double get pdfDpiScale {
     switch (_pdfRenderQuality) {
@@ -134,6 +242,30 @@ class ReaderSettingsService extends ChangeNotifier {
     _showPageNumbers = prefs.getBool('reader_show_page_numbers') ?? true;
     _volumeButtonsNavigation = prefs.getBool('reader_volume_nav') ?? false;
     _autoConvertPdfToCbz = prefs.getBool('auto_convert_pdf_to_cbz') ?? true;
+
+    // Load EPUB settings
+    final epubThemeStr = prefs.getString('epub_theme');
+    if (epubThemeStr != null) {
+      _epubTheme = EpubTheme.values.firstWhere((e) => e.name == epubThemeStr, orElse: () => EpubTheme.dark);
+    }
+    _epubFontSize = prefs.getDouble('epub_font_size') ?? 17.0;
+    final epubFontStr = prefs.getString('epub_font_family');
+    if (epubFontStr != null) {
+      _epubFontFamily = EpubFontFamily.values.firstWhere((e) => e.name == epubFontStr, orElse: () => EpubFontFamily.serif);
+    }
+    final epubLineHeightStr = prefs.getString('epub_line_height');
+    if (epubLineHeightStr != null) {
+      _epubLineHeight = EpubLineHeight.values.firstWhere((e) => e.name == epubLineHeightStr, orElse: () => EpubLineHeight.normal);
+    }
+    final epubMarginStr = prefs.getString('epub_margin');
+    if (epubMarginStr != null) {
+      _epubMargin = EpubMargin.values.firstWhere((e) => e.name == epubMarginStr, orElse: () => EpubMargin.normal);
+    }
+    final epubAlignStr = prefs.getString('epub_text_align');
+    if (epubAlignStr != null) {
+      _epubTextAlign = EpubTextAlign.values.firstWhere((e) => e.name == epubAlignStr, orElse: () => EpubTextAlign.justify);
+    }
+
     notifyListeners();
   }
 
@@ -184,5 +316,47 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pdf_render_quality', quality.name);
+  }
+
+  Future<void> setEpubTheme(EpubTheme theme) async {
+    _epubTheme = theme;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('epub_theme', theme.name);
+  }
+
+  Future<void> setEpubFontSize(double size) async {
+    _epubFontSize = size;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('epub_font_size', size);
+  }
+
+  Future<void> setEpubFontFamily(EpubFontFamily family) async {
+    _epubFontFamily = family;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('epub_font_family', family.name);
+  }
+
+  Future<void> setEpubLineHeight(EpubLineHeight lineHeight) async {
+    _epubLineHeight = lineHeight;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('epub_line_height', lineHeight.name);
+  }
+
+  Future<void> setEpubMargin(EpubMargin margin) async {
+    _epubMargin = margin;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('epub_margin', margin.name);
+  }
+
+  Future<void> setEpubTextAlign(EpubTextAlign align) async {
+    _epubTextAlign = align;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('epub_text_align', align.name);
   }
 }

@@ -130,18 +130,22 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       );
     }
 
-    return CallbackShortcuts(
-      bindings: {
-        const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevPage,
-        const SingleActivator(LogicalKeyboardKey.space): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
-        const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
-      },
-      child: Focus(
-        autofocus: true,
-        focusNode: _focusNode,
-        child: Builder(
+    return PopScope(
+      canPop: true,
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.arrowLeft): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.space): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
+          const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.backspace): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+        },
+        child: Focus(
+          autofocus: true,
+          focusNode: _focusNode,
+          child: Builder(
           builder: (context) {
             final screenSize = MediaQuery.of(context).size;
             final isWidescreen = screenSize.width > 850;
@@ -294,6 +298,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       },
     ),
   ),
+),
 );
   }
 }
