@@ -412,7 +412,7 @@ class SettingsScreen extends StatelessWidget {
                       Icon(Icons.auto_stories_rounded, size: 16, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'ComicStream v1.0.27',
+                        'ComicStream v1.0.28',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,

@@ -725,6 +725,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                               server: activeServer,
                                               remoteFile: file,
                                             );
+                                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                behavior: SnackBarBehavior.floating,
+                                                duration: const Duration(seconds: 4),
+                                                content: Row(
+                                                  children: [
+                                                    const Icon(Icons.downloading_rounded, color: Colors.amber, size: 20),
+                                                    const SizedBox(width: 10),
+                                                    Expanded(
+                                                      child: Text(
+                                                        'Téléchargement démarré : ${file.name}',
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                        style: const TextStyle(fontWeight: FontWeight.w600),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                action: widget.onNavigateTab != null
+                                                    ? SnackBarAction(
+                                                        label: 'Voir',
+                                                        textColor: theme.colorScheme.primary,
+                                                        onPressed: () => widget.onNavigateTab!(2),
+                                                      )
+                                                    : null,
+                                              ),
+                                            );
                                           },
                                         );
                                       },

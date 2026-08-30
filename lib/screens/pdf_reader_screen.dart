@@ -146,35 +146,42 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           body: Stack(
             children: [
               // PDF Viewer with smooth pinch-to-zoom & Webtoon scroll
-              PdfViewer.file(
-                widget.book.localPath,
-                controller: _pdfController,
-                initialPageNumber: _currentPage > 0 ? _currentPage + 1 : 1,
-                params: PdfViewerParams(
-                  backgroundColor: settings.actualBackgroundColor,
-                  margin: 4,
-                  maxScale: 8.0,
-                  minScale: 1.0,
-                  panAxis: PanAxis.free,
-                  boundaryMargin: EdgeInsets.zero,
-                  enableTextSelection: false,
-                  viewerOverlayBuilder: (ctx, size, handleLinkTap) => [
-                    GestureDetector(
-                      behavior: HitTestBehavior.translucent,
-                      onTapUp: (details) {
-                        final tapX = details.globalPosition.dx;
-                        final screenWidth = size.width;
-                        if (tapX > screenWidth * 0.30 && tapX < screenWidth * 0.70) {
-                          setState(() {
-                            _showControls = !_showControls;
-                          });
-                        }
-                      },
-                      child: IgnorePointer(
-                        child: SizedBox(width: size.width, height: size.height),
-                      ),
+              Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width > 950 ? 900 : double.infinity,
+                  ),
+                  child: PdfViewer.file(
+                    widget.book.localPath,
+                    controller: _pdfController,
+                    initialPageNumber: _currentPage > 0 ? _currentPage + 1 : 1,
+                    params: PdfViewerParams(
+                      backgroundColor: settings.actualBackgroundColor,
+                      margin: 4,
+                      maxScale: 8.0,
+                      minScale: 1.0,
+                      panAxis: PanAxis.free,
+                      boundaryMargin: EdgeInsets.zero,
+                      enableTextSelection: false,
+                      viewerOverlayBuilder: (ctx, size, handleLinkTap) => [
+                        GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTapUp: (details) {
+                            final tapX = details.globalPosition.dx;
+                            final screenWidth = size.width;
+                            if (tapX > screenWidth * 0.30 && tapX < screenWidth * 0.70) {
+                              setState(() {
+                                _showControls = !_showControls;
+                              });
+                            }
+                          },
+                          child: IgnorePointer(
+                            child: SizedBox(width: size.width, height: size.height),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 

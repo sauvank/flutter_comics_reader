@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -34,8 +36,12 @@ class ReaderSettingsService extends ChangeNotifier {
   factory ReaderSettingsService() => _instance;
   ReaderSettingsService._internal();
 
-  ReadingMode _readingMode = ReadingMode.vertical; // Webtoon par défaut
-  FitMode _fitMode = FitMode.fitWidth;
+  ReadingMode _readingMode = (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+      ? ReadingMode.leftToRight
+      : ReadingMode.vertical;
+  FitMode _fitMode = (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+      ? FitMode.fitScreen
+      : FitMode.fitWidth;
   ReaderBgColor _bgColor = ReaderBgColor.black;
   bool _keepScreenOn = true;
   bool _showPageNumbers = true;
@@ -58,22 +64,17 @@ class ReaderSettingsService extends ChangeNotifier {
         try {
           final views = ui.PlatformDispatcher.instance.views;
           if (views.isNotEmpty) {
-            final physicalSize = views.first.physicalSize;
-            final maxDim = math.max(physicalSize.width, physicalSize.height);
-            if (maxDim > 0) {
-              // Target height = screen physical dimension * 1.35 (35% supersampled zoom headroom)
-              final scale = (maxDim * 1.35) / 842.0;
-              return scale.clamp(2.0, 3.5);
-            }
+            final pixelRatio = views.first.devicePixelRatio;
+            return math.max(1.5, pixelRatio * 1.35);
           }
         } catch (_) {}
-        return 2.6; // Fallback
+        return 2.5;
       case PdfRenderQuality.highSuperSampled:
-        return 2.6; // ~30% higher than 1920x1200 screen
+        return 2.6;
       case PdfRenderQuality.ultraHd:
-        return 3.2;
+        return 3.5;
       case PdfRenderQuality.screenMatch:
-        return 1.8;
+        return 1.0;
     }
   }
 
@@ -82,7 +83,7 @@ class ReaderSettingsService extends ChangeNotifier {
       case ReaderBgColor.black:
         return Colors.black;
       case ReaderBgColor.darkGray:
-        return const Color(0xFF181818);
+        return const Color(0xFF1E1E1E);
       case ReaderBgColor.white:
         return Colors.white;
       case ReaderBgColor.sepia:
@@ -92,19 +93,28 @@ class ReaderSettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    final defaultReadingMode = isDesktop ? ReadingMode.leftToRight : ReadingMode.vertical;
+    final defaultFitMode = isDesktop ? FitMode.fitScreen : FitMode.fitWidth;
+
     final modeStr = prefs.getString('reader_reading_mode');
     if (modeStr != null) {
       _readingMode = ReadingMode.values.firstWhere(
         (e) => e.name == modeStr,
-        orElse: () => ReadingMode.vertical,
+        orElse: () => defaultReadingMode,
       );
+    } else {
+      _readingMode = defaultReadingMode;
     }
+
     final fitStr = prefs.getString('reader_fit_mode');
     if (fitStr != null) {
       _fitMode = FitMode.values.firstWhere(
         (e) => e.name == fitStr,
-        orElse: () => FitMode.fitWidth,
+        orElse: () => defaultFitMode,
       );
+    } else {
+      _fitMode = defaultFitMode;
     }
     final bgStr = prefs.getString('reader_bg_color');
     if (bgStr != null) {
