@@ -141,23 +141,31 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
       child: Focus(
         autofocus: true,
         focusNode: _focusNode,
-        child: Scaffold(
-          backgroundColor: settings.actualBackgroundColor,
-          body: Stack(
-            children: [
-              // PDF Viewer with smooth pinch-to-zoom & Webtoon scroll
-              Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width > 950 ? 900 : double.infinity,
-                  ),
-                  child: PdfViewer.file(
-                    widget.book.localPath,
-                    controller: _pdfController,
-                    initialPageNumber: _currentPage > 0 ? _currentPage + 1 : 1,
-                    params: PdfViewerParams(
-                      backgroundColor: settings.actualBackgroundColor,
-                      margin: 4,
+        child: Builder(
+          builder: (context) {
+            final screenSize = MediaQuery.of(context).size;
+            final isWidescreen = screenSize.width > 850;
+            final pcPdfMaxWidth = isWidescreen
+                ? ((screenSize.height - 24) * 0.707).clamp(400.0, 780.0)
+                : double.infinity;
+
+            return Scaffold(
+              backgroundColor: settings.actualBackgroundColor,
+              body: Stack(
+                children: [
+                  // PDF Viewer with smooth pinch-to-zoom & Webtoon scroll
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: pcPdfMaxWidth,
+                      ),
+                      child: PdfViewer.file(
+                        widget.book.localPath,
+                        controller: _pdfController,
+                        initialPageNumber: _currentPage > 0 ? _currentPage + 1 : 1,
+                        params: PdfViewerParams(
+                          backgroundColor: settings.actualBackgroundColor,
+                          margin: 4,
                       maxScale: 8.0,
                       minScale: 1.0,
                       panAxis: PanAxis.free,
@@ -282,8 +290,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                 ),
             ],
           ),
-        ),
-      ),
-    );
+        );
+      },
+    ),
+  ),
+);
   }
 }
