@@ -55,18 +55,31 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     }
     final settings = context.read<ReaderSettingsService>();
     final isRTL = settings.readingMode == ReadingMode.rightToLeft;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final screenSize = MediaQuery.of(context).size;
+    final screenWidth = screenSize.width;
+    final screenHeight = screenSize.height;
 
-    if (isRTL) {
-      // Top-Right for Manga (Japanese reading direction)
-      final tx = -screenWidth * (scale - 1.0);
-      return Matrix4.identity()
-        ..translate(tx, 0.0)
-        ..scale(scale, scale, 1.0);
-    } else {
-      // Top-Left for BD / Western Comics (Left-to-Right reading direction)
-      return Matrix4.identity()..scale(scale, scale, 1.0);
-    }
+    // Centrage sur la première case de lecture avec marges naturelles :
+    // - BD / Comics (LTR) : Case 1 centrée à ~28% de la largeur
+    // - Manga (RTL) : Case 1 centrée à ~72% de la largeur (28% depuis la droite)
+    // - Hauteur : Case 1 en haut avec marge de tête à ~18%
+    final targetFx = isRTL ? 0.72 : 0.28;
+    final targetFy = 0.18;
+
+    double tx = screenWidth * (0.5 - scale * targetFx);
+    double ty = screenHeight * (0.5 - scale * targetFy);
+
+    final minTx = -screenWidth * (scale - 1.0);
+    final maxTx = 0.0;
+    final minTy = -screenHeight * (scale - 1.0);
+    final maxTy = 0.0;
+
+    tx = tx.clamp(minTx, maxTx);
+    ty = ty.clamp(minTy, maxTy);
+
+    return Matrix4.identity()
+      ..translate(tx, ty)
+      ..scale(scale, scale, 1.0);
   }
 
   TransformationController _getTransformController(int index) {
