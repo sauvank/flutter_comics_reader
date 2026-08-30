@@ -692,6 +692,14 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           final transformCtrl = _getTransformController(index);
           TapDownDetails? doubleTapDetails;
 
+          final screenSize = MediaQuery.of(context).size;
+          final isWidescreen = screenSize.width > 900;
+
+          BoxFit effectiveFit = _getBoxFit(settings.fitMode);
+          if (isWidescreen && settings.fitMode == FitMode.fitWidth) {
+            effectiveFit = BoxFit.contain;
+          }
+
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
             onDoubleTapDown: (details) => doubleTapDetails = details,
@@ -709,8 +717,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               child: Center(
                 child: Image.memory(
                   page.bytes,
-                  fit: _getBoxFit(settings.fitMode),
-                  width: settings.fitMode == FitMode.fitWidth ? MediaQuery.of(context).size.width : null,
+                  fit: effectiveFit,
+                  width: (!isWidescreen && settings.fitMode == FitMode.fitWidth) ? screenSize.width : null,
+                  height: (effectiveFit == BoxFit.contain || effectiveFit == BoxFit.fitHeight) ? screenSize.height : null,
                   gaplessPlayback: true,
                   filterQuality: FilterQuality.high,
                   isAntiAlias: true,
@@ -724,6 +733,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   }
 
   Widget _buildVerticalReader(ReaderSettingsService settings) {
+    final screenSize = MediaQuery.of(context).size;
+    final isWidescreen = screenSize.width > 850;
+    final verticalContentWidth = isWidescreen ? 800.0 : screenSize.width;
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
@@ -751,31 +764,36 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             key: _getPageKey(index),
             width: double.infinity,
             color: settings.actualBackgroundColor,
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onDoubleTapDown: (details) => doubleTapDetails = details,
-              onTap: () {
-                setState(() {
-                  _showControls = !_showControls;
-                });
-              },
-              onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
-              child: InteractiveViewer(
-                transformationController: transformCtrl,
-                minScale: 1.0,
-                maxScale: 6.0,
-                panAxis: PanAxis.free,
-                panEnabled: _isCurrentPageZoomed,
-                boundaryMargin: const EdgeInsets.all(48),
-                clipBehavior: Clip.hardEdge,
-                onInteractionEnd: (_) => _synchronizeTransformation(index),
-                child: Image.memory(
-                  page.bytes,
-                  fit: BoxFit.fitWidth,
-                  width: MediaQuery.of(context).size.width,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.high,
-                  isAntiAlias: true,
+            child: Center(
+              child: SizedBox(
+                width: verticalContentWidth,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onDoubleTapDown: (details) => doubleTapDetails = details,
+                  onTap: () {
+                    setState(() {
+                      _showControls = !_showControls;
+                    });
+                  },
+                  onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
+                  child: InteractiveViewer(
+                    transformationController: transformCtrl,
+                    minScale: 1.0,
+                    maxScale: 6.0,
+                    panAxis: PanAxis.free,
+                    panEnabled: _isCurrentPageZoomed,
+                    boundaryMargin: const EdgeInsets.all(48),
+                    clipBehavior: Clip.hardEdge,
+                    onInteractionEnd: (_) => _synchronizeTransformation(index),
+                    child: Image.memory(
+                      page.bytes,
+                      fit: BoxFit.fitWidth,
+                      width: verticalContentWidth,
+                      gaplessPlayback: true,
+                      filterQuality: FilterQuality.high,
+                      isAntiAlias: true,
+                    ),
+                  ),
                 ),
               ),
             ),
