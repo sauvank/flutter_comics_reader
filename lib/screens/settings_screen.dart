@@ -173,9 +173,12 @@ class SettingsScreen extends StatelessWidget {
           ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
           // Theme Section
           _buildSectionHeader('Apparence & Thème', theme),
           Container(
@@ -409,7 +412,7 @@ class SettingsScreen extends StatelessWidget {
                       Icon(Icons.auto_stories_rounded, size: 16, color: theme.colorScheme.primary),
                       const SizedBox(width: 8),
                       Text(
-                        'ComicStream v1.0.0 (Build 5)',
+                        'ComicStream v1.0.24',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -430,7 +433,9 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 30),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildSectionHeader(String title, ThemeData theme) {
