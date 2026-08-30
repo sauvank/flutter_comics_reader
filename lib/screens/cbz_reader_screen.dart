@@ -48,9 +48,30 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   // zoom and pan so reading remains consistent when navigating.
   final Map<int, TransformationController> _transformControllers = {};
 
+  Matrix4 _calculateInitialMatrixForPage() {
+    final scale = _sharedTransformation.getMaxScaleOnAxis();
+    if (scale <= 1.05 || !mounted) {
+      return Matrix4.identity();
+    }
+    final settings = context.read<ReaderSettingsService>();
+    final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    if (isRTL) {
+      // Top-Right for Manga (Japanese reading direction)
+      final tx = -screenWidth * (scale - 1.0);
+      return Matrix4.identity()
+        ..translate(tx, 0.0)
+        ..scale(scale, scale, 1.0);
+    } else {
+      // Top-Left for BD / Western Comics (Left-to-Right reading direction)
+      return Matrix4.identity()..scale(scale, scale, 1.0);
+    }
+  }
+
   TransformationController _getTransformController(int index) {
     return _transformControllers.putIfAbsent(index, () {
-      final ctrl = TransformationController(Matrix4.copy(_sharedTransformation));
+      final ctrl = TransformationController(_calculateInitialMatrixForPage());
       ctrl.addListener(() {
         if (_isSynchronizingTransformation || !mounted) return;
 
@@ -77,19 +98,24 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     }
 
     _sharedTransformation = Matrix4.copy(transformation);
-    _isSynchronizingTransformation = true;
-    for (final entry in _transformControllers.entries) {
-      if (entry.key != sourcePageIndex) {
-        entry.value.value = Matrix4.copy(_sharedTransformation);
-      }
-    }
-    _isSynchronizingTransformation = false;
 
     if (mounted && _isCurrentPageZoomed != isZoomed) {
       setState(() {
         _isCurrentPageZoomed = isZoomed;
       });
     }
+  }
+
+  void _resetZoomPositionForPage(int targetIndex) {
+    if (!mounted) return;
+    final scale = _sharedTransformation.getMaxScaleOnAxis();
+    if (scale <= 1.05) return;
+
+    final newMatrix = _calculateInitialMatrixForPage();
+    _isSynchronizingTransformation = true;
+    _sharedTransformation = Matrix4.copy(newMatrix);
+    _getTransformController(targetIndex).value = Matrix4.copy(newMatrix);
+    _isSynchronizingTransformation = false;
   }
 
   @override
@@ -197,10 +223,16 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   }
 
   void _onPageChanged(int index) {
+    final wasZoomed = _sharedTransformation.getMaxScaleOnAxis() > 1.05;
+
     setState(() {
       _currentPage = index;
-      _isCurrentPageZoomed = _sharedTransformation.getMaxScaleOnAxis() > 1.05;
+      _isCurrentPageZoomed = wasZoomed;
     });
+
+    if (wasZoomed && index < _pages.length) {
+      _resetZoomPositionForPage(index);
+    }
 
     // Persist progress
     if (index < _pages.length) {
