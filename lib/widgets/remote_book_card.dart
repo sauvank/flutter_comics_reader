@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
 import '../models/download_task.dart';
@@ -195,7 +196,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
       borderRadius: BorderRadius.circular(14),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
-        opacity: widget.isDownloaded ? 1.0 : 0.75, // Slightly grayed out if not downloaded
+        opacity: widget.isDownloaded ? 1.0 : 1.0, // Changed from 0.75 to 1.0
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
@@ -291,6 +292,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
+                                HapticFeedback.selectionClick();
                                 if (widget.isDownloaded && localBook != null) {
                                   library.toggleFavorite(localBook.id);
                                 } else {
@@ -300,6 +302,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
                                 padding: const EdgeInsets.all(4),
+
                                 decoration: BoxDecoration(
                                   color: isFavorite
                                       ? Colors.redAccent.withAlpha(220)
@@ -534,7 +537,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
           size: 48,
           color: widget.isDownloaded
               ? _getFormatColor(format).withAlpha(140)
-              : Colors.grey.shade600,
+              : theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );

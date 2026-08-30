@@ -7,6 +7,7 @@ import '../providers/library_provider.dart';
 import '../services/cbz_service.dart';
 import '../services/reader_settings_service.dart';
 import '../widgets/reader_controls.dart';
+import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
 
 class CbzReaderScreen extends StatefulWidget {
@@ -186,8 +187,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       }
     } catch (e) {
       if (!mounted) return;
+      final fileSize = await File(widget.book.localPath).length().catchError((_) => 0);
+      final sizeMb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
       setState(() {
-        _errorMessage = 'Erreur de lecture: $e';
+        _errorMessage = 'Erreur de lecture ($sizeMb Mo): $e\n\nLe fichier est peut-être corrompu ou le téléchargement est incomplet.';
         _isLoading = false;
       });
     }
@@ -200,11 +203,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     });
 
     // Persist progress
-    context.read<LibraryProvider>().updateBookProgress(
-          bookId: widget.book.id,
-          currentPage: _currentPage,
-          totalPages: _pages.length,
-        );
+    if (index < _pages.length) {
+      context.read<LibraryProvider>().updateBookProgress(
+            bookId: widget.book.id,
+            currentPage: _currentPage,
+            totalPages: _pages.length,
+          );
+    }
   }
 
   void _nextPage() {
@@ -216,7 +221,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         curve: Curves.easeOut,
       );
     } else {
-      if (_pageController.hasClients && _currentPage < _pages.length - 1) {
+      if (_pageController.hasClients && _currentPage < _pages.length) {
         _pageController.nextPage(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
@@ -405,7 +410,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              Image.memory(_pages[idx].bytes, fit: BoxFit.cover),
+                              Image.memory(_pages[idx].bytes, fit: BoxFit.cover, cacheWidth: 300),
                               Positioned(
                                 bottom: 0,
                                 left: 0,
@@ -547,7 +552,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: Colors.black,
+        backgroundColor: settings.actualBackgroundColor,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -614,51 +619,57 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                   : _buildHorizontalReader(settings),
 
               // Top Controls Bar
-              if (_showControls)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderTopBar(
-                    title: widget.book.title,
-                    currentPage: _currentPage,
-                    totalPages: _pages.length,
-                    isBookmarked: isBookmarked,
-                    isFavorite: isFavorite,
-                    onBack: () => Navigator.of(context).pop(),
-                    onToggleBookmark: _toggleBookmark,
-                    onToggleFavorite: () => library.toggleFavorite(widget.book.id),
-                    onOpenSettings: _showSettings,
-                  ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ReaderTopBar(
+                  visible: _showControls,
+                  title: widget.book.title,
+                  currentPage: _currentPage < _pages.length ? _currentPage : _pages.length - 1,
+                  totalPages: _pages.length,
+                  isBookmarked: isBookmarked,
+                  isFavorite: isFavorite,
+                  onBack: () => Navigator.of(context).pop(),
+                  onToggleBookmark: _toggleBookmark,
+                  onToggleFavorite: () => library.toggleFavorite(widget.book.id),
+                  onOpenSettings: _showSettings,
                 ),
+              ),
 
               // Bottom Controls Bar
-              if (_showControls)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderBottomBar(
-                    currentPage: _currentPage,
-                    totalPages: _pages.length,
-                    readingMode: settings.readingMode,
-                    onPageChanged: _jumpToPage,
-                    onOpenThumbnails: _showThumbnailsGrid,
-                    onReadingModeChanged: (mode) {
-                      settings.setReadingMode(mode);
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _jumpToPage(_currentPage);
-                      });
-                    },
-                  ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ReaderBottomBar(
+                  visible: _showControls,
+                  currentPage: _currentPage < _pages.length ? _currentPage : _pages.length - 1,
+                  totalPages: _pages.length,
+                  readingMode: settings.readingMode,
+                  onPageChanged: _jumpToPage,
+                  onOpenThumbnails: _showThumbnailsGrid,
+                  onReadingModeChanged: (mode) {
+                    final targetPage = _currentPage < _pages.length ? _currentPage : _pages.length - 1;
+                    _pageController.dispose();
+                    _pageController = PageController(initialPage: targetPage);
+                    settings.setReadingMode(mode);
+                    setState(() {});
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _jumpToPage(targetPage);
+                    });
+                  },
                 ),
+              ),
 
               // Floating Page Number Badge (when controls hidden)
-              if (!_showControls && settings.showPageNumbers)
+              if (!_showControls && settings.showPageNumbers && _currentPage < _pages.length)
                 Positioned(
                   bottom: 16,
-                  right: 16,
-                  child: Container(
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.black.withAlpha(160),
@@ -670,6 +681,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -684,13 +696,17 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     return Directionality(
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
       child: PageView.builder(
+        key: ValueKey('pageview_${settings.readingMode}'),
         controller: _pageController,
         physics: _isCurrentPageZoomed
             ? const NeverScrollableScrollPhysics()
             : const PageScrollPhysics(),
-        itemCount: _pages.length,
+        itemCount: _pages.length + 1,
         onPageChanged: _onPageChanged,
         itemBuilder: (context, index) {
+          if (index == _pages.length) {
+            return _buildEndOfBookWidget(context);
+          }
           final page = _pages[index];
           final transformCtrl = _getTransformController(index);
           TapDownDetails? doubleTapDetails;
@@ -876,6 +892,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                 if (nextBook.format == BookFormat.pdf) {
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => PdfReaderScreen(book: nextBook)),
+                  );
+                } else if (nextBook.format == BookFormat.epub) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => EpubReaderScreen(book: nextBook)),
                   );
                 } else {
                   Navigator.of(context).pushReplacement(

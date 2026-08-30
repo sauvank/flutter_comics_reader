@@ -27,6 +27,7 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
   StreamSubscription<PdfConverterProgress>? _sub;
   PdfConverterProgress? _progress;
   bool _isConverting = false;
+  BookItem? _convertedBook;
   bool _isCompleted = false;
   String? _errorMessage;
 
@@ -41,6 +42,7 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
       _isConverting = true;
       _errorMessage = null;
       _isCompleted = false;
+      _convertedBook = null;
     });
 
     final stream = PdfConverterService().convertPdfToCbz(
@@ -51,6 +53,9 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
       (prog) {
         setState(() {
           _progress = prog;
+          if (prog.convertedBook != null) {
+            _convertedBook = prog.convertedBook;
+          }
           if (prog.progress >= 1.0) {
             _isConverting = false;
             _isCompleted = true;
@@ -72,18 +77,29 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
 
   void _openConvertedBook() async {
     final library = context.read<LibraryProvider>();
+    BookItem? targetBook = _convertedBook;
+
+    if (targetBook == null) {
+      await library.loadLibrary();
+      targetBook = library.books.firstWhere(
+        (b) => b.title == widget.book.title && b.format == BookFormat.cbz,
+        orElse: () => widget.book,
+      );
+    }
+
+    // Remove the old PDF entry from library since we now have the CBZ version
+    if (widget.book.format == BookFormat.pdf && targetBook.id != widget.book.id) {
+      await library.deleteBook(widget.book.id);
+    }
+
     await library.loadLibrary();
-    final books = library.books;
-    final converted = books.firstWhere(
-      (b) => b.title == widget.book.title && b.format == BookFormat.cbz,
-      orElse: () => widget.book,
-    );
 
     if (mounted) {
       Navigator.of(context).pop(); // Close dialog
-      Navigator.of(context).push(
+      // Use pushReplacement to replace the current PDF reader with CBZ reader
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => CbzReaderScreen(book: converted),
+          builder: (_) => CbzReaderScreen(book: targetBook!),
         ),
       );
     }

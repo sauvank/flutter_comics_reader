@@ -6,6 +6,7 @@ class FolderCard extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onToggleFavorite;
   final EdgeInsetsGeometry? margin;
+  final int? itemCount;
 
   const FolderCard({
     super.key,
@@ -14,6 +15,7 @@ class FolderCard extends StatelessWidget {
     this.isFavorite = false,
     this.onToggleFavorite,
     this.margin,
+    this.itemCount,
   });
 
   @override
@@ -87,7 +89,7 @@ class FolderCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Dossier / Série',
+                          itemCount != null ? '$itemCount éléments' : 'Dossier',
                           style: TextStyle(
                             fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant.withAlpha(180),

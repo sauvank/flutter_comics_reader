@@ -15,12 +15,14 @@ class PdfConverterProgress {
   final int totalPages;
   final double progress; // 0.0 to 1.0
   final String statusText;
+  final BookItem? convertedBook;
 
   PdfConverterProgress({
     required this.currentPage,
     required this.totalPages,
     required this.progress,
     required this.statusText,
+    this.convertedBook,
   });
 }
 
@@ -141,42 +143,44 @@ class PdfConverterService {
         statusText: 'Finalisation et extraction de la couverture...',
       );
 
-      if (registerInDatabase) {
-        final db = DatabaseService();
-        final coversDir = await db.getCoversDirectory();
-        final bookId = 'cbz_${DateTime.now().millisecondsSinceEpoch}';
-        final coverPath = p.join(coversDir.path, '$bookId.jpg');
+        BookItem? newBook;
+        if (registerInDatabase) {
+          final db = DatabaseService();
+          final coversDir = await db.getCoversDirectory();
+          final bookId = 'cbz_${DateTime.now().millisecondsSinceEpoch}';
+          final coverPath = p.join(coversDir.path, '$bookId.jpg');
 
-        await CbzService.extractCover(
-          cbzFilePath: targetPath,
-          targetCoverPath: coverPath,
-        );
+          await CbzService.extractCover(
+            cbzFilePath: targetPath,
+            targetCoverPath: coverPath,
+          );
 
-        final newBook = BookItem(
-          id: bookId,
-          title: baseName,
-          originalFilename: p.basename(targetPath),
-          localPath: targetPath,
-          coverPath: File(coverPath).existsSync() ? coverPath : null,
-          format: BookFormat.cbz,
+          newBook = BookItem(
+            id: bookId,
+            title: baseName,
+            originalFilename: p.basename(targetPath),
+            localPath: targetPath,
+            coverPath: File(coverPath).existsSync() ? coverPath : null,
+            format: BookFormat.cbz,
+            totalPages: totalPages,
+            currentPage: 0,
+            progress: 0.0,
+            isCompleted: false,
+            addedDate: DateTime.now(),
+            fileSize: File(targetPath).existsSync() ? await File(targetPath).length() : 0,
+            bookmarks: [],
+          );
+
+          await db.addBook(newBook);
+        }
+
+        yield PdfConverterProgress(
+          currentPage: totalPages,
           totalPages: totalPages,
-          currentPage: 0,
-          progress: 0.0,
-          isCompleted: false,
-          addedDate: DateTime.now(),
-          fileSize: File(targetPath).existsSync() ? await File(targetPath).length() : 0,
-          bookmarks: [],
+          progress: 1.0,
+          statusText: 'Conversion terminée avec succès !',
+          convertedBook: newBook,
         );
-
-        await db.addBook(newBook);
-      }
-
-      yield PdfConverterProgress(
-        currentPage: totalPages,
-        totalPages: totalPages,
-        progress: 1.0,
-        statusText: 'Conversion terminée avec succès !',
-      );
     } finally {
       await doc.dispose();
       if (await conversionTempDir.exists()) {

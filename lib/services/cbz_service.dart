@@ -13,6 +13,10 @@ class CbzService {
     '.gif',
     '.bmp',
     '.avif',
+    '.jfif',
+    '.jxl',
+    '.tif',
+    '.tiff',
   };
 
   static bool isImageFile(String filename) {
@@ -38,7 +42,12 @@ class CbzService {
       if (!await file.exists()) return null;
 
       final bytes = await file.readAsBytes();
-      final coverBytes = await compute(_extractCoverBytesFromZip, bytes);
+      Uint8List? coverBytes;
+      try {
+        coverBytes = await compute(_extractCoverBytesFromZip, bytes);
+      } catch (_) {
+        coverBytes = _extractCoverBytesFromZip(bytes);
+      }
       if (coverBytes == null || coverBytes.isEmpty) return null;
 
       final coverFile = File(targetCoverPath);
@@ -59,7 +68,11 @@ class CbzService {
       if (!await file.exists()) return 0;
 
       final bytes = await file.readAsBytes();
-      return await compute(_countPagesFromZip, bytes);
+      try {
+        return await compute(_countPagesFromZip, bytes);
+      } catch (_) {
+        return _countPagesFromZip(bytes);
+      }
     } catch (e) {
       debugPrint('Error getting page count: $e');
       return 0;
@@ -73,7 +86,15 @@ class CbzService {
       if (!await file.exists()) return [];
 
       final bytes = await file.readAsBytes();
-      return await compute(_loadPagesFromZip, bytes);
+      List<ComicPage> pages = [];
+      try {
+        pages = await compute(_loadPagesFromZip, bytes);
+      } catch (eCompute) {
+        debugPrint('Compute isolate failed, falling back to direct parse: $eCompute');
+        pages = _loadPagesFromZip(bytes);
+      }
+
+      return pages;
     } catch (e) {
       debugPrint('Error loading CBZ pages: $e');
       return [];
@@ -93,26 +114,51 @@ class CbzService {
         if (content is List<int>) {
           return Uint8List.fromList(content);
         }
-        if (content is InputStream) {
-          return content.toUint8List();
-        }
+        try {
+          return (content as dynamic).toUint8List() as Uint8List?;
+        } catch (_) {}
+      }
+      final dynamic rawContent = entry.rawContent;
+      if (rawContent != null) {
+        if (rawContent is List<int>) return Uint8List.fromList(rawContent);
+        try {
+          return (rawContent as dynamic).toUint8List() as Uint8List?;
+        } catch (_) {}
       }
     } catch (_) {}
     return null;
   }
 
+  static Archive? _decodeArchive(Uint8List bytes) {
+    // 1. Try standard ZipDecoder with verify: false
+    try {
+      return ZipDecoder().decodeBytes(bytes, verify: false);
+    } catch (_) {}
+
+    // 2. Try TarDecoder
+    try {
+      return TarDecoder().decodeBytes(bytes);
+    } catch (_) {}
+
+    // 3. Try GZipDecoder wrapping Tar
+    try {
+      final uncompressed = GZipDecoder().decodeBytes(bytes);
+      return TarDecoder().decodeBytes(uncompressed);
+    } catch (_) {}
+
+    // 4. Try BZip2Decoder wrapping Tar
+    try {
+      final uncompressed = BZip2Decoder().decodeBytes(bytes);
+      return TarDecoder().decodeBytes(uncompressed);
+    } catch (_) {}
+
+    return null;
+  }
+
   static Uint8List? _extractCoverBytesFromZip(Uint8List bytes) {
     try {
-      Archive archive;
-      try {
-        archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      } catch (_) {
-        try {
-          archive = TarDecoder().decodeBytes(bytes);
-        } catch (_) {
-          return null;
-        }
-      }
+      final archive = _decodeArchive(bytes);
+      if (archive == null) return null;
 
       final imageEntries = archive.files
           .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
@@ -131,16 +177,8 @@ class CbzService {
 
   static int _countPagesFromZip(Uint8List bytes) {
     try {
-      Archive archive;
-      try {
-        archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      } catch (_) {
-        try {
-          archive = TarDecoder().decodeBytes(bytes);
-        } catch (_) {
-          return 0;
-        }
-      }
+      final archive = _decodeArchive(bytes);
+      if (archive == null) return 0;
       return archive.files.where((f) => !f.name.endsWith('/') && isImageFile(f.name)).length;
     } catch (e) {
       return 0;
@@ -149,16 +187,8 @@ class CbzService {
 
   static List<ComicPage> _loadPagesFromZip(Uint8List bytes) {
     try {
-      Archive archive;
-      try {
-        archive = ZipDecoder().decodeBytes(bytes, verify: false);
-      } catch (_) {
-        try {
-          archive = TarDecoder().decodeBytes(bytes);
-        } catch (_) {
-          return [];
-        }
-      }
+      final archive = _decodeArchive(bytes);
+      if (archive == null) return [];
 
       final imageEntries = archive.files
           .where((f) => !f.name.endsWith('/') && isImageFile(f.name))

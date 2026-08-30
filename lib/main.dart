@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/library_provider.dart';
@@ -17,14 +16,14 @@ void main() async {
   await ReaderSettingsService().init();
 
   // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF13151F),
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+  // SystemChrome.setSystemUIOverlayStyle(
+  //   const SystemUiOverlayStyle(
+  //     statusBarColor: Colors.transparent,
+  //     statusBarIconBrightness: Brightness.light,
+  //     systemNavigationBarColor: Color(0xFF13151F),
+  //     systemNavigationBarIconBrightness: Brightness.light,
+  //   ),
+  // );
 
   runApp(const ComicStreamApp());
 }

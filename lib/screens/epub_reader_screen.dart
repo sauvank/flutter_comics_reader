@@ -28,6 +28,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
   int _currentChapterIndex = 0;
   bool _showControls = false;
   String _tocSearchQuery = '';
+  final Map<int, double> _chapterScrollOffsets = {};
 
   @override
   void initState() {
@@ -63,12 +64,18 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
 
   void _goToChapter(int index) {
     if (index < 0 || index >= _chapters.length) return;
+    if (_scrollController.hasClients) {
+      _chapterScrollOffsets[_currentChapterIndex] = _scrollController.offset;
+    }
     setState(() {
       _currentChapterIndex = index;
     });
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0.0);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        final savedOffset = _chapterScrollOffsets[_currentChapterIndex] ?? 0.0;
+        _scrollController.jumpTo(savedOffset);
+      }
+    });
     _saveProgress();
   }
 
@@ -125,9 +132,39 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
               )
             : _chapters.isEmpty
                 ? Center(
-                    child: Text(
-                      'Impossible de charger les chapitres de ce livre.',
-                      style: TextStyle(color: textColor),
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.error_outline_rounded, size: 64, color: textColor.withAlpha(120)),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Impossible de charger ce livre',
+                            style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Le format du fichier est peut-être corrompu ou non supporté.',
+                            style: TextStyle(color: textColor.withAlpha(150), fontSize: 14),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          FilledButton.icon(
+                            onPressed: _loadEpub,
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('Réessayer'),
+                            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            label: const Text('Retour à la bibliothèque'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                 : Stack(
@@ -135,13 +172,21 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                       // Reader Content
                       GestureDetector(
                         behavior: HitTestBehavior.translucent,
-                        onTap: () {
-                          setState(() {
-                            _showControls = !_showControls;
-                          });
+                        onTapUp: (details) {
+                          final screenWidth = MediaQuery.of(context).size.width;
+                          final tapX = details.globalPosition.dx;
+                          final leftBoundary = screenWidth * 0.30;
+                          final rightBoundary = screenWidth * 0.70;
+
+                          if (tapX < leftBoundary) {
+                            _goToChapter(_currentChapterIndex - 1);
+                          } else if (tapX > rightBoundary) {
+                            _goToChapter(_currentChapterIndex + 1);
+                          } else {
+                            setState(() => _showControls = !_showControls);
+                          }
                         },
-                        child: SelectionArea(
-                          child: Center(
+                        child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 860),
                               child: SingleChildScrollView(
@@ -214,7 +259,6 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                             ),
                           ),
                         ),
-                      ),
 
                       // Top Navigation Bar
                       if (_showControls)
@@ -391,6 +435,17 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   hintText: 'Rechercher un chapitre...',
                   hintStyle: TextStyle(color: settings.epubTextColor.withAlpha(120), fontSize: 13),
                   prefixIcon: Icon(Icons.search_rounded, color: settings.epubTextColor.withAlpha(150), size: 20),
+                  suffixIcon: _tocSearchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded),
+                          onPressed: () {
+                            setState(() {
+                              _tocSearchController.clear();
+                              _tocSearchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
                   filled: true,
                   fillColor: settings.epubTextColor.withAlpha(20),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -407,8 +462,20 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
               ),
             ),
             const Divider(height: 20),
-            Expanded(
-              child: ListView.builder(
+            if (filteredChapters.isEmpty && _tocSearchQuery.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Text(
+                    'Aucun chapitre trouvé pour "$_tocSearchQuery"',
+                    style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: ListView.builder(
                 itemCount: filteredChapters.length,
                 itemBuilder: (context, index) {
                   final chapter = filteredChapters[index];

@@ -151,7 +151,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
     final received = task?.downloadedBytes ?? 0;
     final total = (task?.totalBytes ?? 0) > 0 ? task!.totalBytes : widget.file.size;
     final isFailed = task?.status == DownloadStatus.failed;
-    final isConverting = widget.file.format == BookFormat.pdf && progress >= 0.85;
+    final isConverting = task?.status == DownloadStatus.converting;
 
     return Container(
       decoration: BoxDecoration(
@@ -258,7 +258,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: LinearProgressIndicator(
-                value: progress > 0 ? progress : null,
+                value: isConverting ? null : (progress > 0 ? progress : null),
                 minHeight: 10,
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(

@@ -24,12 +24,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
   int _currentPage = 0;
   int _totalPages = 0;
   bool _showControls = false;
+  bool _fileExists = true;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _currentPage = widget.book.currentPage;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _checkFileExists();
 
     _pdfController.addListener(() {
       final page = _pdfController.pageNumber;
@@ -50,6 +53,17 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
         }
       }
     });
+  }
+
+  Future<void> _checkFileExists() async {
+    final file = File(widget.book.localPath);
+    final exists = await file.exists();
+    if (mounted) {
+      setState(() {
+        _fileExists = exists;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -99,9 +113,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     final currentBook = library.getBookById(widget.book.id) ?? widget.book;
     final isBookmarked = currentBook.bookmarks.contains(_currentPage);
     final isFavorite = currentBook.isFavorite;
-    final file = File(widget.book.localPath);
 
-    if (!file.existsSync()) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: settings.actualBackgroundColor,
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
+      );
+    }
+
+    if (!_fileExists) {
       return Scaffold(
         backgroundColor: Colors.black,
         appBar: AppBar(backgroundColor: Colors.transparent),
@@ -179,9 +199,20 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                         GestureDetector(
                           behavior: HitTestBehavior.translucent,
                           onTapUp: (details) {
+                            if (_showControls) {
+                              setState(() {
+                                _showControls = false;
+                              });
+                              return;
+                            }
                             final tapX = details.globalPosition.dx;
-                            final screenWidth = size.width;
-                            if (tapX > screenWidth * 0.30 && tapX < screenWidth * 0.70) {
+                            final screenWidth = MediaQuery.of(context).size.width;
+                            
+                            if (tapX < screenWidth * 0.30) {
+                              _prevPage();
+                            } else if (tapX > screenWidth * 0.70) {
+                              _nextPage();
+                            } else {
                               setState(() {
                                 _showControls = !_showControls;
                               });
@@ -198,82 +229,67 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               ),
 
               // Top Controls Bar
-              if (_showControls)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderTopBar(
-                    title: widget.book.title,
-                    currentPage: _currentPage,
-                    totalPages: _totalPages > 0 ? _totalPages : widget.book.totalPages,
-                    isBookmarked: isBookmarked,
-                    isFavorite: isFavorite,
-                    onBack: () => Navigator.of(context).pop(),
-                    onToggleBookmark: _toggleBookmark,
-                    onToggleFavorite: () => library.toggleFavorite(widget.book.id),
-                    onOpenSettings: _showSettings,
-                  ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: ReaderTopBar(
+                  visible: _showControls,
+                  title: widget.book.title,
+                  currentPage: _currentPage,
+                  totalPages: _totalPages > 0 ? _totalPages : widget.book.totalPages,
+                  isBookmarked: isBookmarked,
+                  isFavorite: isFavorite,
+                  onBack: () => Navigator.of(context).pop(),
+                  onToggleBookmark: _toggleBookmark,
+                  onToggleFavorite: () => library.toggleFavorite(widget.book.id),
+                  onOpenSettings: _showSettings,
                 ),
+              ),
 
               // Convert to CBZ Floating Action Button
               if (_showControls)
                 Positioned(
-                  top: 72,
+                  top: kToolbarHeight + MediaQuery.of(context).padding.top + 8,
                   right: 16,
                   child: Material(
                     color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () => PdfToCbzDialog.show(context, book: widget.book),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withAlpha(220),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(50),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: const [
-                            Icon(Icons.auto_fix_high_rounded, size: 15, color: Colors.white),
-                            SizedBox(width: 6),
-                            Text(
-                              'Convertir en CBZ (Mode BD)',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withAlpha(220),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(50),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.white),
+                        tooltip: 'Convertir en CBZ (Mode BD)',
+                        onPressed: () => PdfToCbzDialog.show(context, book: widget.book),
                       ),
                     ),
                   ),
                 ),
 
               // Bottom Controls Bar
-              if (_showControls)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderBottomBar(
-                    currentPage: _currentPage,
-                    totalPages: _totalPages > 0 ? _totalPages : widget.book.totalPages,
-                    readingMode: settings.readingMode,
-                    onPageChanged: _jumpToPage,
-                    onOpenThumbnails: () {},
-                    onReadingModeChanged: (mode) => settings.setReadingMode(mode),
-                  ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: ReaderBottomBar(
+                  visible: _showControls,
+                  currentPage: _currentPage,
+                  totalPages: _totalPages > 0 ? _totalPages : widget.book.totalPages,
+                  readingMode: settings.readingMode,
+                  onPageChanged: _jumpToPage,
+                  onOpenThumbnails: () {},
+                  onReadingModeChanged: (mode) => settings.setReadingMode(mode),
                 ),
+              ),
 
               // Floating Page Number Badge
               if (!_showControls && settings.showPageNumbers && _totalPages > 0)

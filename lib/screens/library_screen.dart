@@ -24,7 +24,7 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _activeViewIndex = 1; // Default to 1 (Collection / Folder Explorer with Local & Server badges)
+  int _activeViewIndex = 0; // Default to 1 (Collection / Folder Explorer with Local & Server badges)
 
   bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
@@ -159,12 +159,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     segments: [
                       const ButtonSegment(
                         value: 1,
-                        label: Text('Ma Collection (Dossiers)'),
+                        label: Text('Serveur distant'),
                         icon: Icon(Icons.folder_copy_rounded, size: 16),
                       ),
                       ButtonSegment(
                         value: 0,
-                        label: Text('Téléchargés (${library.books.length})'),
+                        label: Text('Mes BD (${library.books.length})'),
                         icon: const Icon(Icons.download_done_rounded, size: 16),
                       ),
                     ],
@@ -261,6 +261,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
                   const SizedBox(width: 8),
                   _buildFilterChip('En cours', LibraryFilter.inProgress, library),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Non lus', LibraryFilter.unread, library),
                   const SizedBox(width: 8),
                   _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
                   const SizedBox(width: 8),
@@ -554,13 +556,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   }
 
                   return TextButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      if (undownloadedBooks.length > 3) {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Télécharger tout ?'),
+                            content: Text('${undownloadedBooks.length} fichiers vont être téléchargés. Continuer ?'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Télécharger')),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                      }
                       for (final f in undownloadedBooks) {
                         downloadProvider.enqueueDownload(server: activeServer, remoteFile: f);
                       }
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('${undownloadedBooks.length} nouveau(x) livre(s) mis en file d\'attente')),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('${undownloadedBooks.length} nouveau(x) livre(s) mis en file d\'attente')),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.download_for_offline_outlined, size: 16),
                     label: Text('Tout (${undownloadedBooks.length})', style: const TextStyle(fontSize: 11)),
