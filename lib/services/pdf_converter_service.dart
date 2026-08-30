@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
-import 'package:archive/archive_io.dart';
+import 'package:archive/archive.dart';
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -85,9 +86,9 @@ class PdfConverterService {
           statusText: 'Rendu HD page $pageNum / $totalPages...',
         );
 
-        // Render page with supersampled quality (up to 2200x3000)
-        final renderWidth = (page.width * effectiveScale).toInt().clamp(1000, 2200);
-        final renderHeight = (page.height * effectiveScale).toInt().clamp(1400, 3000);
+        // Render page with optimal HD resolution maintaining aspect ratio (800-2000px width)
+        final renderWidth = (page.width * effectiveScale).round().clamp(800, 2000);
+        final renderHeight = (page.height * effectiveScale).round().clamp(1000, 2800);
 
         final pdfImage = await page.render(
           fullWidth: renderWidth.toDouble(),
@@ -95,15 +96,30 @@ class PdfConverterService {
         );
 
         if (pdfImage != null) {
-          final uiImage = await pdfImage.createImage();
-          final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-          pdfImage.dispose();
-          uiImage.dispose();
+          final formattedIndex = pageNum.toString().padLeft(4, '0');
+          final pageFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.jpg'));
 
-          if (byteData != null) {
-            final formattedIndex = pageNum.toString().padLeft(4, '0');
-            final pageFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.png'));
-            await pageFile.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+          try {
+            final image = img.Image.fromBytes(
+              width: pdfImage.width,
+              height: pdfImage.height,
+              bytes: pdfImage.pixels.buffer,
+              numChannels: 4,
+            );
+            final jpgBytes = img.encodeJpg(image, quality: 88);
+            await pageFile.writeAsBytes(jpgBytes, flush: true);
+          } catch (eImg) {
+            // Fallback via Flutter ui.Image to PNG with accurate offset & length
+            final uiImage = await pdfImage.createImage();
+            final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+            uiImage.dispose();
+            if (byteData != null) {
+              final pngBytes = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
+              final fallbackFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.png'));
+              await fallbackFile.writeAsBytes(pngBytes, flush: true);
+            }
+          } finally {
+            pdfImage.dispose();
           }
         }
       }
@@ -112,13 +128,13 @@ class PdfConverterService {
         currentPage: totalPages,
         totalPages: totalPages,
         progress: 0.90,
-        statusText: 'Compression de l\'archive CBZ...',
+        statusText: 'Compression de l\'archive CBZ standard...',
       );
 
       final generatedImages = conversionTempDir
           .listSync()
           .whereType<File>()
-          .where((f) => f.path.endsWith('.png'))
+          .where((f) => f.path.endsWith('.jpg') || f.path.endsWith('.png') || f.path.endsWith('.jpeg'))
           .toList();
       generatedImages.sort((a, b) => NaturalSort.compare(p.basename(a.path), p.basename(b.path)));
 
@@ -126,15 +142,27 @@ class PdfConverterService {
         throw Exception('Aucune page n\'a pu être générée depuis le PDF.');
       }
 
-      final targetFile = File(targetPath);
-      await targetFile.parent.create(recursive: true);
-
-      final zipEncoder = ZipFileEncoder();
-      zipEncoder.create(targetPath);
+      final archive = Archive();
       for (final imageFile in generatedImages) {
-        await zipEncoder.addFile(imageFile, p.basename(imageFile.path));
+        final fileBytes = await imageFile.readAsBytes();
+        archive.addFile(ArchiveFile(
+          p.basename(imageFile.path),
+          fileBytes.length,
+          fileBytes,
+        ));
       }
-      await zipEncoder.close();
+
+      final encodedZip = ZipEncoder().encode(archive);
+      if (encodedZip.isEmpty) {
+        throw Exception('Échec de l\'encodage de l\'archive CBZ.');
+      }
+
+      final targetFile = File(targetPath);
+      if (await targetFile.exists()) {
+        await targetFile.delete();
+      }
+      await targetFile.parent.create(recursive: true);
+      await targetFile.writeAsBytes(encodedZip, flush: true);
 
       yield PdfConverterProgress(
         currentPage: totalPages,
