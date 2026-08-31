@@ -48,9 +48,11 @@ class _ArchiveItem {
 List<int> _encodeZipIsolate(List<_ArchiveItem> items) {
   final archive = Archive();
   for (final item in items) {
-    archive.addFile(ArchiveFile(item.name, item.bytes.length, item.bytes));
+    final file = ArchiveFile(item.name, item.bytes.length, item.bytes);
+    file.compression = CompressionType.none;
+    archive.addFile(file);
   }
-  return ZipEncoder().encode(archive);
+  return ZipEncoder().encode(archive, level: DeflateLevel.none);
 }
 
 class PdfConverterProgress {
@@ -118,67 +120,79 @@ class PdfConverterService {
     await conversionTempDir.create(recursive: true);
 
     try {
-      for (int i = 0; i < totalPages; i++) {
-        final page = doc.pages[i];
-        final pageNum = i + 1;
+      const int batchSize = 2; // Balanced concurrency: fast & safe against OOM
+      for (int i = 0; i < totalPages; i += batchSize) {
+        final currentBatchEnd = (i + batchSize < totalPages) ? i + batchSize : totalPages;
+        final batchFutures = <Future<void>>[];
 
         yield PdfConverterProgress(
-          currentPage: pageNum,
+          currentPage: i + 1,
           totalPages: totalPages,
-          progress: (i / totalPages) * 0.85,
-          statusText: 'Rendu HD page $pageNum / $totalPages...',
+          progress: (i / totalPages) * 0.88,
+          statusText: currentBatchEnd > i + 1
+              ? 'Rendu HD pages ${i + 1} à $currentBatchEnd / $totalPages...'
+              : 'Rendu HD page ${i + 1} / $totalPages...',
         );
 
-        // Render page with optimal HD resolution maintaining aspect ratio (800-2000px width)
-        final renderWidth = (page.width * effectiveScale).round().clamp(800, 2000);
-        final renderHeight = (page.height * effectiveScale).round().clamp(1000, 2800);
+        for (int j = i; j < currentBatchEnd; j++) {
+          final pageIndex = j;
+          final pageNum = pageIndex + 1;
+          final page = doc.pages[pageIndex];
 
-        final pdfImage = await page.render(
-          fullWidth: renderWidth.toDouble(),
-          fullHeight: renderHeight.toDouble(),
-        );
+          // Render page with optimal HD resolution maintaining aspect ratio (800-1600px width)
+          final renderWidth = (page.width * effectiveScale).round().clamp(800, 1600);
+          final renderHeight = (page.height * effectiveScale).round().clamp(1000, 2400);
 
-        if (pdfImage != null) {
-          final formattedIndex = pageNum.toString().padLeft(4, '0');
-          final pageFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.jpg'));
-
-          try {
-            final isBgra = pdfImage.format.name.toLowerCase().contains('bgra');
-            final task = _JpgTask(
-              width: pdfImage.width,
-              height: pdfImage.height,
-              pixels: pdfImage.pixels,
-              isBgra: isBgra,
-              quality: 88,
+          batchFutures.add(() async {
+            final pdfImage = await page.render(
+              fullWidth: renderWidth.toDouble(),
+              fullHeight: renderHeight.toDouble(),
             );
 
-            // Execute heavy JPEG compression in a background isolate to keep UI 100% fluid
-            final jpgBytes = await compute(_encodeJpgIsolate, task);
-            await pageFile.writeAsBytes(jpgBytes, flush: true);
-          } catch (eImg) {
-            // Fallback via Flutter ui.Image to PNG with accurate offset & length
-            final uiImage = await pdfImage.createImage();
-            final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
-            uiImage.dispose();
-            if (byteData != null) {
-              final pngBytes = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-              final fallbackFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.png'));
-              await fallbackFile.writeAsBytes(pngBytes, flush: true);
-            }
-          } finally {
-            pdfImage.dispose();
-          }
+            if (pdfImage != null) {
+              final formattedIndex = pageNum.toString().padLeft(4, '0');
+              final pageFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.jpg'));
 
-          // Small yield to let Flutter's UI engine breathe and render frames smoothly
-          await Future.delayed(const Duration(milliseconds: 10));
+              try {
+                final isBgra = pdfImage.format.name.toLowerCase().contains('bgra');
+                final task = _JpgTask(
+                  width: pdfImage.width,
+                  height: pdfImage.height,
+                  pixels: pdfImage.pixels,
+                  isBgra: isBgra,
+                  quality: 85,
+                );
+
+                // Execute heavy JPEG compression in a background isolate
+                final jpgBytes = await compute(_encodeJpgIsolate, task);
+                await pageFile.writeAsBytes(jpgBytes, flush: false);
+              } catch (eImg) {
+                // Fallback via Flutter ui.Image to PNG
+                final uiImage = await pdfImage.createImage();
+                final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+                uiImage.dispose();
+                if (byteData != null) {
+                  final pngBytes = byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
+                  final fallbackFile = File(p.join(conversionTempDir.path, 'page_$formattedIndex.png'));
+                  await fallbackFile.writeAsBytes(pngBytes, flush: false);
+                }
+              } finally {
+                pdfImage.dispose();
+              }
+            }
+          }());
         }
+
+        await Future.wait(batchFutures);
+        // Small yield to let Flutter UI breathe
+        await Future.delayed(const Duration(milliseconds: 5));
       }
 
       yield PdfConverterProgress(
         currentPage: totalPages,
         totalPages: totalPages,
-        progress: 0.90,
-        statusText: 'Compression de l\'archive CBZ standard...',
+        progress: 0.92,
+        statusText: 'Assemblage ultra-rapide de l\'archive CBZ...',
       );
 
       final generatedImages = conversionTempDir
@@ -201,7 +215,7 @@ class PdfConverterService {
         ));
       }
 
-      // Execute ZIP compression in background isolate
+      // Execute ZIP assembly in background isolate with store mode (no redundant re-compression)
       final encodedZip = await compute(_encodeZipIsolate, items);
       if (encodedZip.isEmpty) {
         throw Exception('Échec de l\'encodage de l\'archive CBZ.');
