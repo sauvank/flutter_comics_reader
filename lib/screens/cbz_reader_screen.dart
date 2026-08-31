@@ -797,15 +797,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               minScale: 1.0,
               maxScale: 6.0,
               panAxis: PanAxis.free,
-              panEnabled: true,
+              panEnabled: _isCurrentPageZoomed,
               scaleEnabled: true,
-              boundaryMargin: const EdgeInsets.symmetric(horizontal: 100, vertical: 100),
+              boundaryMargin: EdgeInsets.zero,
               clipBehavior: Clip.hardEdge,
-              onInteractionStart: (_) {
-                if (!_isCurrentPageZoomed) {
-                  setState(() => _isCurrentPageZoomed = true);
-                }
-              },
               onInteractionUpdate: (_) {
                 final scale = transformCtrl.value.getMaxScaleOnAxis();
                 final isZoomed = scale > 1.05;
@@ -881,15 +876,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                     minScale: 1.0,
                     maxScale: 6.0,
                     panAxis: PanAxis.free,
-                    panEnabled: true,
+                    panEnabled: _isCurrentPageZoomed,
                     scaleEnabled: true,
-                    boundaryMargin: const EdgeInsets.symmetric(horizontal: 100, vertical: 100),
+                    boundaryMargin: EdgeInsets.zero,
                     clipBehavior: Clip.hardEdge,
-                    onInteractionStart: (_) {
-                      if (!_isCurrentPageZoomed) {
-                        setState(() => _isCurrentPageZoomed = true);
-                      }
-                    },
                     onInteractionUpdate: (_) {
                       final scale = transformCtrl.value.getMaxScaleOnAxis();
                       final isZoomed = scale > 1.05;
