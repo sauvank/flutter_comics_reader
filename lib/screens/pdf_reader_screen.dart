@@ -166,7 +166,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
     }
 
     return PopScope(
-      canPop: true,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_showControls) {
+          setState(() => _showControls = false);
+          return;
+        }
+        Navigator.of(context).pop();
+      },
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,

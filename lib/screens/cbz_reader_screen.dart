@@ -663,7 +663,19 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     }
 
     return PopScope(
-      canPop: true,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_showControls) {
+          setState(() => _showControls = false);
+          return;
+        }
+        if (_isCurrentPageZoomed) {
+          _handleDoubleTap(_currentPage, null);
+          return;
+        }
+        Navigator.of(context).pop();
+      },
       child: CallbackShortcuts(
         bindings: {
           const SingleActivator(LogicalKeyboardKey.arrowRight): _nextPage,
