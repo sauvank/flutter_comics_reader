@@ -98,24 +98,38 @@ class UpdateDialog extends StatelessWidget {
               const SizedBox(height: 22),
 
               // Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Plus tard'),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
+                  OutlinedButton.icon(
                     icon: const Icon(Icons.download_rounded, size: 18),
-                    label: const Text('Mettre à jour'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    label: const Text('Télécharger APK'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       final url = info.directDownloadUrl ?? info.releaseUrl;
                       UpdateService().launchUpdateUrl(url);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                  FilledButton.icon(
+                    icon: const Icon(Icons.shop_two_rounded, size: 18),
+                    label: const Text('Google Play'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      UpdateService().launchPlayStore();
                       Navigator.of(context).pop();
                     },
                   ),

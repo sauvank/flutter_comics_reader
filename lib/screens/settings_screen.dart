@@ -576,6 +576,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTap: _isCheckingUpdate ? null : () => _checkUpdateManual(),
             ),
           ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withAlpha(25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.shop_two_rounded, color: Color(0xFF10B981), size: 22),
+              ),
+              title: const Text('Google Play Store'),
+              subtitle: const Text('Voir la fiche officielle de ComicStream', style: TextStyle(fontSize: 12)),
+              trailing: const Icon(Icons.open_in_new_rounded, size: 18),
+              onTap: () => UpdateService().launchPlayStore(),
+            ),
+          ),
           const SizedBox(height: 18),
 
           // Guide & Help
