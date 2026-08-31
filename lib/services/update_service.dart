@@ -128,6 +128,21 @@ class UpdateService {
     }
   }
 
+  /// Opens the Google Play Store app directly on ComicStream's page
+  Future<bool> launchPlayStore() async {
+    try {
+      final marketUri = Uri.parse(AppVersion.playStoreMarketUrl);
+      if (await canLaunchUrl(marketUri)) {
+        return await launchUrl(marketUri, mode: LaunchMode.externalApplication);
+      }
+      final webUri = Uri.parse(AppVersion.playStoreWebUrl);
+      return await launchUrl(webUri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint('Launch Play Store error: $e');
+      return false;
+    }
+  }
+
   /// Displays the interactive update dialog to the user
   void promptUpdateDialog(BuildContext context, UpdateInfo info) {
     showDialog(
