@@ -4,7 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/server_profile.dart';
+import '../providers/download_provider.dart';
+import '../providers/library_provider.dart';
 import '../providers/server_provider.dart';
+import '../widgets/folder_card.dart';
+import '../widgets/instant_read_modal.dart';
+import '../widgets/remote_book_card.dart';
 import '../widgets/server_form_dialog.dart';
 
 class ServerScreen extends StatefulWidget {
@@ -34,7 +39,7 @@ class _ServerScreenState extends State<ServerScreen> {
     if (newServer != null && mounted) {
       final provider = context.read<ServerProvider>();
       await provider.saveServer(newServer);
-      await provider.setActiveServer(newServer);
+      await provider.openServer(newServer);
     }
   }
 
@@ -47,9 +52,70 @@ class _ServerScreenState extends State<ServerScreen> {
       final provider = context.read<ServerProvider>();
       await provider.saveServer(updated);
       if (provider.activeServer?.id == updated.id) {
-        await provider.setActiveServer(updated);
+        await provider.openServer(updated);
       }
     }
+  }
+
+  void _testServerConnection(ServerProfile server) async {
+    final serverProvider = context.read<ServerProvider>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    final success = await serverProvider.testConnection(server);
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Row(
+            children: [
+              Icon(
+                success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  success
+                      ? 'Connexion réussie à ${server.name} !'
+                      : 'Échec de la connexion à ${server.name}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: success ? Colors.green : Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  void _confirmDeleteServer(ServerProfile server) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Supprimer ce serveur ?'),
+        content: Text('Voulez-vous vraiment supprimer "${server.name}" de vos sources distantes ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<ServerProvider>().deleteServer(server.id);
+            },
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _exportServersDialog() {
@@ -171,10 +237,10 @@ class _ServerScreenState extends State<ServerScreen> {
                 controller: textController,
                 maxLines: 5,
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-                decoration: const InputDecoration(
-                  hintText: '[{"name": "Mon Serveur", ...}]',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.all(10),
+                decoration: InputDecoration(
+                  hintText: '{\n  "servers": [...]\n}',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.all(10),
                 ),
               ),
             ],
@@ -185,39 +251,24 @@ class _ServerScreenState extends State<ServerScreen> {
             onPressed: () => Navigator.pop(ctx),
             child: const Text('Annuler'),
           ),
-          FilledButton.icon(
-            icon: const Icon(Icons.download_done_rounded, size: 16),
-            label: const Text('Importer'),
+          FilledButton(
             onPressed: () async {
-              final text = textController.text.trim();
-              if (text.isEmpty) return;
+              final json = textController.text.trim();
+              if (json.isEmpty) return;
 
               final messenger = ScaffoldMessenger.of(context);
               final nav = Navigator.of(ctx);
-              final provider = context.read<ServerProvider>();
-
-              try {
-                final count = await provider.importServersFromJson(text);
-                if (ctx.mounted) {
-                  nav.pop();
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('✅ $count serveur(s) importé(s) avec succès !'),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (ctx.mounted) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('❌ Erreur de format JSON : $e'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
+              final serverProvider = context.read<ServerProvider>();
+              final count = await serverProvider.importServersFromJson(json);
+              nav.pop();
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text('✅ $count serveur(s) importé(s) avec succès !'),
+                  backgroundColor: Colors.green,
+                ),
+              );
             },
+            child: const Text('Importer'),
           ),
         ],
       ),
@@ -225,301 +276,141 @@ class _ServerScreenState extends State<ServerScreen> {
   }
 
   void _saveCurrentPathAsRoot() async {
-    final provider = context.read<ServerProvider>();
-    if (provider.errorMessage != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('❌ Impossible d\'enregistrer : ce dossier est inaccessible.'),
-          backgroundColor: Colors.red.shade800,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
-    await provider.setAndSaveCurrentPathAsRoot();
+    final serverProvider = context.read<ServerProvider>();
+    await serverProvider.setAndSaveCurrentPathAsRoot();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Dossier racine validé et enregistré : ${provider.currentPath}'),
-          backgroundColor: Colors.green.shade800,
-          duration: const Duration(seconds: 3),
+          content: Text('✅ Emplacement de base défini sur : ${serverProvider.currentPath}'),
+          backgroundColor: Colors.green,
         ),
       );
     }
   }
 
-  void _showServerSwitchSheet(BuildContext context) {
-    final serverProvider = context.read<ServerProvider>();
-    final activeServer = serverProvider.activeServer;
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final serverProvider = context.watch<ServerProvider>();
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: theme.colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.outlineVariant.withAlpha(80),
-                    borderRadius: BorderRadius.circular(2),
+    if (!serverProvider.isBrowsing || serverProvider.activeServer == null) {
+      return _buildServersList(context, serverProvider, theme);
+    }
+
+    return _buildServerBrowser(context, serverProvider, serverProvider.activeServer!, theme);
+  }
+
+  Widget _buildServersList(BuildContext context, ServerProvider serverProvider, ThemeData theme) {
+    final servers = serverProvider.servers;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withAlpha(40),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Mes Serveurs'),
+            if (servers.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${servers.length}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Title row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 22),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'Mes Serveurs Cloud & Locaux',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              if (serverProvider.servers.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'Aucun profil serveur enregistré',
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                )
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: serverProvider.servers.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final srv = serverProvider.servers[index];
-                      final isSelected = srv.id == activeServer?.id;
-
-                      IconData typeIcon = Icons.cloud_outlined;
-                      Color typeColor = const Color(0xFF8B5CF6);
-                      if (srv.serverType == ServerType.webdav) {
-                        typeIcon = Icons.cloud_done_outlined;
-                        typeColor = const Color(0xFF06B6D4);
-                      } else if (srv.serverType == ServerType.ftp) {
-                        typeIcon = Icons.swap_horizontal_circle_outlined;
-                        typeColor = const Color(0xFFF59E0B);
-                      } else if (srv.serverType == ServerType.httpDirectory) {
-                        typeIcon = Icons.http_rounded;
-                        typeColor = const Color(0xFF10B981);
-                      }
-
-                      return Material(
-                        color: isSelected
-                            ? theme.colorScheme.primaryContainer.withAlpha(100)
-                            : theme.colorScheme.surfaceContainerHighest.withAlpha(50),
-                        borderRadius: BorderRadius.circular(14),
-                        child: InkWell(
-                          onTap: () {
-                            serverProvider.setActiveServer(srv);
-                            Navigator.pop(ctx);
-                          },
-                          borderRadius: BorderRadius.circular(14),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.outlineVariant.withAlpha(30),
-                                width: isSelected ? 1.8 : 1.0,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: typeColor.withAlpha(35),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(typeIcon, color: typeColor, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              srv.name,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
-                                                color: isSelected
-                                                    ? theme.colorScheme.primary
-                                                    : theme.colorScheme.onSurface,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                            decoration: BoxDecoration(
-                                              color: typeColor.withAlpha(30),
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                            child: Text(
-                                              srv.serverType.name.toUpperCase(),
-                                              style: TextStyle(
-                                                fontSize: 9,
-                                                fontWeight: FontWeight.bold,
-                                                color: typeColor,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${srv.host}:${srv.port}${srv.path}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontFamily: 'monospace',
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 18),
-                                  tooltip: 'Modifier',
-                                  onPressed: () {
-                                    Navigator.pop(ctx);
-                                    _openEditServerDialog(srv);
-                                  },
-                                ),
-                                if (isSelected)
-                                  Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+            ],
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline_rounded),
+            tooltip: 'Ajouter un serveur',
+            onPressed: _openAddServerDialog,
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'Options',
+            onSelected: (value) {
+              if (value == 'export') {
+                _exportServersDialog();
+              } else if (value == 'import') {
+                _importServersDialog();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text('Exporter les configurations'),
+                  ],
                 ),
-              const SizedBox(height: 16),
-
-              // Add Server Button
-              FilledButton.icon(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _openAddServerDialog();
-                },
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Ajouter un autre serveur'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(46),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download_outlined, size: 20),
+                    SizedBox(width: 10),
+                    Text('Importer une configuration'),
+                  ],
                 ),
               ),
             ],
           ),
-        ),
+        ],
       ),
+      body: servers.isEmpty
+          ? _buildNoServerState(theme)
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: servers.length,
+              itemBuilder: (context, index) {
+                final server = servers[index];
+                return _buildServerCard(context, server, serverProvider, theme);
+              },
+            ),
     );
   }
 
-  Widget _buildServerHeroHeader(ServerProfile? activeServer, ServerProvider serverProvider, ThemeData theme) {
-    if (activeServer == null) {
-      return Container(
-        margin: const EdgeInsets.fromLTRB(14, 4, 14, 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.cloud_off_rounded, color: theme.colorScheme.primary, size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Aucun serveur actif', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                  SizedBox(height: 2),
-                  Text('Touchez pour connecter un serveur', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                ],
-              ),
-            ),
-            FilledButton.icon(
-              onPressed: _openAddServerDialog,
-              icon: const Icon(Icons.add, size: 16),
-              label: const Text('Ajouter'),
-              style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildServerCard(BuildContext context, ServerProfile server, ServerProvider serverProvider, ThemeData theme) {
     Color typeColor = const Color(0xFF8B5CF6);
     IconData typeIcon = Icons.cloud_queue_rounded;
-    if (activeServer.serverType == ServerType.webdav) {
+    if (server.serverType == ServerType.webdav) {
       typeColor = const Color(0xFF06B6D4);
       typeIcon = Icons.cloud_done_rounded;
-    } else if (activeServer.serverType == ServerType.ftp) {
+    } else if (server.serverType == ServerType.ftp) {
       typeColor = const Color(0xFFF59E0B);
       typeIcon = Icons.swap_horizontal_circle_rounded;
-    } else if (activeServer.serverType == ServerType.httpDirectory) {
+    } else if (server.serverType == ServerType.httpDirectory) {
       typeColor = const Color(0xFF10B981);
       typeIcon = Icons.http_rounded;
     }
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 4, 14, 8),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
+        border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(50)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(20),
@@ -528,120 +419,137 @@ class _ServerScreenState extends State<ServerScreen> {
           ),
         ],
       ),
-      child: InkWell(
-        onTap: () => _showServerSwitchSheet(context),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              // Type Icon with glowing container
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: typeColor.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: typeColor.withAlpha(80), width: 1.2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => serverProvider.openServer(server),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                // Glowing protocol badge
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: typeColor.withAlpha(30),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: typeColor.withAlpha(80), width: 1.2),
+                  ),
+                  child: Icon(typeIcon, color: typeColor, size: 24),
                 ),
-                child: Icon(typeIcon, color: typeColor, size: 22),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 14),
 
-              // Server Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            activeServer.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: typeColor.withAlpha(25),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Text(
-                            activeServer.serverType.name.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: typeColor,
+                // Server details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              server.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
-                            shape: BoxShape.circle,
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: typeColor.withAlpha(25),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              server.serverType.name.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: typeColor,
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${server.host}:${server.port}${server.path}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 5),
-                        Text(
-                          '${activeServer.host}:${activeServer.port}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
 
-              // Switch Icon Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Changer',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+                // Action Menu
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded),
+                  tooltip: 'Options',
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _openEditServerDialog(server);
+                    } else if (value == 'test') {
+                      _testServerConnection(server);
+                    } else if (value == 'delete') {
+                      _confirmDeleteServer(server);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_outlined, size: 18),
+                          SizedBox(width: 8),
+                          Text('Modifier'),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 2),
-                    Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: theme.colorScheme.primary),
+                    const PopupMenuItem(
+                      value: 'test',
+                      child: Row(
+                        children: [
+                          Icon(Icons.network_check_rounded, size: 18),
+                          SizedBox(width: 8),
+                          Text('Tester la connexion'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                          SizedBox(width: 8),
+                          Text('Supprimer', style: TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
+
+                const Icon(Icons.chevron_right_rounded, size: 24, color: Colors.grey),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final serverProvider = context.watch<ServerProvider>();
-
-    final activeServer = serverProvider.activeServer;
+  Widget _buildServerBrowser(BuildContext context, ServerProvider serverProvider, ServerProfile activeServer, ThemeData theme) {
     final remoteFiles = serverProvider.remoteFiles;
     final breadcrumbs = serverProvider.breadcrumbs;
-    final currentPath = serverProvider.currentPath;
+    final libraryProvider = context.watch<LibraryProvider>();
+    final downloadProvider = context.watch<DownloadProvider>();
 
     final q = _searchQuery.trim().toLowerCase();
     final folders = q.isEmpty
@@ -651,17 +559,32 @@ class _ServerScreenState extends State<ServerScreen> {
         ? remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList()
         : remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook && f.name.toLowerCase().contains(q)).toList();
 
+    final undownloadedBooks = books
+        .where((f) => libraryProvider.getBookByServerPath(activeServer.id, f.path) == null)
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Retour',
+          onPressed: () {
+            if (serverProvider.canNavigateUp) {
+              serverProvider.navigateUp();
+            } else {
+              serverProvider.closeServerBrowser();
+            }
+          },
+        ),
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 autofocus: true,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: 'Filtrer ce dossier...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 onChanged: (val) {
                   setState(() {
@@ -669,18 +592,18 @@ class _ServerScreenState extends State<ServerScreen> {
                   });
                 },
               )
-            : Row(
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withAlpha(40),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.cloud_sync_rounded, color: theme.colorScheme.primary, size: 20),
+                  Text(
+                    activeServer.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 10),
-                  const Text('Explorateur Serveur'),
+                  Text(
+                    '${activeServer.serverType.name.toUpperCase()} • ${activeServer.host}',
+                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                  ),
                 ],
               ),
         actions: [
@@ -700,43 +623,38 @@ class _ServerScreenState extends State<ServerScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Ajouter un serveur',
-            onPressed: _openAddServerDialog,
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh_rounded),
             tooltip: 'Actualiser',
-            onPressed: activeServer != null ? () => serverProvider.fetchRemoteFiles() : null,
+            onPressed: () => serverProvider.fetchRemoteFiles(),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
-            tooltip: 'Options de configuration',
+            tooltip: 'Options du dossier',
             onSelected: (value) {
-              if (value == 'export') {
-                _exportServersDialog();
-              } else if (value == 'import') {
-                _importServersDialog();
+              if (value == 'set_root') {
+                _saveCurrentPathAsRoot();
+              } else if (value == 'switch_server') {
+                serverProvider.closeServerBrowser();
               }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'export',
+                value: 'set_root',
                 child: Row(
                   children: [
-                    Icon(Icons.file_upload_outlined, size: 20),
-                    SizedBox(width: 10),
-                    Text('Exporter la configuration'),
+                    Icon(Icons.bookmark_add_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Définir ce dossier comme racine'),
                   ],
                 ),
               ),
               const PopupMenuItem(
-                value: 'import',
+                value: 'switch_server',
                 child: Row(
                   children: [
-                    Icon(Icons.file_download_outlined, size: 20),
-                    SizedBox(width: 10),
-                    Text('Importer une configuration'),
+                    Icon(Icons.dns_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('Changer de serveur'),
                   ],
                 ),
               ),
@@ -746,266 +664,258 @@ class _ServerScreenState extends State<ServerScreen> {
       ),
       body: Column(
         children: [
-          // Server Hero Header
-          _buildServerHeroHeader(activeServer, serverProvider, theme),
-
           // Breadcrumbs Navigation Bar
-          if (activeServer != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withAlpha(60),
-                border: Border(
-                  top: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
-                  bottom: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withAlpha(60),
+              border: Border(
+                bottom: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
               ),
-              child: Row(
-                children: [
-                  // Back button
-                  if (currentPath.isNotEmpty && currentPath != '/')
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-                      onPressed: () => serverProvider.navigateUp(),
-                      tooltip: 'Dossier parent',
-                    ),
-                  // Root icon
-                  InkWell(
-                    onTap: () => serverProvider.navigateToRoot(),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                      child: Row(
-                        children: [
-                          Icon(Icons.home_rounded, size: 16, color: theme.colorScheme.primary),
-                          const SizedBox(width: 4),
-                          const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+            ),
+            child: Row(
+              children: [
+                if (serverProvider.canNavigateUp)
+                  IconButton(
+                    icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    onPressed: () => serverProvider.navigateUp(),
+                    tooltip: 'Dossier parent',
+                  ),
+                InkWell(
+                  onTap: () => serverProvider.navigateToRoot(),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.home_rounded, size: 16, color: theme.colorScheme.primary),
+                        const SizedBox(width: 4),
+                        const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
                     ),
                   ),
-                  // Breadcrumb segments
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (int i = 0; i < breadcrumbs.length; i++) ...[
-                            Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.outline),
-                            InkWell(
-                              onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
-                              borderRadius: BorderRadius.circular(6),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                child: Text(
-                                  breadcrumbs[i],
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: i == breadcrumbs.length - 1
-                                        ? theme.colorScheme.primary
-                                        : theme.colorScheme.onSurface,
-                                    fontWeight: i == breadcrumbs.length - 1
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        for (int i = 0; i < breadcrumbs.length; i++) ...[
+                          Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.outline),
+                          InkWell(
+                            onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              child: Text(
+                                breadcrumbs[i],
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: i == breadcrumbs.length - 1
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.onSurface,
+                                  fontWeight: i == breadcrumbs.length - 1
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
-                ],
-              ),
+                ),
+                if (undownloadedBooks.isNotEmpty)
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    icon: const Icon(Icons.download_for_offline_outlined, size: 16),
+                    label: Text('Tout (${undownloadedBooks.length})', style: const TextStyle(fontSize: 11)),
+                    onPressed: () async {
+                      if (undownloadedBooks.length > 3) {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Tout télécharger ?'),
+                            content: Text('${undownloadedBooks.length} tomes vont être téléchargés en arrière-plan.'),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Télécharger')),
+                            ],
+                          ),
+                        );
+                        if (confirm != true) return;
+                      }
+                      for (final f in undownloadedBooks) {
+                        downloadProvider.enqueueDownload(server: activeServer, remoteFile: f);
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('📥 ${undownloadedBooks.length} tome(s) ajouté(s) à la file de téléchargement'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+              ],
             ),
+          ),
 
-          // Main Directory Content Area (Folder List)
+          // Main Directory Content
           Expanded(
-            child: activeServer == null
-                ? _buildNoServerState(theme)
-                : serverProvider.isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : serverProvider.errorMessage != null
-                        ? _buildErrorState(serverProvider.errorMessage!, activeServer, theme)
-                        : (folders.isEmpty && books.isEmpty)
-                            ? _buildEmptyDirectoryState(theme)
-                            : RefreshIndicator(
-                                onRefresh: () => serverProvider.fetchRemoteFiles(),
-                                child: ListView(
-                                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 20),
-                                  children: [
-                                    // Folder info banner when current folder contains comics
-                                    if (books.isNotEmpty)
-                                      Container(
-                                        margin: const EdgeInsets.only(bottom: 14),
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(80)),
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(10),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(0xFF8B5CF6).withAlpha(30),
-                                                    borderRadius: BorderRadius.circular(12),
-                                                  ),
-                                                  child: const Icon(Icons.auto_stories_rounded, color: Color(0xFF8B5CF6), size: 22),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: serverProvider.isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : serverProvider.errorMessage != null
+                    ? _buildErrorState(serverProvider.errorMessage!, activeServer, theme)
+                    : (folders.isEmpty && books.isEmpty)
+                        ? _buildEmptyDirectoryState(theme)
+                        : RefreshIndicator(
+                            onRefresh: () => serverProvider.fetchRemoteFiles(),
+                            child: CustomScrollView(
+                              slivers: [
+                                // Subfolders section
+                                if (folders.isNotEmpty) ...[
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.folder_copy_outlined, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Dossiers & Séries (${folders.length})',
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    sliver: SliverGrid(
+                                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 380,
+                                        mainAxisExtent: 68,
+                                        crossAxisSpacing: 10,
+                                        mainAxisSpacing: 10,
+                                      ),
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) {
+                                          final folder = folders[index];
+                                          final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
+                                          return FolderCard(
+                                            name: folder.name,
+                                            isFavorite: isFav,
+                                            onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
+                                            onTap: () => serverProvider.navigateTo(folder.path),
+                                          );
+                                        },
+                                        childCount: folders.length,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+
+                                // Books section
+                                if (books.isNotEmpty) ...[
+                                  SliverToBoxAdapter(
+                                    child: Padding(
+                                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.menu_book_rounded, size: 18, color: theme.colorScheme.primary),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            'Livres & BD (${books.length})',
+                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                                    sliver: SliverGrid(
+                                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 200,
+                                        childAspectRatio: 0.65,
+                                        crossAxisSpacing: 14,
+                                        mainAxisSpacing: 14,
+                                      ),
+                                      delegate: SliverChildBuilderDelegate(
+                                        (context, index) {
+                                          final file = books[index];
+                                          final isDownloaded =
+                                              libraryProvider.getBookByServerPath(activeServer.id, file.path) != null;
+                                          final task = downloadProvider.getTaskForRemotePath(file.path);
+
+                                          return RemoteBookCard(
+                                            server: activeServer,
+                                            file: file,
+                                            isDownloaded: isDownloaded,
+                                            downloadTask: task,
+                                            onTap: () {
+                                              InstantReadModal.show(
+                                                context,
+                                                server: activeServer,
+                                                file: file,
+                                              );
+                                            },
+                                            onDownload: () {
+                                              downloadProvider.enqueueDownload(
+                                                server: activeServer,
+                                                remoteFile: file,
+                                              );
+                                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  behavior: SnackBarBehavior.floating,
+                                                  duration: const Duration(seconds: 4),
+                                                  content: Row(
                                                     children: [
-                                                      Text(
-                                                        '${books.length} tome(s) de BD détecté(s)',
-                                                        style: const TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          fontSize: 15,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        'Dossier de lecture prêt',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: theme.colorScheme.onSurfaceVariant,
+                                                      const Icon(Icons.downloading_rounded, color: Colors.amber, size: 20),
+                                                      const SizedBox(width: 10),
+                                                      Expanded(
+                                                        child: Text(
+                                                          'Téléchargement : ${file.name}',
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                          style: const TextStyle(fontWeight: FontWeight.w600),
                                                         ),
                                                       ),
                                                     ],
                                                   ),
+                                                  action: widget.onNavigateTab != null
+                                                      ? SnackBarAction(
+                                                          label: 'Voir',
+                                                          textColor: theme.colorScheme.primary,
+                                                          onPressed: () => widget.onNavigateTab!(2),
+                                                        )
+                                                      : null,
                                                 ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 12),
-                                            SizedBox(
-                                              width: double.infinity,
-                                              child: FilledButton.icon(
-                                                onPressed: () {
-                                                  widget.onNavigateTab?.call(0);
-                                                },
-                                                icon: const Icon(Icons.menu_book_rounded, size: 18),
-                                                label: const Text('Ouvrir et lire dans la Bibliothèque'),
-                                                style: FilledButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF8B5CF6),
-                                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                        childCount: books.length,
                                       ),
-
-                                    // List of Subfolders
-                                    if (folders.isNotEmpty) ...[
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                        child: Text(
-                                          'Sous-dossiers disponibles (${folders.length})',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.colorScheme.onSurfaceVariant,
-                                          ),
-                                        ),
-                                      ),
-                                      ...folders.map((folder) => Container(
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.surfaceContainer,
-                                              borderRadius: BorderRadius.circular(14),
-                                              border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(30)),
-                                            ),
-                                            child: ListTile(
-                                              onTap: () => serverProvider.navigateTo(folder.path),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                              leading: Container(
-                                                padding: const EdgeInsets.all(8),
-                                                decoration: BoxDecoration(
-                                                  color: theme.colorScheme.primary.withAlpha(30),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: Icon(Icons.folder_rounded, color: theme.colorScheme.primary, size: 22),
-                                              ),
-                                              title: Text(
-                                                folder.name.replaceAll('_', ' '),
-                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                                              ),
-                                              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-                                            ),
-                                          )),
-                                    ],
-                                  ],
-                                ),
-                              ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
           ),
-
-          // Bottom Action Bar to Select Folder as Library Root
-          if (activeServer != null)
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainer,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha(40),
-                    blurRadius: 10,
-                    offset: const Offset(0, -3),
-                  ),
-                ],
-                border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(30))),
-              ),
-              child: SafeArea(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dossier actuel :',
-                            style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                          Text(
-                            currentPath.isEmpty ? '/' : currentPath,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _saveCurrentPathAsRoot,
-                      icon: const Icon(Icons.check_circle_rounded, size: 18),
-                      label: const Text('Choisir ce dossier'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
-
-
 
   Widget _buildNoServerState(ThemeData theme) {
     return Center(
@@ -1016,10 +926,10 @@ class _ServerScreenState extends State<ServerScreen> {
           children: [
             Icon(Icons.dns_outlined, size: 64, color: theme.colorScheme.primary.withAlpha(150)),
             const SizedBox(height: 16),
-            const Text('Aucun serveur local configuré', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text('Aucun serveur configuré', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Ajoutez l\'adresse de votre serveur WebDAV ou HTTP local pour explorer et télécharger vos BDs.',
+              'Ajoutez votre serveur WebDAV, HTTP ou FTP pour explorer et lire vos BDs.',
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
@@ -1027,7 +937,7 @@ class _ServerScreenState extends State<ServerScreen> {
             FilledButton.icon(
               onPressed: _openAddServerDialog,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter mon premier serveur'),
+              label: const Text('Ajouter un serveur'),
             ),
           ],
         ),
@@ -1047,7 +957,7 @@ class _ServerScreenState extends State<ServerScreen> {
             const Text('Ce dossier est vide', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Aucun fichier ou sous-dossier trouvé dans cet emplacement.',
+              'Aucun livre ou sous-dossier trouvé dans cet emplacement.',
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
@@ -1070,7 +980,7 @@ class _ServerScreenState extends State<ServerScreen> {
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Vérifiez que votre appareil est connecté au même réseau WiFi et que le serveur est allumé sur ${server.baseUrl}.',
+              'Vérifiez que le serveur est accessible sur ${server.baseUrl}.',
               textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),

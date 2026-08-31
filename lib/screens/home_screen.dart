@@ -56,9 +56,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final serverProvider = context.read<ServerProvider>();
 
-        // 1. If we are in the Server tab and inside a folder, navigate up one folder level
-        if (_currentIndex == 1 && serverProvider.canNavigateUp) {
-          serverProvider.navigateUp();
+        // 1. If we are in the Server tab and browsing a server
+        if (_currentIndex == 1 && serverProvider.isBrowsing) {
+          if (serverProvider.canNavigateUp) {
+            serverProvider.navigateUp();
+          } else {
+            serverProvider.closeServerBrowser();
+          }
           return;
         }
 
