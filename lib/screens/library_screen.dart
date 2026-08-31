@@ -1,10 +1,18 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
+import '../models/remote_file.dart';
 import '../models/series_item.dart';
+import '../models/server_profile.dart';
+import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
+import '../providers/server_provider.dart';
+import '../utils/format_utils.dart';
 import '../widgets/book_card.dart';
+import '../widgets/instant_read_modal.dart';
+import '../widgets/remote_book_card.dart';
 import '../widgets/series_card.dart';
 import 'cbz_reader_screen.dart';
 import 'epub_reader_screen.dart';
@@ -29,12 +37,66 @@ class _LibraryScreenState extends State<LibraryScreen> {
   LibraryViewMode _viewMode = LibraryViewMode.series;
   SeriesItem? _selectedSeries;
 
+  ServerProfile? _seriesServer;
+  List<RemoteFile> _remoteSeriesFiles = [];
+  bool _isLoadingRemoteSeries = false;
+
   bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSelectSeries(SeriesItem series) {
+    setState(() {
+      _selectedSeries = series;
+      _remoteSeriesFiles = [];
+      _seriesServer = null;
+    });
+    _checkAndLoadRemoteSeries(series);
+  }
+
+  void _checkAndLoadRemoteSeries(SeriesItem series) async {
+    final serverProvider = context.read<ServerProvider>();
+    BookItem? serverBook;
+    for (final b in series.books) {
+      if (b.serverId != null && b.serverRelativePath != null) {
+        serverBook = b;
+        break;
+      }
+    }
+
+    if (serverBook != null) {
+      final srv = serverProvider.servers.where((s) => s.id == serverBook!.serverId).firstOrNull;
+      if (srv != null) {
+        final parentDir = p.posix.dirname(serverBook.serverRelativePath!);
+        setState(() {
+          _seriesServer = srv;
+          _isLoadingRemoteSeries = true;
+        });
+
+        try {
+          final files = await serverProvider.listFilesInDirectory(
+            server: srv,
+            remoteRelativePath: parentDir,
+          );
+          if (mounted && _selectedSeries?.name == series.name) {
+            setState(() {
+              _remoteSeriesFiles = files;
+              _isLoadingRemoteSeries = false;
+            });
+          }
+        } catch (_) {
+          if (mounted) {
+            setState(() {
+              _isLoadingRemoteSeries = false;
+            });
+          }
+        }
+      }
+    }
   }
 
   void _openReader(BookItem book) {
@@ -184,7 +246,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
             constraints: const BoxConstraints(maxWidth: 1350),
             child: Column(
               children: [
-                // View Mode Switcher (Séries vs Tous les tomes)
                 if (library.books.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -209,8 +270,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       },
                     ),
                   ),
-
-                // Search Bar
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                   child: Container(
@@ -258,7 +317,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: _viewMode == LibraryViewMode.series
                       ? _buildSeriesListView(context, library, allSeries, theme)
@@ -287,18 +345,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
       onRefresh: () => library.loadLibrary(),
       child: CustomScrollView(
         slivers: [
-          // Filter Chips Bar
           SliverToBoxAdapter(
             child: _buildFilterChipsRow(library),
           ),
-
-          // Hero Resume Reading Banner (Latest Read Book)
           if (recentBooks.isNotEmpty && !_isSearching && library.filter == LibraryFilter.all)
             SliverToBoxAdapter(
               child: _buildResumeReadingHero(recentBooks.first, theme),
             ),
-
-          // Recent Books Section (Resume Reading Carousel)
           if (recentBooks.length > 1 && !_isSearching && library.filter == LibraryFilter.all) ...[
             SliverToBoxAdapter(
               child: Padding(
@@ -350,8 +403,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
               child: Divider(height: 24, indent: 16, endIndent: 16),
             ),
           ],
-
-          // Series Section Title
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -367,8 +418,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
           ),
-
-          // Series Grid
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverGrid(
@@ -384,13 +433,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   return SeriesCard(
                     series: series,
                     onTap: () {
-                      if (series.totalBooks == 1) {
-                        _openReader(series.books.first);
-                      } else {
-                        setState(() {
-                          _selectedSeries = series;
-                        });
-                      }
+                      _onSelectSeries(series);
                     },
                   );
                 },
@@ -416,12 +459,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       onRefresh: () => library.loadLibrary(),
       child: CustomScrollView(
         slivers: [
-          // Filter Chips Bar
           SliverToBoxAdapter(
             child: _buildFilterChipsRow(library),
           ),
-
-          // Grid of all Books
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             sliver: SliverGrid(
@@ -460,8 +500,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _buildSeriesDetailView(BuildContext context, LibraryProvider library, ThemeData theme) {
     final series = _selectedSeries!;
-    final nextBook = series.nextToReadBook;
+    final nextLocalBook = series.nextToReadBook;
     final progressPercent = (series.overallProgress * 100).toInt();
+    final downloadProvider = context.watch<DownloadProvider>();
+
+    List<RemoteFile> undownloadedRemote = [];
+    if (_seriesServer != null && _remoteSeriesFiles.isNotEmpty) {
+      undownloadedRemote = _remoteSeriesFiles.where((rf) {
+        if (rf.isDirectory || !rf.isSupportedBook) return false;
+        if (library.getBookByServerPath(_seriesServer!.id, rf.path) != null) return false;
+        final cleanRfName = p.basenameWithoutExtension(rf.name).toLowerCase();
+        if (series.books.any((b) =>
+            p.basenameWithoutExtension(b.originalFilename).toLowerCase() == cleanRfName ||
+            b.title.toLowerCase() == cleanRfName)) {
+          return false;
+        }
+        return true;
+      }).toList();
+      undownloadedRemote.sort((a, b) => NaturalSort.compare(a.name, b.name));
+    }
+
+    final nextRemoteToDownload = undownloadedRemote.isNotEmpty ? undownloadedRemote.first : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -488,14 +547,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ],
         ),
+        actions: [
+          if (_seriesServer != null)
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              tooltip: 'Vérifier les nouveaux tomes sur le serveur',
+              onPressed: () => _checkAndLoadRemoteSeries(series),
+            ),
+        ],
       ),
       body: CustomScrollView(
         slivers: [
-          // Hero Next Volume to read
-          if (nextBook != null)
+          if (nextLocalBook != null)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -512,7 +578,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () => _openReader(nextBook),
+                      onTap: () => _openReader(nextLocalBook),
                       borderRadius: BorderRadius.circular(16),
                       child: Padding(
                         padding: const EdgeInsets.all(12),
@@ -523,8 +589,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               child: SizedBox(
                                 width: 50,
                                 height: 75,
-                                child: nextBook.coverPath != null && File(nextBook.coverPath!).existsSync()
-                                    ? Image.file(File(nextBook.coverPath!), fit: BoxFit.cover)
+                                child: nextLocalBook.coverPath != null && File(nextLocalBook.coverPath!).existsSync()
+                                    ? Image.file(File(nextLocalBook.coverPath!), fit: BoxFit.cover)
                                     : Container(
                                         color: theme.colorScheme.primary.withAlpha(30),
                                         child: Icon(Icons.menu_book, color: theme.colorScheme.primary),
@@ -544,7 +610,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      nextBook.progress > 0 ? 'REPRENDRE' : 'TOME SUIVANT',
+                                      nextLocalBook.progress > 0 ? 'REPRENDRE' : 'TOME SUIVANT À LIRE',
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -554,16 +620,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    nextBook.title,
+                                    nextLocalBook.title,
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    nextBook.totalPages > 0
-                                        ? 'Page ${nextBook.currentPage + 1}/${nextBook.totalPages} (${(nextBook.progress * 100).toInt()}%)'
-                                        : nextBook.formatString,
+                                    nextLocalBook.totalPages > 0
+                                        ? 'Page ${nextLocalBook.currentPage + 1}/${nextLocalBook.totalPages} (${(nextLocalBook.progress * 100).toInt()}%)'
+                                        : nextLocalBook.formatString,
                                     style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
                                   ),
                                 ],
@@ -571,7 +637,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             ),
                             const SizedBox(width: 8),
                             FilledButton.icon(
-                              onPressed: () => _openReader(nextBook),
+                              onPressed: () => _openReader(nextLocalBook),
                               icon: const Icon(Icons.play_arrow_rounded, size: 18),
                               label: const Text('Lire'),
                               style: FilledButton.styleFrom(
@@ -587,27 +653,165 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
               ),
             ),
-
-          // Volumes list header
+          if (nextRemoteToDownload != null && _seriesServer != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        const Color(0xFFF59E0B).withAlpha(40),
+                        theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF59E0B).withAlpha(100)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 68,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withAlpha(30),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.download_for_offline_rounded, color: Color(0xFFF59E0B), size: 28),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF59E0B),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'TOME SUIVANT SUR LE SERVEUR',
+                                      style: TextStyle(
+                                        fontSize: 8.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    FormatUtils.formatBytes(nextRemoteToDownload.size),
+                                    style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                nextRemoteToDownload.name,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  FilledButton.icon(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: const Color(0xFFF59E0B),
+                                      foregroundColor: Colors.black,
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    ),
+                                    icon: const Icon(Icons.download_rounded, size: 16),
+                                    label: const Text('Télécharger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    onPressed: () {
+                                      downloadProvider.enqueueDownload(
+                                        server: _seriesServer!,
+                                        remoteFile: nextRemoteToDownload,
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('📥 Téléchargement lancé : ${nextRemoteToDownload.name}'),
+                                          duration: const Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  OutlinedButton.icon(
+                                    style: OutlinedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    ),
+                                    icon: const Icon(Icons.visibility_rounded, size: 15),
+                                    label: const Text('Lire direct', style: TextStyle(fontSize: 11)),
+                                    onPressed: () {
+                                      InstantReadModal.show(
+                                        context,
+                                        server: _seriesServer!,
+                                        file: nextRemoteToDownload,
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (_isLoadingRemoteSeries)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Recherche des tomes suivants sur le serveur distant...',
+                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Row(
                 children: [
-                  Icon(Icons.format_list_numbered_rounded, size: 18, color: theme.colorScheme.primary),
+                  Icon(Icons.folder_open_rounded, size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Tous les tomes (${series.totalBooks})',
+                    'Tomes téléchargés (${series.totalBooks})',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
           ),
-
-          // Grid of Volumes in the Series
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 200,
@@ -637,6 +841,87 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
           ),
+          if (undownloadedRemote.isNotEmpty && _seriesServer != null) ...[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.cloud_download_rounded, size: 18, color: Color(0xFFF59E0B)),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Tomes disponibles sur le serveur (${undownloadedRemote.length})',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    if (undownloadedRemote.length > 1)
+                      TextButton.icon(
+                        style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                        icon: const Icon(Icons.download_for_offline_outlined, size: 16),
+                        label: Text('Tout télécharger (${undownloadedRemote.length})', style: const TextStyle(fontSize: 11)),
+                        onPressed: () {
+                          for (final f in undownloadedRemote) {
+                            downloadProvider.enqueueDownload(
+                              server: _seriesServer!,
+                              remoteFile: f,
+                            );
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('📥 ${undownloadedRemote.length} tomes ajoutés à la file de téléchargement'),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  childAspectRatio: 0.65,
+                  crossAxisSpacing: 14,
+                  mainAxisSpacing: 14,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final remoteFile = undownloadedRemote[index];
+                    final task = downloadProvider.getTaskForRemotePath(remoteFile.path);
+
+                    return RemoteBookCard(
+                      server: _seriesServer!,
+                      file: remoteFile,
+                      isDownloaded: false,
+                      downloadTask: task,
+                      onTap: () {
+                        InstantReadModal.show(
+                          context,
+                          server: _seriesServer!,
+                          file: remoteFile,
+                        );
+                      },
+                      onDownload: () {
+                        downloadProvider.enqueueDownload(
+                          server: _seriesServer!,
+                          remoteFile: remoteFile,
+                        );
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('📥 Téléchargement : ${remoteFile.name}'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  childCount: undownloadedRemote.length,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -705,7 +990,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
-                  // Cover Thumbnail
                   ClipRRect(
                     borderRadius: BorderRadius.circular(10),
                     child: SizedBox(
@@ -720,8 +1004,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                   const SizedBox(width: 14),
-
-                  // Info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -782,8 +1064,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-
-                  // Play / Resume Button
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
