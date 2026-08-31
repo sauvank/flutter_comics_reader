@@ -98,16 +98,15 @@ echo ""
 
 # Options :
 # -P : Affichage de la progression en temps réel
-# --track-renames : Détecte les fichiers renommés/déplacés et les renomme sur le cloud sans ré-upload
+# copy : Copie incrémentale sécurisée (n'efface JAMAIS les fichiers existants sur le cloud)
 # --fast-list : Optimise les requêtes pour lister les fichiers
 # --transfers 2 : Téléverse 2 gros fichiers en parallèle
 # --tpslimit 5 : Limite le nombre de requêtes par seconde pour éviter les blocages API
 # --retries 5 : Réessaie automatiquement les fichiers en échec
 # --low-level-retries 10 : Réessaie les paquets/requêtes individuelles
 # --timeout 30m : Laisse le temps pour les très gros fichiers
-rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
+rclone copy "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --progress \
-    --track-renames \
     --transfers 2 \
     --tpslimit 5 \
     --checkers 4 \
@@ -120,8 +119,9 @@ rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
 
 echo ""
 echo -e "${GREEN}======================================================${NC}"
-echo -e "${GREEN}✅ Synchronisation chiffrée terminée avec succès !${NC}"
+echo -e "${GREEN}✅ Téléversement sécurisé terminé avec succès !${NC}"
 echo -e "${GREEN}======================================================${NC}"
 echo ""
-echo -e "${BLUE}ℹ️ Vos fichiers sont stockés 100% chiffrés sur Mega.${NC}"
-echo -e "${BLUE}ℹ️ Alist sur votre VPS peut désormais les déchiffrer à la volée pour votre application.${NC}"
+echo -e "${BLUE}ℹ️ Vos fichiers sont stockés 100% chiffrés sur le Cloud.${NC}"
+echo -e "${BLUE}ℹ️ Aucun fichier distant n'a été supprimé.${NC}"
+echo -e "${BLUE}ℹ️ Alist / WebDAV peut désormais les servir à votre application ComicStream.${NC}"
