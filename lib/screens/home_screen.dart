@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/download_provider.dart';
+import '../providers/server_provider.dart';
 import '../services/update_service.dart';
 import 'downloads_screen.dart';
 import 'library_screen.dart';
@@ -16,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -47,11 +50,41 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return PopScope(
-      canPop: _currentIndex == 0,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _currentIndex != 0) {
-          setState(() => _currentIndex = 0);
+        if (didPop) return;
+
+        final serverProvider = context.read<ServerProvider>();
+
+        // 1. If we are in the Server tab and inside a folder, navigate up one folder level
+        if (_currentIndex == 1 && serverProvider.canNavigateUp) {
+          serverProvider.navigateUp();
+          return;
         }
+
+        // 2. If we are on any tab other than Library, return to Library tab first
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+
+        // 3. If we are on Library tab, require a second back press within 2s to exit
+        final now = DateTime.now();
+        if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 2),
+              content: Text('Appuyez à nouveau pour quitter ComicStream'),
+            ),
+          );
+          return;
+        }
+
+        // 4. Confirmed double back press: safely exit app
+        SystemNavigator.pop();
       },
       child: Scaffold(
         body: IndexedStack(

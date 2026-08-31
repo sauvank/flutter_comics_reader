@@ -34,6 +34,13 @@ class ServerProvider extends ChangeNotifier {
     return '/';
   }
 
+  bool get canNavigateUp {
+    if (_currentPath.isEmpty || _currentPath == rootPath) return false;
+    final cleanCurrent = _currentPath.replaceAll(RegExp(r'/+$'), '');
+    final cleanRoot = rootPath.replaceAll(RegExp(r'/+$'), '');
+    return cleanCurrent != cleanRoot && cleanCurrent.isNotEmpty && cleanCurrent != '/';
+  }
+
   List<String> get breadcrumbs {
     if (_currentPath.isEmpty || _currentPath == rootPath) return [];
 

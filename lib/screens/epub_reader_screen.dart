@@ -95,7 +95,19 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
     final textColor = settings.epubTextColor;
 
     return PopScope(
-      canPop: true,
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+          Navigator.of(context).pop();
+          return;
+        }
+        if (_showControls) {
+          setState(() => _showControls = false);
+          return;
+        }
+        Navigator.of(context).pop();
+      },
       child: KeyboardListener(
         focusNode: _focusNode,
         autofocus: true,
