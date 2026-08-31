@@ -181,6 +181,29 @@ class ServerProvider extends ChangeNotifier {
     return true;
   }
 
+  /// Lists files in a specific directory of a given server
+  Future<List<RemoteFile>> listFilesInDirectory({
+    required ServerProfile server,
+    required String remoteRelativePath,
+  }) async {
+    if (server.serverType == ServerType.ftp) {
+      return await _ftp.listDirectory(
+        server: server,
+        remoteRelativePath: remoteRelativePath,
+      );
+    } else if (server.serverType == ServerType.webdav) {
+      return await _webdav.listDirectory(
+        server: server,
+        remoteRelativePath: remoteRelativePath,
+      );
+    } else {
+      return await _http.listDirectory(
+        server: server,
+        remoteRelativePath: remoteRelativePath,
+      );
+    }
+  }
+
   Future<void> navigateTo(String path) async {
     if (!path.startsWith('/') && rootPath != '/' && !path.startsWith(rootPath)) {
       final base = rootPath.endsWith('/') ? rootPath : '$rootPath/';
