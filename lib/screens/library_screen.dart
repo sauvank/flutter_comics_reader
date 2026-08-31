@@ -2,11 +2,18 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
+import '../models/series_item.dart';
 import '../providers/library_provider.dart';
 import '../widgets/book_card.dart';
+import '../widgets/series_card.dart';
 import 'cbz_reader_screen.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
+
+enum LibraryViewMode {
+  series,
+  allBooks,
+}
 
 class LibraryScreen extends StatefulWidget {
   final void Function(int index)? onNavigateTab;
@@ -19,6 +26,8 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  LibraryViewMode _viewMode = LibraryViewMode.series;
+  SeriesItem? _selectedSeries;
 
   bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
@@ -79,6 +88,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
 
+    return PopScope(
+      canPop: _selectedSeries == null,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _selectedSeries != null) {
+          setState(() {
+            _selectedSeries = null;
+          });
+        }
+      },
+      child: _selectedSeries != null
+          ? _buildSeriesDetailView(context, library, theme)
+          : _buildMainLibraryView(context, library, theme),
+    );
+  }
+
+  Widget _buildMainLibraryView(BuildContext context, LibraryProvider library, ThemeData theme) {
+    final books = library.filteredBooks;
+    final allSeries = SeriesItem.groupFromBooks(books);
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -102,6 +130,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (library.books.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withAlpha(30),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${library.books.length} BD',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -138,9 +184,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
             constraints: const BoxConstraints(maxWidth: 1350),
             child: Column(
               children: [
+                // View Mode Switcher (Séries vs Tous les tomes)
+                if (library.books.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: SegmentedButton<LibraryViewMode>(
+                      segments: [
+                        ButtonSegment(
+                          value: LibraryViewMode.series,
+                          icon: const Icon(Icons.folder_special_rounded, size: 16),
+                          label: Text('Par Séries (${allSeries.length})'),
+                        ),
+                        ButtonSegment(
+                          value: LibraryViewMode.allBooks,
+                          icon: const Icon(Icons.auto_stories_rounded, size: 16),
+                          label: Text('Tous les tomes (${books.length})'),
+                        ),
+                      ],
+                      selected: {_viewMode},
+                      onSelectionChanged: (set) {
+                        setState(() {
+                          _viewMode = set.first;
+                        });
+                      },
+                    ),
+                  ),
+
                 // Search Bar
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
                   child: Container(
                     height: 46,
                     decoration: BoxDecoration(
@@ -154,7 +226,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       controller: _searchController,
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Rechercher parmi mes BD téléchargées...',
+                        hintText: 'Rechercher une série, un tome, un auteur...',
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
@@ -188,7 +260,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
 
                 Expanded(
-                  child: _buildLocalLibraryView(context, library, theme),
+                  child: _viewMode == LibraryViewMode.series
+                      ? _buildSeriesListView(context, library, allSeries, theme)
+                      : _buildFlatBooksListView(context, library, books, theme),
                 ),
               ],
             ),
@@ -198,9 +272,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildLocalLibraryView(BuildContext context, LibraryProvider library, ThemeData theme) {
-    final books = library.filteredBooks;
+  Widget _buildSeriesListView(BuildContext context, LibraryProvider library, List<SeriesItem> allSeries, ThemeData theme) {
     final recentBooks = library.recentBooks;
+
+    if (library.books.isEmpty) {
+      return _buildEmptyLibraryState(theme);
+    }
+
+    if (allSeries.isEmpty && _isSearching) {
+      return _buildEmptySearchState(theme);
+    }
 
     return RefreshIndicator(
       onRefresh: () => library.loadLibrary(),
@@ -208,29 +289,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         slivers: [
           // Filter Chips Bar
           SliverToBoxAdapter(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  _buildFilterChip('Tous (${library.books.length})', LibraryFilter.all, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('En cours', LibraryFilter.inProgress, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Non lus', LibraryFilter.unread, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('PDF', LibraryFilter.pdf, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Terminés', LibraryFilter.completed, library),
-                ],
-              ),
-            ),
+            child: _buildFilterChipsRow(library),
           ),
 
           // Hero Resume Reading Banner (Latest Read Book)
@@ -292,81 +351,318 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ],
 
-          // Grid / List of Books
-          if (books.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _isSearching ? Icons.search_off_rounded : Icons.auto_stories_outlined,
-                        size: 64,
-                        color: Colors.grey.shade600,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _isSearching
-                            ? 'Aucun résultat pour cette recherche'
-                            : 'Votre bibliothèque est vide',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isSearching
-                            ? 'Essayez un autre mot-clé ou réinitialisez les filtres.'
-                            : 'Explorez vos serveurs distants pour lire en streaming ou télécharger vos BDs !',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
-                      ),
-                      if (!_isSearching && widget.onNavigateTab != null) ...[
-                        const SizedBox(height: 20),
-                        FilledButton.icon(
-                          onPressed: () => widget.onNavigateTab?.call(1),
-                          icon: const Icon(Icons.dns_rounded, size: 18),
-                          label: const Text('Explorer mes serveurs'),
-                        ),
+          // Series Section Title
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.collections_bookmark_rounded, size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Mes Collections & Séries (${allSeries.length})',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Series Grid
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
+                childAspectRatio: 0.68,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final series = allSeries[index];
+                  return SeriesCard(
+                    series: series,
+                    onTap: () {
+                      if (series.totalBooks == 1) {
+                        _openReader(series.books.first);
+                      } else {
+                        setState(() {
+                          _selectedSeries = series;
+                        });
+                      }
+                    },
+                  );
+                },
+                childCount: allSeries.length,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFlatBooksListView(BuildContext context, LibraryProvider library, List<BookItem> books, ThemeData theme) {
+    if (library.books.isEmpty) {
+      return _buildEmptyLibraryState(theme);
+    }
+
+    if (books.isEmpty && _isSearching) {
+      return _buildEmptySearchState(theme);
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => library.loadLibrary(),
+      child: CustomScrollView(
+        slivers: [
+          // Filter Chips Bar
+          SliverToBoxAdapter(
+            child: _buildFilterChipsRow(library),
+          ),
+
+          // Grid of all Books
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                childAspectRatio: 0.65,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final book = books[index];
+                  return BookCard(
+                    book: book,
+                    onTap: () => _openReader(book),
+                    onDelete: () => _confirmDelete(book),
+                    onToggleFavorite: () => library.toggleFavorite(book.id),
+                    onToggleStatus: () {
+                      library.updateBookProgress(
+                        bookId: book.id,
+                        currentPage: book.isCompleted ? 0 : book.totalPages,
+                        totalPages: book.totalPages,
+                        isCompleted: !book.isCompleted,
+                      );
+                    },
+                  );
+                },
+                childCount: books.length,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSeriesDetailView(BuildContext context, LibraryProvider library, ThemeData theme) {
+    final series = _selectedSeries!;
+    final nextBook = series.nextToReadBook;
+    final progressPercent = (series.overallProgress * 100).toInt();
+
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          tooltip: 'Retour aux séries',
+          onPressed: () {
+            setState(() {
+              _selectedSeries = null;
+            });
+          },
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              series.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              '${series.completedBooks}/${series.totalBooks} tomes lus • $progressPercent%',
+              style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+      body: CustomScrollView(
+        slivers: [
+          // Hero Next Volume to read
+          if (nextBook != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.colorScheme.primaryContainer.withAlpha(140),
+                        theme.colorScheme.surfaceContainerHighest.withAlpha(100),
                       ],
-                    ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: theme.colorScheme.primary.withAlpha(60)),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _openReader(nextBook),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: SizedBox(
+                                width: 50,
+                                height: 75,
+                                child: nextBook.coverPath != null && File(nextBook.coverPath!).existsSync()
+                                    ? Image.file(File(nextBook.coverPath!), fit: BoxFit.cover)
+                                    : Container(
+                                        color: theme.colorScheme.primary.withAlpha(30),
+                                        child: Icon(Icons.menu_book, color: theme.colorScheme.primary),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      nextBook.progress > 0 ? 'REPRENDRE' : 'TOME SUIVANT',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    nextBook.title,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    nextBook.totalPages > 0
+                                        ? 'Page ${nextBook.currentPage + 1}/${nextBook.totalPages} (${(nextBook.progress * 100).toInt()}%)'
+                                        : nextBook.formatString,
+                                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton.icon(
+                              onPressed: () => _openReader(nextBook),
+                              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                              label: const Text('Lire'),
+                              style: FilledButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-            )
-          else
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              sliver: SliverGrid(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 200,
-                  childAspectRatio: 0.65,
-                  crossAxisSpacing: 14,
-                  mainAxisSpacing: 14,
-                ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final book = books[index];
-                    return BookCard(
-                      book: book,
-                      onTap: () => _openReader(book),
-                      onDelete: () => _confirmDelete(book),
-                      onToggleFavorite: () => library.toggleFavorite(book.id),
-                      onToggleStatus: () {
-                        library.updateBookProgress(
-                          bookId: book.id,
-                          currentPage: book.isCompleted ? 0 : book.totalPages,
-                          totalPages: book.totalPages,
-                          isCompleted: !book.isCompleted,
-                        );
-                      },
-                    );
-                  },
-                  childCount: books.length,
-                ),
+            ),
+
+          // Volumes list header
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.format_list_numbered_rounded, size: 18, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Tous les tomes (${series.totalBooks})',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ],
               ),
             ),
+          ),
+
+          // Grid of Volumes in the Series
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                childAspectRatio: 0.65,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final book = series.books[index];
+                  return BookCard(
+                    book: book,
+                    onTap: () => _openReader(book),
+                    onDelete: () => _confirmDelete(book),
+                    onToggleFavorite: () => library.toggleFavorite(book.id),
+                    onToggleStatus: () {
+                      library.updateBookProgress(
+                        bookId: book.id,
+                        currentPage: book.isCompleted ? 0 : book.totalPages,
+                        totalPages: book.totalPages,
+                        isCompleted: !book.isCompleted,
+                      );
+                    },
+                  );
+                },
+                childCount: series.books.length,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChipsRow(LibraryProvider library) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Row(
+        children: [
+          _buildFilterChip('Tous (${library.books.length})', LibraryFilter.all, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('En cours', LibraryFilter.inProgress, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('Non lus', LibraryFilter.unread, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('PDF', LibraryFilter.pdf, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
+          const SizedBox(width: 8),
+          _buildFilterChip('Terminés', LibraryFilter.completed, library),
         ],
       ),
     );
@@ -415,7 +711,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: SizedBox(
                       width: 56,
                       height: 80,
-                      child: book.coverPath != null && File(book.coverPath!).existsSync()
+                      child: File(book.coverPath ?? '').existsSync()
                           ? Image.file(File(book.coverPath!), fit: BoxFit.cover)
                           : Container(
                               color: theme.colorScheme.primary.withAlpha(30),
@@ -504,5 +800,70 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
     );
   }
-}
 
+  Widget _buildEmptyLibraryState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_stories_outlined,
+              size: 64,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Votre bibliothèque est vide',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Explorez vos serveurs distants pour lire en streaming ou télécharger vos séries !',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+            ),
+            if (widget.onNavigateTab != null) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () => widget.onNavigateTab?.call(1),
+                icon: const Icon(Icons.dns_rounded, size: 18),
+                label: const Text('Explorer mes serveurs'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptySearchState(ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.search_off_rounded,
+              size: 64,
+              color: Colors.grey.shade600,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Aucun résultat pour cette recherche',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Essayez un autre mot-clé ou réinitialisez les filtres.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
