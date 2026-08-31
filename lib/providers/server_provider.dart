@@ -19,6 +19,7 @@ class ServerProvider extends ChangeNotifier {
   List<RemoteFile> _remoteFiles = [];
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isBrowsing = false;
 
   List<ServerProfile> get servers => _servers;
   ServerProfile? get activeServer => _activeServer;
@@ -26,6 +27,7 @@ class ServerProvider extends ChangeNotifier {
   List<RemoteFile> get remoteFiles => _remoteFiles;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get isBrowsing => _isBrowsing;
 
   String get rootPath {
     if (_activeServer != null && _activeServer!.path.isNotEmpty) {
@@ -35,6 +37,7 @@ class ServerProvider extends ChangeNotifier {
   }
 
   bool get canNavigateUp {
+    if (!_isBrowsing) return false;
     if (_currentPath.isEmpty || _currentPath == rootPath) return false;
     final cleanCurrent = _currentPath.replaceAll(RegExp(r'/+$'), '');
     final cleanRoot = rootPath.replaceAll(RegExp(r'/+$'), '');
@@ -66,10 +69,22 @@ class ServerProvider extends ChangeNotifier {
       _currentPath = rootPath;
     }
     notifyListeners();
+  }
 
-    if (_activeServer != null) {
-      await fetchRemoteFiles();
-    }
+  Future<void> openServer(ServerProfile server) async {
+    _activeServer = server;
+    _currentPath = rootPath;
+    _remoteFiles = [];
+    _errorMessage = null;
+    _isBrowsing = true;
+    await _db.setActiveServerId(server.id);
+    notifyListeners();
+    await fetchRemoteFiles();
+  }
+
+  void closeServerBrowser() {
+    _isBrowsing = false;
+    notifyListeners();
   }
 
   Future<void> setActiveServer(ServerProfile server) async {

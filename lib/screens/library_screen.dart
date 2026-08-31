@@ -2,13 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
-import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
-import '../providers/server_provider.dart';
 import '../widgets/book_card.dart';
-import '../widgets/folder_card.dart';
-import '../widgets/instant_read_modal.dart';
-import '../widgets/remote_book_card.dart';
 import 'cbz_reader_screen.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
@@ -24,7 +19,6 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  int _activeViewIndex = 0; // Default to 1 (Collection / Folder Explorer with Local & Server badges)
 
   bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
@@ -84,7 +78,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
-    final serverProvider = context.watch<ServerProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -97,7 +90,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                _activeViewIndex == 0 ? Icons.menu_book_rounded : Icons.folder_copy_rounded,
+                Icons.auto_stories_rounded,
                 color: theme.colorScheme.primary,
                 size: 20,
               ),
@@ -112,36 +105,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ],
         ),
         actions: [
-          if (_activeViewIndex == 0)
-            PopupMenuButton<LibrarySort>(
-              icon: const Icon(Icons.sort_rounded),
-              tooltip: 'Trier par',
-              onSelected: (sort) => library.setSort(sort),
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: LibrarySort.lastRead,
-                  child: Text('Dernière lecture'),
-                ),
-                const PopupMenuItem(
-                  value: LibrarySort.title,
-                  child: Text('Titre (A-Z)'),
-                ),
-                const PopupMenuItem(
-                  value: LibrarySort.dateAdded,
-                  child: Text('Date d\'ajout'),
-                ),
-                const PopupMenuItem(
-                  value: LibrarySort.progress,
-                  child: Text('Progression'),
-                ),
-              ],
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Actualiser le serveur',
-              onPressed: () => serverProvider.fetchRemoteFiles(),
-            ),
+          PopupMenuButton<LibrarySort>(
+            icon: const Icon(Icons.sort_rounded),
+            tooltip: 'Trier par',
+            onSelected: (sort) => library.setSort(sort),
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: LibrarySort.lastRead,
+                child: Text('Dernière lecture'),
+              ),
+              const PopupMenuItem(
+                value: LibrarySort.title,
+                child: Text('Titre (A-Z)'),
+              ),
+              const PopupMenuItem(
+                value: LibrarySort.dateAdded,
+                child: Text('Date d\'ajout'),
+              ),
+              const PopupMenuItem(
+                value: LibrarySort.progress,
+                child: Text('Progression'),
+              ),
+            ],
+          ),
         ],
       ),
       body: GestureDetector(
@@ -152,34 +138,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
             constraints: const BoxConstraints(maxWidth: 1350),
             child: Column(
               children: [
-                // View Switcher (Ma Collection / Dossiers vs Téléchargés)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-                  child: SegmentedButton<int>(
-                    segments: [
-                      const ButtonSegment(
-                        value: 1,
-                        label: Text('Serveur distant'),
-                        icon: Icon(Icons.folder_copy_rounded, size: 16),
-                      ),
-                      ButtonSegment(
-                        value: 0,
-                        label: Text('Mes BD (${library.books.length})'),
-                        icon: const Icon(Icons.download_done_rounded, size: 16),
-                      ),
-                    ],
-                    selected: {_activeViewIndex},
-                    onSelectionChanged: (set) {
-                      setState(() {
-                        _activeViewIndex = set.first;
-                      });
-                    },
-                  ),
-                ),
-
                 // Search Bar
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Container(
                     height: 46,
                     decoration: BoxDecoration(
@@ -193,9 +154,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       controller: _searchController,
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: _activeViewIndex == 0
-                            ? 'Rechercher parmi les BD téléchargées...'
-                            : 'Rechercher un tome, une série ou un dossier...',
+                        hintText: 'Rechercher parmi mes BD téléchargées...',
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
@@ -229,9 +188,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ),
 
                 Expanded(
-                  child: _activeViewIndex == 0
-                      ? _buildLocalLibraryView(context, library, theme)
-                      : _buildServerExplorerView(context, serverProvider, theme),
+                  child: _buildLocalLibraryView(context, library, theme),
                 ),
               ],
             ),
@@ -354,27 +311,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       Text(
                         _isSearching
                             ? 'Aucun résultat pour cette recherche'
-                            : 'Aucun livre téléchargé pour le moment',
+                            : 'Votre bibliothèque est vide',
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         _isSearching
                             ? 'Essayez un autre mot-clé ou réinitialisez les filtres.'
-                            : 'Basculez sur « Tout le Serveur » ci-dessus pour lire ou télécharger vos BDs !',
+                            : 'Explorez vos serveurs distants pour lire en streaming ou télécharger vos BDs !',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
                       ),
-                      const SizedBox(height: 20),
-                      FilledButton.icon(
-                        onPressed: () {
-                          setState(() {
-                            _activeViewIndex = 1;
-                          });
-                        },
-                        icon: const Icon(Icons.cloud_sync_rounded, size: 18),
-                        label: const Text('Voir mes dossiers sur le serveur'),
-                      ),
+                      if (!_isSearching && widget.onNavigateTab != null) ...[
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: () => widget.onNavigateTab?.call(1),
+                          icon: const Icon(Icons.dns_rounded, size: 18),
+                          label: const Text('Explorer mes serveurs'),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -417,513 +372,137 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildServerExplorerView(BuildContext context, ServerProvider serverProvider, ThemeData theme) {
-    final activeServer = serverProvider.activeServer;
-    final remoteFiles = serverProvider.remoteFiles;
-    final breadcrumbs = serverProvider.breadcrumbs;
-    final currentPath = serverProvider.currentPath;
-    final libraryProvider = context.watch<LibraryProvider>();
-    final downloadProvider = context.watch<DownloadProvider>();
-
-    if (activeServer == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.cloud_off_rounded, size: 56, color: Colors.grey),
-              const SizedBox(height: 16),
-              const Text('Aucun serveur sélectionné', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => widget.onNavigateTab?.call(1),
-                icon: const Icon(Icons.settings),
-                label: const Text('Configurer le serveur'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final query = _searchController.text.trim().toLowerCase();
-    final folders = remoteFiles.where((f) {
-      if (!f.isDirectory) return false;
-      if (query.isEmpty) return true;
-      return f.name.toLowerCase().contains(query);
-    }).toList();
-
-    final books = remoteFiles.where((f) {
-      if (f.isDirectory || !f.isSupportedBook) return false;
-      if (query.isEmpty) return true;
-      return f.name.toLowerCase().contains(query);
-    }).toList();
-
-    return Column(
-      children: [
-        // Navigation Breadcrumb bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest.withAlpha(60),
-            border: Border(
-              bottom: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
-            ),
-          ),
-          child: Row(
-            children: [
-              if (currentPath.isNotEmpty && currentPath != '/')
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  onPressed: () => serverProvider.navigateUp(),
-                  tooltip: 'Dossier parent',
-                ),
-              InkWell(
-                onTap: () => serverProvider.navigateToRoot(),
-                borderRadius: BorderRadius.circular(4),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(Icons.home_outlined, size: 16, color: theme.colorScheme.primary),
-                      const SizedBox(width: 4),
-                      const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (int i = 0; i < breadcrumbs.length; i++) ...[
-                        const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-                        InkWell(
-                          onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                            child: Text(
-                              breadcrumbs[i],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: i == breadcrumbs.length - 1
-                                    ? theme.colorScheme.onSurface
-                                    : theme.colorScheme.primary,
-                                fontWeight: i == breadcrumbs.length - 1
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-              Builder(
-                builder: (context) {
-                  final undownloadedBooks = books
-                      .where((f) => libraryProvider.getBookByServerPath(activeServer.id, f.path) == null)
-                      .toList();
-
-                  if (books.isEmpty) return const SizedBox.shrink();
-
-                  if (undownloadedBooks.isEmpty) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(30),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.check_circle_outline, size: 14, color: Colors.green),
-                          SizedBox(width: 4),
-                          Text(
-                            'Tous téléchargés ✅',
-                            style: TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return TextButton.icon(
-                    onPressed: () async {
-                      if (undownloadedBooks.length > 3) {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Télécharger tout ?'),
-                            content: Text('${undownloadedBooks.length} fichiers vont être téléchargés. Continuer ?'),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Télécharger')),
-                            ],
-                          ),
-                        );
-                        if (confirm != true) return;
-                      }
-                      for (final f in undownloadedBooks) {
-                        downloadProvider.enqueueDownload(server: activeServer, remoteFile: f);
-                      }
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${undownloadedBooks.length} nouveau(x) livre(s) mis en file d\'attente')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.download_for_offline_outlined, size: 16),
-                    label: Text('Tout (${undownloadedBooks.length})', style: const TextStyle(fontSize: 11)),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // Remote Directory Contents in Grid Layout
-        Expanded(
-          child: serverProvider.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : serverProvider.errorMessage != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-                            const SizedBox(height: 12),
-                            Text(serverProvider.errorMessage!, textAlign: TextAlign.center),
-                            const SizedBox(height: 16),
-                            FilledButton.icon(
-                              onPressed: () => serverProvider.fetchRemoteFiles(),
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('Réessayer'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : (folders.isEmpty && books.isEmpty)
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  query.isNotEmpty ? Icons.search_off_rounded : Icons.folder_open_outlined,
-                                  size: 48,
-                                  color: Colors.grey.shade600,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  query.isNotEmpty
-                                      ? 'Aucun résultat pour "$query"'
-                                      : 'Dossier vide',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  textAlign: TextAlign.center,
-                                ),
-                                if (query.isNotEmpty) ...[
-                                  const SizedBox(height: 12),
-                                  OutlinedButton.icon(
-                                    onPressed: () {
-                                      setState(() {
-                                        _searchController.clear();
-                                        context.read<LibraryProvider>().setSearchQuery('');
-                                      });
-                                    },
-                                    icon: const Icon(Icons.clear_rounded, size: 16),
-                                    label: const Text('Effacer la recherche'),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: () => serverProvider.fetchRemoteFiles(),
-                          child: CustomScrollView(
-                            slivers: [
-                              // Folders Section
-                              if (folders.isNotEmpty) ...[
-                                SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.folder_copy_outlined, size: 18, color: theme.colorScheme.primary),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Dossiers & Séries (${folders.length})',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  sliver: SliverGrid(
-                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 380,
-                                      mainAxisExtent: 68,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                    ),
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final folder = folders[index];
-                                        final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
-                                        return FolderCard(
-                                          name: folder.name,
-                                          isFavorite: isFav,
-                                          onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
-                                          onTap: () => serverProvider.navigateTo(folder.path),
-                                        );
-                                      },
-                                      childCount: folders.length,
-                                    ),
-                                  ),
-                                ),
-                              ],
-
-                              // Books / Files Section
-                              if (books.isNotEmpty) ...[
-                                SliverToBoxAdapter(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                    child: Row(
-                                      children: [
-                                        Icon(Icons.menu_book_rounded, size: 18, color: theme.colorScheme.primary),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'Livres & Tomes (${books.length})',
-                                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                SliverPadding(
-                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                                  sliver: SliverGrid(
-                                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                      maxCrossAxisExtent: 200,
-                                      childAspectRatio: 0.65,
-                                      crossAxisSpacing: 14,
-                                      mainAxisSpacing: 14,
-                                    ),
-                                    delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                        final file = books[index];
-                                        final isDownloaded =
-                                            libraryProvider.getBookByServerPath(activeServer.id, file.path) != null;
-                                        final task = downloadProvider.getTaskForRemotePath(file.path);
-
-                                        return RemoteBookCard(
-                                          server: activeServer,
-                                          file: file,
-                                          isDownloaded: isDownloaded,
-                                          downloadTask: task,
-                                          onTap: () {
-                                            // 1-Tap Instant Stream & Read
-                                            InstantReadModal.show(
-                                              context,
-                                              server: activeServer,
-                                              file: file,
-                                            );
-                                          },
-                                          onDownload: () {
-                                            downloadProvider.enqueueDownload(
-                                              server: activeServer,
-                                              remoteFile: file,
-                                            );
-                                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                behavior: SnackBarBehavior.floating,
-                                                duration: const Duration(seconds: 4),
-                                                content: Row(
-                                                  children: [
-                                                    const Icon(Icons.downloading_rounded, color: Colors.amber, size: 20),
-                                                    const SizedBox(width: 10),
-                                                    Expanded(
-                                                      child: Text(
-                                                        'Téléchargement démarré : ${file.name}',
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow.ellipsis,
-                                                        style: const TextStyle(fontWeight: FontWeight.w600),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                action: widget.onNavigateTab != null
-                                                    ? SnackBarAction(
-                                                        label: 'Voir',
-                                                        textColor: theme.colorScheme.primary,
-                                                        onPressed: () => widget.onNavigateTab!(2),
-                                                      )
-                                                    : null,
-                                              ),
-                                            );
-                                          },
-                                        );
-                                      },
-                                      childCount: books.length,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-        ),
-      ],
+  Widget _buildFilterChip(String label, LibraryFilter filter, LibraryProvider library) {
+    final isSelected = library.filter == filter;
+    return FilterChip(
+      label: Text(label, style: TextStyle(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      selected: isSelected,
+      onSelected: (_) => library.setFilter(filter),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
 
   Widget _buildResumeReadingHero(BookItem book, ThemeData theme) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primaryContainer.withAlpha(160),
-            theme.colorScheme.surfaceContainerHighest.withAlpha(120),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primary.withAlpha(60),
-          width: 1.2,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => _openReader(book),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Cover
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 65,
-                  height: 95,
-                  child: book.coverPath != null && File(book.coverPath!).existsSync()
-                      ? Image.file(File(book.coverPath!), fit: BoxFit.cover)
-                      : Container(
-                          color: theme.colorScheme.primary.withAlpha(40),
-                          child: Icon(Icons.menu_book, color: theme.colorScheme.primary, size: 30),
-                        ),
-                ),
-              ),
-              const SizedBox(width: 14),
+    final progressPercent = (book.progress * 100).toInt();
 
-              // Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            book.formatString,
-                            style: TextStyle(
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.onPrimary,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              theme.colorScheme.primaryContainer.withAlpha(120),
+              theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(60)),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _openReader(book),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  // Cover Thumbnail
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 56,
+                      height: 80,
+                      child: book.coverPath != null && File(book.coverPath!).existsSync()
+                          ? Image.file(File(book.coverPath!), fit: BoxFit.cover)
+                          : Container(
+                              color: theme.colorScheme.primary.withAlpha(30),
+                              child: Icon(Icons.auto_stories_rounded, color: theme.colorScheme.primary),
                             ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Page ${book.currentPage + 1} / ${book.totalPages > 0 ? book.totalPages : "?"}',
-                          style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                        ),
-                      ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      book.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: book.progress,
-                        minHeight: 5,
-                        backgroundColor: theme.colorScheme.outlineVariant.withAlpha(50),
-                        valueColor: AlwaysStoppedAnimation(theme.colorScheme.primary),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+                  const SizedBox(width: 14),
+
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          '${(book.progress * 100).toInt()}% lu',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
-                        ),
                         Row(
                           children: [
-                            Text(
-                              'Reprendre',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withAlpha(40),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'CONTINUER LA LECTURE',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                             ),
-                            Icon(Icons.play_arrow_rounded, size: 18, color: theme.colorScheme.primary),
+                            const Spacer(),
+                            Text(
+                              '$progressPercent%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
                           ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          book.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          book.totalPages > 0
+                              ? 'Page ${book.currentPage + 1} sur ${book.totalPages}'
+                              : book.formatString,
+                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: book.progress.clamp(0.0, 1.0),
+                            minHeight: 4,
+                            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                          ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Play / Resume Button
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
-
-  Widget _buildFilterChip(String label, LibraryFilter filterValue, LibraryProvider library) {
-    final isSelected = library.filter == filterValue;
-    final theme = Theme.of(context);
-
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => library.setFilter(filterValue),
-      selectedColor: theme.colorScheme.primary.withAlpha(40),
-      checkmarkColor: theme.colorScheme.primary,
-      labelStyle: TextStyle(
-        fontSize: 12,
-        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-    );
-  }
 }
+
