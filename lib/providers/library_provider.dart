@@ -211,13 +211,29 @@ class LibraryProvider extends ChangeNotifier {
     required int totalPages,
     bool? isCompleted,
   }) async {
+    final index = _books.indexWhere((b) => b.id == bookId);
+    if (index >= 0) {
+      final current = _books[index];
+      final tot = totalPages > 0 ? totalPages : current.totalPages;
+      final prog = tot > 0 ? (currentPage / tot).clamp(0.0, 1.0) : 0.0;
+      final completed = isCompleted ?? (prog >= 0.95);
+
+      _books[index] = current.copyWith(
+        currentPage: currentPage,
+        totalPages: tot,
+        progress: prog,
+        isCompleted: completed,
+        lastReadDate: DateTime.now(),
+      );
+      notifyListeners();
+    }
+
     await _db.updateBookProgress(
       bookId: bookId,
       currentPage: currentPage,
       totalPages: totalPages,
       isCompleted: isCompleted,
     );
-    await loadLibrary();
   }
 
   Future<void> updateBookFormat(String bookId, BookFormat format) async {
