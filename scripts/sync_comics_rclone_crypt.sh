@@ -52,19 +52,19 @@ if [ ! -d "$SOURCE_PATH" ]; then
     exit 1
 fi
 
-# 2.1 Sécurité anti-erreur sur les dossiers racines ou disques complets
-CLEAN_SOURCE=$(realpath -m "$SOURCE_PATH" 2>/dev/null || echo "$SOURCE_PATH")
-FORBIDDEN_PATHS=("/" "/mnt" "/mnt/c" "/mnt/wsl" "/mnt/wslg" "/home" "/root" "/etc" "/usr" "/var" "/tmp" "/bin" "/sbin" "/lib" "/opt" "/sys" "/proc" "/dev")
+# 2.2 Auto-montage du partage réseau si vide
+if [ "$SOURCE_PATH" == "/mnt/books" ] && [ -z "$(ls -A /mnt/books 2>/dev/null)" ]; then
+    echo -e "${YELLOW}⚠️ Le dossier /mnt/books est vide. Tentative de montage réseau automatique...${NC}"
+    sudo mount -t cifs //192.168.1.12/public/misc/BOOKS /mnt/books -o credentials=/etc/cifs-credentials-pi,vers=3.0,uid=1000,gid=1000,_netdev 2>/dev/null || \
+    sudo mount -t cifs //192.168.1.12/public/misc/BOOKS /mnt/books -o user=pi,password="159753Etw43:).",vers=3.0,uid=1000,gid=1000 2>/dev/null || true
+fi
 
-for forbidden in "${FORBIDDEN_PATHS[@]}"; do
-    if [ "$CLEAN_SOURCE" == "$forbidden" ]; then
-        echo ""
-        echo -e "${RED}🛑 SÉCURITÉ ACTIVÉE : Le chemin '$SOURCE_PATH' est interdit !${NC}"
-        echo -e "${RED}❌ Vous tentez de synchroniser une racine système ou le disque Windows complet.${NC}"
-        echo -e "${YELLOW}💡 Veuillez spécifier votre dossier de BD précis (ex: /mnt/bd).${NC}"
-        exit 1
-    fi
-done
+# 2.3 Vérification que le dossier source n'est pas vide
+if [ -z "$(ls -A "$SOURCE_PATH" 2>/dev/null)" ]; then
+    echo -e "${RED}❌ Erreur : Le dossier source '$SOURCE_PATH' est totalement VIDE ou non monté.${NC}"
+    echo "💡 Vérifiez que votre partage réseau Samba/NAS (//192.168.1.12/public/misc/BOOKS) est accessible."
+    exit 1
+fi
 
 # 3. Choix du remote chiffré (Défaut: terabox_crypt)
 REMOTE_NAME="terabox_crypt"
