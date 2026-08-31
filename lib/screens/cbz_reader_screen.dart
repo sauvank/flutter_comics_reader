@@ -19,7 +19,7 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderStateMixin {
+class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
   final ScrollController _verticalScrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
@@ -131,9 +131,30 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     _isSynchronizingTransformation = false;
   }
 
+  void _persistCurrentProgress() {
+    if (_pages.isEmpty || !mounted) return;
+    final targetPage = _currentPage < _pages.length ? _currentPage : _pages.length - 1;
+    context.read<LibraryProvider>().updateBookProgress(
+          bookId: widget.book.id,
+          currentPage: targetPage,
+          totalPages: _pages.length,
+        );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached ||
+        state == AppLifecycleState.hidden) {
+      _persistCurrentProgress();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _currentPage = widget.book.currentPage;
     _pageController = PageController(initialPage: _currentPage);
     _verticalScrollController.addListener(_onVerticalScroll);
@@ -144,6 +165,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    _persistCurrentProgress();
+    WidgetsBinding.instance.removeObserver(this);
     _zoomAnimationController?.dispose();
     _focusNode.dispose();
     _pageController.dispose();
