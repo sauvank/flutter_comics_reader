@@ -24,7 +24,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   final ScrollController _verticalScrollController = ScrollController();
   final FocusNode _focusNode = FocusNode();
 
-  List<ComicPage> _pages = [];
+  List<CbzPageInfo> _pages = [];
   int _currentPage = 0;
   bool _isLoading = true;
   String? _errorMessage;
@@ -217,7 +217,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         }
       } catch (_) {}
 
-      final pages = await CbzService.loadAllPages(widget.book.localPath);
+      final pages = await CbzService.getPageList(widget.book.localPath);
 
       if (pages.isEmpty) {
         setState(() {
@@ -238,6 +238,15 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       });
 
       _pageController = PageController(initialPage: _currentPage);
+
+      // Trigger instant background prefetch for current and adjacent pages
+      CbzService.prefetchPages(
+        cbzFilePath: widget.book.localPath,
+        bookId: widget.book.id,
+        currentIndex: _currentPage,
+        totalPages: pages.length,
+        count: 4,
+      );
 
       // Save page count if not already recorded
       if (widget.book.totalPages != pages.length && mounted) {
@@ -269,6 +278,15 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     if (wasZoomed && index < _pages.length) {
       _resetZoomPositionForPage(index);
     }
+
+    // Prefetch around new page
+    CbzService.prefetchPages(
+      cbzFilePath: widget.book.localPath,
+      bookId: widget.book.id,
+      currentIndex: index,
+      totalPages: _pages.length,
+      count: 4,
+    );
 
     // Persist progress
     if (index < _pages.length) {
@@ -461,47 +479,16 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                       final isCurrent = idx == _currentPage;
                       final isBookmarked = widget.book.bookmarks.contains(idx);
 
-                      return GestureDetector(
+                      return _CbzThumbnailItem(
+                        cbzFilePath: widget.book.localPath,
+                        bookId: widget.book.id,
+                        pageIndex: idx,
+                        isCurrent: isCurrent,
+                        isBookmarked: isBookmarked,
                         onTap: () {
                           Navigator.of(ctx).pop();
                           _jumpToPage(idx);
                         },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isCurrent ? const Color(0xFF8B5CF6) : Colors.white12,
-                              width: isCurrent ? 2.5 : 1,
-                            ),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Image.memory(_pages[idx].bytes, fit: BoxFit.cover, cacheWidth: 300),
-                              Positioned(
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  color: Colors.black87,
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
-                                  child: Text(
-                                    '${idx + 1}',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(color: Colors.white, fontSize: 11),
-                                  ),
-                                ),
-                              ),
-                              if (isBookmarked)
-                                const Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: Icon(Icons.bookmark, color: Colors.amber, size: 18),
-                                ),
-                            ],
-                          ),
-                        ),
                       );
                     },
                   ),
@@ -787,7 +774,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           if (index == _pages.length) {
             return _buildEndOfBookWidget(context);
           }
-          final page = _pages[index];
           final transformCtrl = _getTransformController(index);
           TapDownDetails? doubleTapDetails;
 
@@ -822,14 +808,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               },
               onInteractionEnd: (_) => _synchronizeTransformation(index),
               child: Center(
-                child: Image.memory(
-                  page.bytes,
+                child: _CbzPageWidget(
+                  cbzFilePath: widget.book.localPath,
+                  bookId: widget.book.id,
+                  pageIndex: index,
                   fit: effectiveFit,
                   width: (!isWidescreen && settings.fitMode == FitMode.fitWidth) ? screenSize.width : null,
                   height: (effectiveFit == BoxFit.contain || effectiveFit == BoxFit.fitHeight) ? screenSize.height : null,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.high,
-                  isAntiAlias: true,
                 ),
               ),
             ),
@@ -863,7 +848,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             return _buildEndOfBookWidget(context);
           }
 
-          final page = _pages[index];
           final transformCtrl = _getTransformController(index);
           TapDownDetails? doubleTapDetails;
 
@@ -900,13 +884,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                       }
                     },
                     onInteractionEnd: (_) => _synchronizeTransformation(index),
-                    child: Image.memory(
-                      page.bytes,
+                    child: _CbzPageWidget(
+                      cbzFilePath: widget.book.localPath,
+                      bookId: widget.book.id,
+                      pageIndex: index,
                       fit: BoxFit.fitWidth,
                       width: verticalContentWidth,
-                      gaplessPlayback: true,
-                      filterQuality: FilterQuality.high,
-                      isAntiAlias: true,
                     ),
                   ),
                 ),
@@ -996,3 +979,242 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     }
   }
 }
+
+class _CbzPageWidget extends StatefulWidget {
+  final String cbzFilePath;
+  final String bookId;
+  final int pageIndex;
+  final BoxFit fit;
+  final double? width;
+  final double? height;
+
+  const _CbzPageWidget({
+    required this.cbzFilePath,
+    required this.bookId,
+    required this.pageIndex,
+    required this.fit,
+    this.width,
+    this.height,
+  });
+
+  @override
+  State<_CbzPageWidget> createState() => _CbzPageWidgetState();
+}
+
+class _CbzPageWidgetState extends State<_CbzPageWidget> {
+  String? _filePath;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPage();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CbzPageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageIndex != widget.pageIndex ||
+        oldWidget.cbzFilePath != widget.cbzFilePath ||
+        oldWidget.bookId != widget.bookId) {
+      _loadPage();
+    }
+  }
+
+  void _loadPage() {
+    final cached = CbzService.getCachedPagePathSync(widget.bookId, widget.pageIndex);
+    if (cached != null) {
+      _filePath = cached;
+      _isLoading = false;
+      return;
+    }
+
+    _isLoading = true;
+    CbzService.loadAndCachePage(
+      cbzFilePath: widget.cbzFilePath,
+      bookId: widget.bookId,
+      pageIndex: widget.pageIndex,
+    ).then((path) {
+      if (mounted) {
+        setState(() {
+          _filePath = path;
+          _isLoading = false;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_filePath != null) {
+      return Image.file(
+        File(_filePath!),
+        fit: widget.fit,
+        width: widget.width,
+        height: widget.height,
+        gaplessPlayback: true,
+        filterQuality: FilterQuality.medium,
+        isAntiAlias: true,
+        errorBuilder: (context, error, stackTrace) {
+          return SizedBox(
+            width: widget.width,
+            height: widget.height ?? 300,
+            child: const Center(
+              child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
+            ),
+          );
+        },
+      );
+    }
+
+    if (_isLoading) {
+      return SizedBox(
+        width: widget.width,
+        height: widget.height ?? 300,
+        child: const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Color(0xFF8B5CF6),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: widget.width,
+      height: widget.height ?? 300,
+      child: const Center(
+        child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
+      ),
+    );
+  }
+}
+
+class _CbzThumbnailItem extends StatefulWidget {
+  final String cbzFilePath;
+  final String bookId;
+  final int pageIndex;
+  final bool isCurrent;
+  final bool isBookmarked;
+  final VoidCallback onTap;
+
+  const _CbzThumbnailItem({
+    required this.cbzFilePath,
+    required this.bookId,
+    required this.pageIndex,
+    required this.isCurrent,
+    required this.isBookmarked,
+    required this.onTap,
+  });
+
+  @override
+  State<_CbzThumbnailItem> createState() => _CbzThumbnailItemState();
+}
+
+class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
+  String? _filePath;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThumbnail();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CbzThumbnailItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageIndex != widget.pageIndex ||
+        oldWidget.cbzFilePath != widget.cbzFilePath ||
+        oldWidget.bookId != widget.bookId) {
+      _loadThumbnail();
+    }
+  }
+
+  void _loadThumbnail() {
+    final cached = CbzService.getCachedPagePathSync(widget.bookId, widget.pageIndex);
+    if (cached != null) {
+      _filePath = cached;
+      return;
+    }
+
+    CbzService.loadAndCachePage(
+      cbzFilePath: widget.cbzFilePath,
+      bookId: widget.bookId,
+      pageIndex: widget.pageIndex,
+    ).then((path) {
+      if (mounted) {
+        setState(() {
+          _filePath = path;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: widget.isCurrent ? const Color(0xFF8B5CF6) : Colors.white12,
+            width: widget.isCurrent ? 2.5 : 1,
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_filePath != null)
+              Image.file(
+                File(_filePath!),
+                fit: BoxFit.cover,
+                cacheWidth: 250,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.white10,
+                  child: const Center(child: Icon(Icons.broken_image, color: Colors.white30, size: 24)),
+                ),
+              )
+            else
+              Container(
+                color: Colors.white10,
+                child: const Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+                  ),
+                ),
+              ),
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                color: Colors.black87,
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Text(
+                  '${widget.pageIndex + 1}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 11),
+                ),
+              ),
+            ),
+            if (widget.isBookmarked)
+              const Positioned(
+                top: 4,
+                right: 4,
+                child: Icon(Icons.bookmark, color: Colors.amber, size: 18),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

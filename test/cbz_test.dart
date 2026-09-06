@@ -57,5 +57,35 @@ void main() {
 
       await tempDir.delete(recursive: true);
     });
+
+    test('getPageList parses pages structure quickly without holding full bytes', () async {
+      final archive = Archive();
+      final img1Data = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02, 0x03]);
+      final img2Data = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x04, 0x05, 0x06]);
+      final img3Data = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x07, 0x08, 0x09]);
+
+      archive.addFile(ArchiveFile('page_0001.jpg', img1Data.length, img1Data));
+      archive.addFile(ArchiveFile('page_0002.jpg', img2Data.length, img2Data));
+      archive.addFile(ArchiveFile('page_0003.jpg', img3Data.length, img3Data));
+
+      final zipBytes = ZipEncoder().encode(archive, level: DeflateLevel.none);
+
+      final tempDir = await Directory.systemTemp.createTemp('cbz_test_pages_');
+      final cbzFile = File('${tempDir.path}/comic.cbz');
+      await cbzFile.writeAsBytes(zipBytes);
+
+      final pages = await CbzService.getPageList(cbzFile.path);
+
+      expect(pages.length, 3);
+      expect(pages[0].pageIndex, 0);
+      expect(pages[0].pageNumber, 1);
+      expect(pages[0].name, 'page_0001.jpg');
+      expect(pages[1].pageIndex, 1);
+      expect(pages[1].name, 'page_0002.jpg');
+      expect(pages[2].pageIndex, 2);
+      expect(pages[2].name, 'page_0003.jpg');
+
+      await tempDir.delete(recursive: true);
+    });
   });
 }

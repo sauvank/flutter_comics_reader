@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import '../utils/format_utils.dart';
 
 class CbzService {
@@ -100,6 +101,153 @@ class CbzService {
       debugPrint('Error getting page count: $e');
       return 0;
     }
+  }
+
+  static Directory? _cacheBaseDir;
+
+  /// Returns the cache directory for a given book's extracted pages
+  static Future<Directory> getCacheDirForBook(String bookId) async {
+    if (_cacheBaseDir == null) {
+      final tempDir = await getTemporaryDirectory();
+      _cacheBaseDir = Directory(p.join(tempDir.path, 'cbz_page_cache'));
+    }
+    final bookCacheDir = Directory(p.join(_cacheBaseDir!.path, bookId));
+    if (!await bookCacheDir.exists()) {
+      await bookCacheDir.create(recursive: true);
+    }
+    return bookCacheDir;
+  }
+
+  /// Synchronously checks if a page file is already cached on disk
+  static String? getCachedPagePathSync(String bookId, int pageIndex) {
+    if (_cacheBaseDir == null) return null;
+    final formattedIndex = pageIndex.toString().padLeft(4, '0');
+    final path = p.join(_cacheBaseDir!.path, bookId, 'page_$formattedIndex.jpg');
+    if (File(path).existsSync()) return path;
+    return null;
+  }
+
+  /// Fast index scanner: parses directory structure ONLY without extracting page images (5-15ms)
+  static Future<List<CbzPageInfo>> getPageList(String cbzFilePath) async {
+    try {
+      final file = File(cbzFilePath);
+      if (!await file.exists()) return [];
+
+      final bytes = await file.readAsBytes();
+      try {
+        return await compute(_getPageListIsolate, bytes);
+      } catch (eCompute) {
+        debugPrint('Compute isolate failed in getPageList, direct fallback: $eCompute');
+        return _getPageListIsolate(bytes);
+      }
+    } catch (e) {
+      debugPrint('Error getting page list from $cbzFilePath: $e');
+      return [];
+    }
+  }
+
+  /// Extracts and caches a single page on-demand to disk (2-5ms)
+  static Future<String?> loadAndCachePage({
+    required String cbzFilePath,
+    required String bookId,
+    required int pageIndex,
+  }) async {
+    final cacheDir = await getCacheDirForBook(bookId);
+    final formattedIndex = pageIndex.toString().padLeft(4, '0');
+    final targetFile = File(p.join(cacheDir.path, 'page_$formattedIndex.jpg'));
+
+    if (await targetFile.exists() && (await targetFile.length()) > 0) {
+      return targetFile.path;
+    }
+
+    try {
+      final file = File(cbzFilePath);
+      if (!await file.exists()) return null;
+
+      final bytes = await file.readAsBytes();
+      final task = _ExtractPageTask(bytes: bytes, targetIndex: pageIndex);
+      Uint8List? imgBytes;
+      try {
+        imgBytes = await compute(_extractSinglePageIsolate, task);
+      } catch (_) {
+        imgBytes = _extractSinglePageIsolate(task);
+      }
+
+      if (imgBytes != null && imgBytes.isNotEmpty) {
+        await targetFile.writeAsBytes(imgBytes, flush: true);
+        return targetFile.path;
+      }
+    } catch (e) {
+      debugPrint('Error extracting page $pageIndex from $cbzFilePath: $e');
+    }
+    return null;
+  }
+
+  /// Pre-extracts neighboring pages in the background isolate for instant page turning
+  static void prefetchPages({
+    required String cbzFilePath,
+    required String bookId,
+    required int currentIndex,
+    required int totalPages,
+    int count = 4,
+  }) {
+    Future.microtask(() async {
+      final indicesToFetch = <int>[];
+      final cacheDir = await getCacheDirForBook(bookId);
+
+      for (int offset = 1; offset <= count; offset++) {
+        final nextIdx = currentIndex + offset;
+        if (nextIdx < totalPages) {
+          final formatted = nextIdx.toString().padLeft(4, '0');
+          if (!File(p.join(cacheDir.path, 'page_$formatted.jpg')).existsSync()) {
+            indicesToFetch.add(nextIdx);
+          }
+        }
+        final prevIdx = currentIndex - offset;
+        if (prevIdx >= 0) {
+          final formatted = prevIdx.toString().padLeft(4, '0');
+          if (!File(p.join(cacheDir.path, 'page_$formatted.jpg')).existsSync()) {
+            indicesToFetch.add(prevIdx);
+          }
+        }
+      }
+
+      if (indicesToFetch.isEmpty) return;
+
+      try {
+        final file = File(cbzFilePath);
+        if (!await file.exists()) return;
+        final bytes = await file.readAsBytes();
+
+        final batchTask = _ExtractBatchTask(bytes: bytes, targetIndices: indicesToFetch);
+        List<_PageByteResult> batchResults;
+        try {
+          batchResults = await compute(_extractBatchPagesIsolate, batchTask);
+        } catch (_) {
+          batchResults = _extractBatchPagesIsolate(batchTask);
+        }
+
+        for (final res in batchResults) {
+          final formatted = res.index.toString().padLeft(4, '0');
+          final target = File(p.join(cacheDir.path, 'page_$formatted.jpg'));
+          if (!await target.exists()) {
+            await target.writeAsBytes(res.bytes, flush: false);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error in prefetchPages: $e');
+      }
+    });
+  }
+
+  /// Cleans temporary page cache for a specific book
+  static Future<void> cleanCacheForBook(String bookId) async {
+    try {
+      final cacheDir = await getCacheDirForBook(bookId);
+      if (await cacheDir.exists()) {
+        await cacheDir.delete(recursive: true);
+      }
+    } catch (_) {}
   }
 
   /// Loads all pages as a sorted list of page names and raw byte data in memory
@@ -244,6 +392,107 @@ class CbzService {
       return _ZipScanData(coverBytes: null, pageCount: 0);
     }
   }
+
+  static List<CbzPageInfo> _getPageListIsolate(Uint8List bytes) {
+    final archive = _decodeArchive(bytes);
+    if (archive == null) return [];
+
+    final imageEntries = archive.files
+        .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+        .toList();
+    imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+
+    return List.generate(
+      imageEntries.length,
+      (i) => CbzPageInfo(
+        pageIndex: i,
+        pageNumber: i + 1,
+        name: p.basename(imageEntries[i].name),
+      ),
+    );
+  }
+
+  static Uint8List? _extractSinglePageIsolate(_ExtractPageTask task) {
+    try {
+      final archive = _decodeArchive(task.bytes);
+      if (archive == null) return null;
+
+      final imageEntries = archive.files
+          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+          .toList();
+
+      if (imageEntries.isEmpty || task.targetIndex < 0 || task.targetIndex >= imageEntries.length) {
+        return null;
+      }
+
+      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+
+      final targetEntry = imageEntries[task.targetIndex];
+      return _getArchiveFileBytes(targetEntry);
+    } catch (e) {
+      debugPrint('Error in _extractSinglePageIsolate: $e');
+      return null;
+    }
+  }
+
+  static List<_PageByteResult> _extractBatchPagesIsolate(_ExtractBatchTask task) {
+    try {
+      final archive = _decodeArchive(task.bytes);
+      if (archive == null) return [];
+
+      final imageEntries = archive.files
+          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+          .toList();
+
+      if (imageEntries.isEmpty) return [];
+
+      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+
+      final List<_PageByteResult> results = [];
+      for (final idx in task.targetIndices) {
+        if (idx >= 0 && idx < imageEntries.length) {
+          final raw = _getArchiveFileBytes(imageEntries[idx]);
+          if (raw != null && raw.isNotEmpty) {
+            results.add(_PageByteResult(index: idx, bytes: raw));
+          }
+        }
+      }
+      return results;
+    } catch (e) {
+      debugPrint('Error in _extractBatchPagesIsolate: $e');
+      return [];
+    }
+  }
+}
+
+class CbzPageInfo {
+  final int pageIndex;
+  final int pageNumber;
+  final String name;
+
+  CbzPageInfo({
+    required this.pageIndex,
+    required this.pageNumber,
+    required this.name,
+  });
+}
+
+class _ExtractPageTask {
+  final Uint8List bytes;
+  final int targetIndex;
+  _ExtractPageTask({required this.bytes, required this.targetIndex});
+}
+
+class _ExtractBatchTask {
+  final Uint8List bytes;
+  final List<int> targetIndices;
+  _ExtractBatchTask({required this.bytes, required this.targetIndices});
+}
+
+class _PageByteResult {
+  final int index;
+  final Uint8List bytes;
+  _PageByteResult({required this.index, required this.bytes});
 }
 
 class CbzScanResult {
