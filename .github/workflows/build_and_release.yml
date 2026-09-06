@@ -56,6 +56,13 @@ jobs:
           keytool -genkey -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" || true
           cp -f ~/.android/debug.keystore ~/.config/.android/debug.keystore 2>/dev/null || true
 
+      - name: 🏷️ Extract App Version
+        id: app_version
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '[:space:]')
+          echo "version=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "Building version v${VERSION}"
+
       - name: 🔨 Build Universal APK
         run: |
           flutter build apk --release
@@ -66,15 +73,14 @@ jobs:
 
       - name: 📋 Prepare Android Artifacts
         run: |
+          VERSION="${{ steps.app_version.outputs.version }}"
           mkdir -p release_android
-          # Universal APK
-          cp build/app/outputs/flutter-apk/app-release.apk release_android/ComicStream-Universal.apk
-          # Split APKs
-          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release_android/ComicStream-arm64-v8a.apk || true
-          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk release_android/ComicStream-armeabi-v7a.apk || true
-          cp build/app/outputs/flutter-apk/app-x86_64-release.apk release_android/ComicStream-x86_64.apk || true
-          # Default easy-to-download name
-          cp build/app/outputs/flutter-apk/app-release.apk release_android/app-release.apk
+          # Universal APK with version in name
+          cp build/app/outputs/flutter-apk/app-release.apk "release_android/ComicStream-${VERSION}-Universal.apk"
+          # Split APKs with version in name
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "release_android/ComicStream-${VERSION}-arm64-v8a.apk" || true
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "release_android/ComicStream-${VERSION}-armeabi-v7a.apk" || true
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk "release_android/ComicStream-${VERSION}-x86_64.apk" || true
 
       - name: 📤 Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -111,27 +117,42 @@ jobs:
       - name: 📦 Install dependencies
         run: flutter pub get
 
+      - name: 🏷️ Extract App Version
+        id: app_version
+        shell: pwsh
+        run: |
+          $versionLine = Get-Content pubspec.yaml | Select-String "^version:"
+          $ver = ($versionLine -split ":")[1].Trim().Split("+")[0].Trim()
+          echo "version=v$ver" >> $env:GITHUB_OUTPUT
+          Write-Host "Building Windows version v$ver"
+
       - name: 🔨 Build Windows App
         run: flutter build windows --release
 
       - name: 📦 Compress Windows Release (Portable ZIP)
         shell: pwsh
         run: |
+          $ver = "${{ steps.app_version.outputs.version }}"
           New-Item -ItemType Directory -Force -Path release_windows
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath release_windows\ComicStream-Windows-x64.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath "release_windows\ComicStream-$ver-Windows-x64.zip"
 
       - name: 🛠️ Build Windows Installer (.exe Setup)
         shell: pwsh
         run: |
+          $ver = "${{ steps.app_version.outputs.version }}"
           choco install innosetup -y
           & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" windows\installer\installer.iss
+          if (Test-Path "windows\installer\Output\ComicStream-Setup-x64.exe") {
+            Copy-Item "windows\installer\Output\ComicStream-Setup-x64.exe" "release_windows\ComicStream-$ver-Setup-x64.exe"
+          }
 
       - name: 📦 Build Windows MSI Package (.msi)
         shell: pwsh
         run: |
+          $ver = "${{ steps.app_version.outputs.version }}"
           heat dir build\windows\x64\runner\Release -cg AppFiles -gg -scom -sreg -sfrag -srd -dr INSTALLFOLDER -var var.SourceDir -out windows\installer\AppFiles.wxs
           candle -arch x64 -dSourceDir="build\windows\x64\runner\Release" -ext WixUIExtension windows\installer\Product.wxs windows\installer\AppFiles.wxs -out windows\installer\
-          light -ext WixUIExtension -sval windows\installer\Product.wixobj windows\installer\AppFiles.wixobj -out release_windows\ComicStream-x64.msi || true
+          light -ext WixUIExtension -sval windows\installer\Product.wixobj windows\installer\AppFiles.wixobj -out "release_windows\ComicStream-$ver-x64.msi" || true
 
       - name: 📤 Upload Windows Artifacts
         uses: actions/upload-artifact@v4
@@ -166,6 +187,7 @@ jobs:
       - name: 🏷️ Determine Release Tag
         id: release_info
         run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed 's/version: //' | cut -d'+' -f1 | tr -d '[:space:]')
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.release_tag }}" ]; then
             echo "tag=${{ github.event.inputs.release_tag }}" >> $GITHUB_OUTPUT
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
@@ -174,8 +196,8 @@ jobs:
             echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           else
-            echo "tag=latest" >> $GITHUB_OUTPUT
-            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 🚀 Publish GitHub Release
@@ -186,14 +208,6 @@ jobs:
           draft: false
           prerelease: ${{ steps.release_info.outputs.is_prerelease == 'true' }}
           generate_release_notes: true
-          files: |
-            release_assets/ComicStream-Universal.apk
-            release_assets/ComicStream-arm64-v8a.apk
-            release_assets/ComicStream-armeabi-v7a.apk
-            release_assets/ComicStream-x86_64.apk
-            release_assets/app-release.apk
-            release_assets/ComicStream-Setup-x64.exe
-            release_assets/ComicStream-x64.msi
-            release_assets/ComicStream-Windows-x64.zip
+          files: release_assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
