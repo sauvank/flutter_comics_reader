@@ -154,7 +154,8 @@ class RemoteFileTile extends StatelessWidget {
     }
 
     if (downloadTask != null) {
-      if (downloadTask!.status == DownloadStatus.downloading) {
+      if (downloadTask!.status == DownloadStatus.downloading ||
+          downloadTask!.status == DownloadStatus.converting) {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -166,7 +167,9 @@ class RemoteFileTile extends StatelessWidget {
                 '${(downloadTask!.progress * 100).toInt()}%',
                 style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
               ),
-              progressColor: theme.colorScheme.primary,
+              progressColor: downloadTask!.status == DownloadStatus.converting
+                  ? const Color(0xFF8B5CF6)
+                  : theme.colorScheme.primary,
               backgroundColor: theme.colorScheme.outlineVariant.withAlpha(60),
             ),
             if (onCancelDownload != null) ...[

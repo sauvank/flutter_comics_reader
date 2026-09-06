@@ -14,7 +14,7 @@ class WebDavService {
       : _dio = Dio(
           BaseOptions(
             connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(minutes: 10),
+            receiveTimeout: const Duration(seconds: 45),
             sendTimeout: const Duration(seconds: 30),
             validateStatus: (status) => status != null && status >= 200 && status < 400,
           ),
@@ -346,8 +346,8 @@ class WebDavService {
       }
     } catch (_) {}
 
-    // 2. High-speed multi-threaded parallel download for files >= 8MB
-    if (totalBytes >= 8 * 1024 * 1024) {
+    // 2. High-speed 2-part parallel download for large files (>= 16MB)
+    if (totalBytes >= 16 * 1024 * 1024) {
       try {
         await _downloadMultiPart(
           downloadUrl: downloadUrl,
@@ -366,7 +366,9 @@ class WebDavService {
 
     final tempFile = File('$destinationLocalPath.tmp');
     if (await tempFile.exists()) {
-      await tempFile.delete();
+      try {
+        await tempFile.delete();
+      } catch (_) {}
     }
 
     int attempts = 0;
@@ -391,6 +393,7 @@ class WebDavService {
             responseType: ResponseType.stream,
             followRedirects: true,
             maxRedirects: 10,
+            receiveTimeout: const Duration(seconds: 45),
           ),
         );
 
@@ -425,12 +428,19 @@ class WebDavService {
           await sink.close();
         }
 
-        // Rename temp file to final destination
+        // Rename temp file to final destination (with copy fallback for Android mount points)
         final finalFile = File(destinationLocalPath);
         if (await finalFile.exists()) {
-          await finalFile.delete();
+          try {
+            await finalFile.delete();
+          } catch (_) {}
         }
-        await tempFile.rename(destinationLocalPath);
+        try {
+          await tempFile.rename(destinationLocalPath);
+        } catch (_) {
+          await tempFile.copy(destinationLocalPath);
+          await tempFile.delete().catchError((_) => tempFile);
+        }
         return;
       } catch (e) {
         lastError = e;
@@ -470,7 +480,7 @@ class WebDavService {
     }
   }
 
-  /// Multi-connection segmented downloader (4 parallel threads for maximum WAN/VPS saturation)
+  /// Multi-connection segmented downloader (2 parallel chunks for safe NAS/WAN saturation)
   Future<void> _downloadMultiPart({
     required String downloadUrl,
     required String destinationLocalPath,
@@ -479,14 +489,18 @@ class WebDavService {
     required void Function(int receivedBytes, int totalBytes) onProgress,
     CancelToken? cancelToken,
   }) async {
-    const int numParts = 4;
+    const int numParts = 2;
     final partSize = (totalBytes / numParts).ceil();
     final List<File> partFiles = [];
     final List<int> partProgress = List.filled(numParts, 0);
 
     for (int i = 0; i < numParts; i++) {
       final partFile = File('$destinationLocalPath.part$i');
-      if (await partFile.exists()) await partFile.delete();
+      if (await partFile.exists()) {
+        try {
+          await partFile.delete();
+        } catch (_) {}
+      }
       partFiles.add(partFile);
     }
 
@@ -513,10 +527,15 @@ class WebDavService {
                 responseType: ResponseType.stream,
                 followRedirects: true,
                 maxRedirects: 10,
+                receiveTimeout: const Duration(seconds: 45),
               ),
             );
 
-            // Server must return 206 Partial Content or 200
+            // Server MUST return 206 Partial Content. If 200, Range is unsupported!
+            if (response.statusCode != 206) {
+              throw Exception('Server does not support Range requests (HTTP ${response.statusCode})');
+            }
+
             final stream = response.data?.stream;
             if (stream == null) throw Exception('Null stream for part $partIndex');
 
@@ -531,7 +550,7 @@ class WebDavService {
               partSink.add(chunk);
               partProgress[partIndex] += chunk.length;
               final currentTotal = partProgress.fold<int>(0, (sum, p) => sum + p);
-              onProgress(currentTotal, totalBytes);
+              onProgress(currentTotal.clamp(0, totalBytes), totalBytes);
             }
             await partSink.flush();
           } finally {
@@ -544,7 +563,11 @@ class WebDavService {
 
       // Concatenate all parts into the final destination file
       final finalFile = File(destinationLocalPath);
-      if (await finalFile.exists()) await finalFile.delete();
+      if (await finalFile.exists()) {
+        try {
+          await finalFile.delete();
+        } catch (_) {}
+      }
 
       final finalSink = finalFile.openWrite(mode: FileMode.writeOnly);
       try {

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
@@ -288,36 +289,48 @@ class FtpService {
     return '/';
   }
 
-  /// Downloads file from FTP with progress callback
+  /// Downloads file from FTP with progress callback and cancel token
   Future<void> downloadFile({
     required ServerProfile server,
     required String remoteRelativePath,
     required String destinationLocalPath,
     required void Function(int receivedBytes, int totalBytes) onProgress,
+    CancelToken? cancelToken,
   }) async {
-    final port = server.port == 80 || server.port == 8080 ? 21 : server.port;
-    final controlSocket = await Socket.connect(
-      server.host,
-      port,
-      timeout: const Duration(seconds: 10),
-    );
+    if (cancelToken?.isCancelled == true) {
+      throw DioException(
+        requestOptions: RequestOptions(path: remoteRelativePath),
+        type: DioExceptionType.cancel,
+      );
+    }
 
-    final reader = _FtpStreamReader(controlSocket);
+    final port = server.port == 80 || server.port == 8080 ? 21 : server.port;
+    Socket? controlSocket;
+    Socket? dataSocket;
+    final tempFile = File('$destinationLocalPath.tmp');
 
     try {
-      await reader.readLine(); // Banner
+      controlSocket = await Socket.connect(
+        server.host,
+        port,
+        timeout: const Duration(seconds: 10),
+      );
+
+      final reader = _FtpStreamReader(controlSocket);
+
+      await reader.readLine().timeout(const Duration(seconds: 10)); // Banner
 
       // Login
       controlSocket.write('USER ${server.username ?? 'anonymous'}\r\n');
-      final userResp = await reader.readLine();
+      final userResp = await reader.readLine().timeout(const Duration(seconds: 10));
 
       if (userResp.startsWith('331')) {
         controlSocket.write('PASS ${server.password ?? ''}\r\n');
-        await reader.readLine();
+        await reader.readLine().timeout(const Duration(seconds: 10));
       }
 
       controlSocket.write('TYPE I\r\n');
-      await reader.readLine();
+      await reader.readLine().timeout(const Duration(seconds: 10));
 
       // Extract directory part and filename part
       final cleanRelative = remoteRelativePath.replaceAll('\\', '/');
@@ -332,71 +345,142 @@ class FtpService {
 
       await _smartNavigateToTarget(controlSocket, reader, server, dirPart);
 
+      if (cancelToken?.isCancelled == true) {
+        throw DioException(
+          requestOptions: RequestOptions(path: remoteRelativePath),
+          type: DioExceptionType.cancel,
+        );
+      }
+
       // Get file size
       int totalBytes = 0;
       controlSocket.write('SIZE $filePart\r\n');
-      final sizeResp = await reader.readLine();
+      final sizeResp = await reader.readLine().timeout(const Duration(seconds: 10));
       if (sizeResp.startsWith('213')) {
         totalBytes = int.tryParse(sizeResp.substring(4).trim()) ?? 0;
       }
 
       // Enter Passive Mode
       controlSocket.write('PASV\r\n');
-      final pasvResp = await reader.readLine();
+      final pasvResp = await reader.readLine().timeout(const Duration(seconds: 10));
       final dataEndpoint = _parsePasvResponse(pasvResp, server.host);
 
-      final dataSocket = await Socket.connect(
+      dataSocket = await Socket.connect(
         dataEndpoint.host,
         dataEndpoint.port,
         timeout: const Duration(seconds: 15),
       );
 
       controlSocket.write('RETR $filePart\r\n');
-      final retrResp = await reader.readLine();
+      final retrResp = await reader.readLine().timeout(const Duration(seconds: 10));
       if (!retrResp.startsWith('150') && !retrResp.startsWith('125')) {
         throw Exception('Impossible de télécharger le fichier FTP: $retrResp');
       }
 
-      final tempFile = File('$destinationLocalPath.tmp');
-      if (await tempFile.exists()) await tempFile.delete();
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
       final sink = tempFile.openWrite();
 
       int receivedBytes = 0;
       final completer = Completer<void>();
+      Timer? inactivityTimer;
 
-      dataSocket.listen(
+      void resetInactivity() {
+        inactivityTimer?.cancel();
+        inactivityTimer = Timer(const Duration(seconds: 45), () {
+          if (!completer.isCompleted) {
+            completer.completeError(TimeoutException('Délai d\'inactivité FTP dépassé'));
+          }
+        });
+      }
+
+      resetInactivity();
+
+      final subscription = dataSocket.listen(
         (data) {
+          if (cancelToken?.isCancelled == true) {
+            inactivityTimer?.cancel();
+            if (!completer.isCompleted) {
+              completer.completeError(
+                DioException(
+                  requestOptions: RequestOptions(path: remoteRelativePath),
+                  type: DioExceptionType.cancel,
+                ),
+              );
+            }
+            return;
+          }
+          resetInactivity();
           sink.add(data);
           receivedBytes += data.length;
           onProgress(receivedBytes, totalBytes);
         },
         onDone: () async {
-          await sink.flush();
-          await sink.close();
-          completer.complete();
+          inactivityTimer?.cancel();
+          try {
+            await sink.flush();
+            await sink.close();
+            if (!completer.isCompleted) completer.complete();
+          } catch (e) {
+            if (!completer.isCompleted) completer.completeError(e);
+          }
         },
         onError: (err) async {
-          await sink.close();
-          completer.completeError(err);
+          inactivityTimer?.cancel();
+          try {
+            await sink.close();
+          } catch (_) {}
+          if (!completer.isCompleted) completer.completeError(err);
         },
         cancelOnError: true,
       );
 
-      await completer.future;
+      try {
+        await completer.future;
+      } finally {
+        inactivityTimer?.cancel();
+        await subscription.cancel();
+      }
+
       await dataSocket.close();
+      dataSocket = null;
 
-      // Read transfer complete
-      await reader.readLine();
+      // Read transfer complete on control socket with timeout
+      try {
+        await reader.readLine().timeout(const Duration(seconds: 10));
+      } catch (_) {}
 
-      // Move temp to destination
+      // Move temp to destination (with copy fallback for Android)
       final finalFile = File(destinationLocalPath);
-      if (await finalFile.exists()) await finalFile.delete();
-      await tempFile.rename(destinationLocalPath);
+      if (await finalFile.exists()) {
+        try {
+          await finalFile.delete();
+        } catch (_) {}
+      }
+      try {
+        await tempFile.rename(destinationLocalPath);
+      } catch (_) {
+        await tempFile.copy(destinationLocalPath);
+        await tempFile.delete().catchError((_) => tempFile);
+      }
+    } catch (e) {
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+      rethrow;
     } finally {
       try {
-        controlSocket.write('QUIT\r\n');
+        dataSocket?.destroy();
       } catch (_) {}
-      controlSocket.destroy();
+      try {
+        controlSocket?.write('QUIT\r\n');
+        controlSocket?.destroy();
+      } catch (_) {}
     }
   }
 

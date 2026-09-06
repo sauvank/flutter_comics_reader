@@ -32,33 +32,56 @@ class CbzService {
     return supportedImageExtensions.contains(ext);
   }
 
-  /// Extracts cover image from a CBZ file and saves it to [targetCoverPath]
-  static Future<String?> extractCover({
+  /// Extracts cover image and page count in a single efficient pass
+  static Future<CbzScanResult> extractCoverAndPageCount({
     required String cbzFilePath,
     required String targetCoverPath,
   }) async {
     try {
       final file = File(cbzFilePath);
-      if (!await file.exists()) return null;
+      if (!await file.exists()) return CbzScanResult(coverPath: null, pageCount: 1);
 
       final bytes = await file.readAsBytes();
-      Uint8List? coverBytes;
+      _ZipScanData scanData;
       try {
-        coverBytes = await compute(_extractCoverBytesFromZip, bytes);
-      } catch (_) {
-        coverBytes = _extractCoverBytesFromZip(bytes);
+        scanData = await compute(_scanZipIsolate, bytes);
+      } catch (eCompute) {
+        debugPrint('Compute isolate failed in extractCoverAndPageCount, direct fallback: $eCompute');
+        scanData = _scanZipIsolate(bytes);
       }
-      if (coverBytes == null || coverBytes.isEmpty) return null;
 
-      final coverFile = File(targetCoverPath);
-      await coverFile.parent.create(recursive: true);
-      await coverFile.writeAsBytes(coverBytes, flush: true);
+      String? savedCoverPath;
+      if (scanData.coverBytes != null && scanData.coverBytes!.isNotEmpty) {
+        try {
+          final coverFile = File(targetCoverPath);
+          await coverFile.parent.create(recursive: true);
+          await coverFile.writeAsBytes(scanData.coverBytes!, flush: true);
+          savedCoverPath = targetCoverPath;
+        } catch (eWrite) {
+          debugPrint('Error writing cover file: $eWrite');
+        }
+      }
 
-      return targetCoverPath;
+      return CbzScanResult(
+        coverPath: savedCoverPath,
+        pageCount: scanData.pageCount > 0 ? scanData.pageCount : 1,
+      );
     } catch (e) {
-      debugPrint('Error extracting cover from $cbzFilePath: $e');
-      return null;
+      debugPrint('Error in extractCoverAndPageCount for $cbzFilePath: $e');
+      return CbzScanResult(coverPath: null, pageCount: 1);
     }
+  }
+
+  /// Extracts cover image from a CBZ file and saves it to [targetCoverPath]
+  static Future<String?> extractCover({
+    required String cbzFilePath,
+    required String targetCoverPath,
+  }) async {
+    final result = await extractCoverAndPageCount(
+      cbzFilePath: cbzFilePath,
+      targetCoverPath: targetCoverPath,
+    );
+    return result.coverPath;
   }
 
   /// Scans a CBZ archive and returns the total count of image pages
@@ -155,26 +178,6 @@ class CbzService {
     return null;
   }
 
-  static Uint8List? _extractCoverBytesFromZip(Uint8List bytes) {
-    try {
-      final archive = _decodeArchive(bytes);
-      if (archive == null) return null;
-
-      final imageEntries = archive.files
-          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
-          .toList();
-      if (imageEntries.isEmpty) return null;
-
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
-
-      final firstImage = imageEntries.first;
-      return _getArchiveFileBytes(firstImage);
-    } catch (e) {
-      debugPrint('Error extracting cover bytes: $e');
-      return null;
-    }
-  }
-
   static int _countPagesFromZip(Uint8List bytes) {
     try {
       final archive = _decodeArchive(bytes);
@@ -214,6 +217,46 @@ class CbzService {
       return [];
     }
   }
+  static _ZipScanData _scanZipIsolate(Uint8List bytes) {
+    try {
+      final archive = _decodeArchive(bytes);
+      if (archive == null) return _ZipScanData(coverBytes: null, pageCount: 0);
+
+      final imageEntries = archive.files
+          .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
+          .toList();
+
+      if (imageEntries.isEmpty) {
+        return _ZipScanData(coverBytes: null, pageCount: 0);
+      }
+
+      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+
+      final firstImage = imageEntries.first;
+      final coverBytes = _getArchiveFileBytes(firstImage);
+
+      return _ZipScanData(
+        coverBytes: coverBytes,
+        pageCount: imageEntries.length,
+      );
+    } catch (e) {
+      debugPrint('Error in _scanZipIsolate: $e');
+      return _ZipScanData(coverBytes: null, pageCount: 0);
+    }
+  }
+}
+
+class CbzScanResult {
+  final String? coverPath;
+  final int pageCount;
+
+  CbzScanResult({this.coverPath, required this.pageCount});
+}
+
+class _ZipScanData {
+  final Uint8List? coverBytes;
+  final int pageCount;
+  _ZipScanData({this.coverBytes, required this.pageCount});
 }
 
 class ComicPage {

@@ -197,6 +197,7 @@ class DownloadProvider extends ChangeNotifier {
           remoteRelativePath: task.remotePath,
           destinationLocalPath: localBookPath,
           onProgress: onProgress,
+          cancelToken: cancelToken,
         );
       } else {
         await _webdav.downloadFile(
@@ -208,10 +209,22 @@ class DownloadProvider extends ChangeNotifier {
         );
       }
 
+      if (cancelToken.isCancelled) {
+        _updateTaskStatus(task.id, DownloadStatus.cancelled, statusDescription: 'Annulé');
+        return;
+      }
+
+      _updateTaskStatus(
+        task.id,
+        DownloadStatus.downloading,
+        progress: 1.0,
+        statusDescription: 'Extraction et finalisation...',
+      );
+
       // Post-processing: extract cover and metadata, and auto-convert PDF if option is enabled
       final format = BookItem.formatFromExtension(task.fileName);
       String? coverPath;
-      int totalPages = 0;
+      int totalPages = 1;
       String finalLocalPath = localBookPath;
       BookFormat finalFormat = format;
 
@@ -231,6 +244,7 @@ class DownloadProvider extends ChangeNotifier {
         );
 
         await for (final prog in converterStream) {
+          if (cancelToken.isCancelled) break;
           final mappedProgress = 0.85 + (prog.progress * 0.15);
           final remainingPages = prog.totalPages - prog.currentPage;
           final approxSec = (remainingPages * 0.25).round();
@@ -247,30 +261,43 @@ class DownloadProvider extends ChangeNotifier {
         // Delete raw PDF file after successful CBZ creation
         final rawPdfFile = File(localBookPath);
         if (await rawPdfFile.exists()) {
-          await rawPdfFile.delete();
+          try {
+            await rawPdfFile.delete();
+          } catch (_) {}
         }
 
         finalLocalPath = cbzPath;
         finalFormat = BookFormat.cbz;
       }
 
-      if (finalFormat == BookFormat.cbz || finalFormat == BookFormat.zip) {
+      if (finalFormat == BookFormat.cbz || finalFormat == BookFormat.zip || finalFormat == BookFormat.cbr) {
         final coversDir = await _db.getCoversDirectory();
         final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
-        coverPath = await CbzService.extractCover(
-          cbzFilePath: finalLocalPath,
-          targetCoverPath: targetCover,
-        );
-        totalPages = await CbzService.getPageCount(finalLocalPath);
+        try {
+          final scanResult = await CbzService.extractCoverAndPageCount(
+            cbzFilePath: finalLocalPath,
+            targetCoverPath: targetCover,
+          ).timeout(const Duration(seconds: 12));
+          coverPath = scanResult.coverPath;
+          totalPages = scanResult.pageCount;
+        } catch (eCbz) {
+          debugPrint('CBZ metadata extraction error for ${task.fileName}: $eCbz');
+          totalPages = 1;
+        }
       } else if (finalFormat == BookFormat.epub) {
         final coversDir = await _db.getCoversDirectory();
         final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
-        coverPath = await EpubService.extractCover(
-          epubFilePath: finalLocalPath,
-          targetCoverPath: targetCover,
-        );
-        final chapters = await EpubService.loadChapters(finalLocalPath);
-        totalPages = chapters.isNotEmpty ? chapters.length : 1;
+        try {
+          final scanResult = await EpubService.extractCoverAndPageCount(
+            epubFilePath: finalLocalPath,
+            targetCoverPath: targetCover,
+          ).timeout(const Duration(seconds: 12));
+          coverPath = scanResult.coverPath;
+          totalPages = scanResult.pageCount;
+        } catch (eEpub) {
+          debugPrint('EPUB metadata extraction error for ${task.fileName}: $eEpub');
+          totalPages = 1;
+        }
       } else if (finalFormat == BookFormat.pdf) {
         try {
           final coversDir = await _db.getCoversDirectory();
@@ -279,31 +306,37 @@ class DownloadProvider extends ChangeNotifier {
           // Check if remote cover was already cached first
           final cachedRemoteCover = await RemoteCoverService().getCachedCover(server.id, task.remotePath);
           if (cachedRemoteCover != null && await File(cachedRemoteCover).exists()) {
-            await File(cachedRemoteCover).copy(targetCover);
-            coverPath = targetCover;
+            try {
+              await File(cachedRemoteCover).copy(targetCover);
+              coverPath = targetCover;
+            } catch (_) {}
           }
 
-          final doc = await PdfDocument.openFile(finalLocalPath);
-          totalPages = doc.pages.length;
+          final doc = await PdfDocument.openFile(finalLocalPath).timeout(const Duration(seconds: 10));
+          try {
+            totalPages = doc.pages.length;
 
-          if (coverPath == null && doc.pages.isNotEmpty) {
-            final page = doc.pages[0];
-            final img = await page.render(fullWidth: 600, fullHeight: 900);
-            if (img != null) {
-              final uiImg = await img.createImage();
-              final byteData = await uiImg.toByteData(format: ui.ImageByteFormat.png);
-              img.dispose();
-              uiImg.dispose();
-              if (byteData != null) {
-                final f = File(targetCover);
-                await f.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
-                coverPath = targetCover;
+            if (coverPath == null && doc.pages.isNotEmpty) {
+              final page = doc.pages[0];
+              final img = await page.render(fullWidth: 600, fullHeight: 900).timeout(const Duration(seconds: 8));
+              if (img != null) {
+                final uiImg = await img.createImage();
+                final byteData = await uiImg.toByteData(format: ui.ImageByteFormat.png);
+                img.dispose();
+                uiImg.dispose();
+                if (byteData != null) {
+                  final f = File(targetCover);
+                  await f.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+                  coverPath = targetCover;
+                }
               }
             }
+          } finally {
+            await doc.dispose();
           }
-          await doc.dispose();
         } catch (e) {
           debugPrint('PDF metadata extraction error on download: $e');
+          totalPages = 1;
         }
       }
 
@@ -320,7 +353,7 @@ class DownloadProvider extends ChangeNotifier {
         localPath: finalLocalPath,
         coverPath: coverPath,
         format: finalFormat,
-        totalPages: totalPages,
+        totalPages: totalPages > 0 ? totalPages : 1,
         currentPage: 0,
         progress: 0.0,
         isCompleted: false,
@@ -331,7 +364,7 @@ class DownloadProvider extends ChangeNotifier {
       );
 
       await _db.addBook(newBook);
-      await _libraryProvider?.loadLibrary();
+      _libraryProvider?.addOrUpdateBook(newBook);
 
       _updateTaskStatus(
         task.id,

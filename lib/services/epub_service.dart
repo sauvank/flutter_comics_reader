@@ -18,39 +18,65 @@ class EpubChapterItem {
   });
 }
 
+class EpubScanResult {
+  final String? coverPath;
+  final int pageCount;
+
+  EpubScanResult({this.coverPath, required this.pageCount});
+}
+
 class EpubService {
-  /// Extracts the cover image from an EPUB file and saves it to [targetCoverPath]
-  static Future<String?> extractCover({
+  /// Extracts the cover image and counts chapters in a single pass
+  static Future<EpubScanResult> extractCoverAndPageCount({
     required String epubFilePath,
     required String targetCoverPath,
   }) async {
     try {
       final file = File(epubFilePath);
-      if (!await file.exists()) return null;
+      if (!await file.exists()) return EpubScanResult(coverPath: null, pageCount: 1);
 
       final bytes = await file.readAsBytes();
+
+      String? coverPath;
+      int chapterCount = 1;
 
       // Primary attempt: using epub_pro
       try {
         final epubBook = await EpubReader.readBook(bytes);
+        chapterCount = epubBook.chapters.isNotEmpty ? epubBook.chapters.length : 1;
         final coverImage = epubBook.coverImage;
         if (coverImage != null) {
           final coverBytes = img.encodeJpg(coverImage, quality: 85);
           final coverFile = File(targetCoverPath);
           await coverFile.parent.create(recursive: true);
           await coverFile.writeAsBytes(coverBytes, flush: true);
-          return targetCoverPath;
+          coverPath = targetCoverPath;
         }
-      } catch (e1) {
-        debugPrint('Primary epub_pro cover extraction failed, trying archive fallback: $e1');
-      }
+      } catch (_) {}
 
-      // Fallback attempt: scan ZIP archive for cover image directly
-      return await _extractCoverFromArchive(bytes, targetCoverPath);
+      // Fallback attempt for cover
+      coverPath ??= await _extractCoverFromArchive(bytes, targetCoverPath);
+
+      return EpubScanResult(
+        coverPath: coverPath,
+        pageCount: chapterCount > 0 ? chapterCount : 1,
+      );
     } catch (e) {
-      debugPrint('Error extracting cover from $epubFilePath: $e');
-      return null;
+      debugPrint('Error in extractCoverAndPageCount for $epubFilePath: $e');
+      return EpubScanResult(coverPath: null, pageCount: 1);
     }
+  }
+
+  /// Extracts the cover image from an EPUB file and saves it to [targetCoverPath]
+  static Future<String?> extractCover({
+    required String epubFilePath,
+    required String targetCoverPath,
+  }) async {
+    final result = await extractCoverAndPageCount(
+      epubFilePath: epubFilePath,
+      targetCoverPath: targetCoverPath,
+    );
+    return result.coverPath;
   }
 
   /// Loads an EPUB file and returns flattened chapters (with bulletproof ZIP fallback)

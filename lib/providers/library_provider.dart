@@ -126,6 +126,17 @@ class LibraryProvider extends ChangeNotifier {
     return null;
   }
 
+  void addOrUpdateBook(BookItem book) {
+    final index = _books.indexWhere((b) => b.id == book.id);
+    if (index >= 0) {
+      _books[index] = book;
+    } else {
+      _books.insert(0, book);
+    }
+    _totalStorageBytes += book.fileSize;
+    notifyListeners();
+  }
+
   Future<void> loadLibrary() async {
     _isLoading = true;
     notifyListeners();
