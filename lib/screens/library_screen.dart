@@ -590,7 +590,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 width: 50,
                                 height: 75,
                                 child: nextLocalBook.coverPath != null && File(nextLocalBook.coverPath!).existsSync()
-                                    ? Image.file(File(nextLocalBook.coverPath!), fit: BoxFit.cover)
+                                    ? Image.file(File(nextLocalBook.coverPath!), fit: BoxFit.cover, cacheWidth: 200)
                                     : Container(
                                         color: theme.colorScheme.primary.withAlpha(30),
                                         child: Icon(Icons.menu_book, color: theme.colorScheme.primary),
@@ -996,7 +996,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       width: 56,
                       height: 80,
                       child: File(book.coverPath ?? '').existsSync()
-                          ? Image.file(File(book.coverPath!), fit: BoxFit.cover)
+                          ? Image.file(File(book.coverPath!), fit: BoxFit.cover, cacheWidth: 200)
                           : Container(
                               color: theme.colorScheme.primary.withAlpha(30),
                               child: Icon(Icons.auto_stories_rounded, color: theme.colorScheme.primary),

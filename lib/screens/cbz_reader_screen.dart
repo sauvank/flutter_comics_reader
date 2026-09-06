@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -165,6 +166,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
   @override
   void dispose() {
+    PaintingBinding.instance.imageCache.clearLiveImages();
     _persistCurrentProgress();
     WidgetsBinding.instance.removeObserver(this);
     _zoomAnimationController?.dispose();
@@ -239,13 +241,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
       _pageController = PageController(initialPage: _currentPage);
 
-      // Trigger instant background prefetch for current and adjacent pages
+      // Trigger instant background prefetch for adjacent pages (lean count to avoid RAM pressure)
       CbzService.prefetchPages(
         cbzFilePath: widget.book.localPath,
         bookId: widget.book.id,
         currentIndex: _currentPage,
         totalPages: pages.length,
-        count: 4,
+        count: 2,
       );
 
       // Save page count if not already recorded
@@ -285,7 +287,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       bookId: widget.book.id,
       currentIndex: index,
       totalPages: _pages.length,
-      count: 4,
+      count: 2,
     );
 
     // Persist progress
@@ -1054,11 +1056,19 @@ class _CbzPageWidgetState extends State<_CbzPageWidget> {
   @override
   Widget build(BuildContext context) {
     if (_filePath != null) {
+      final mq = MediaQuery.of(context);
+      final screenMaxDim = math.max(mq.size.width, mq.size.height);
+      final pixelRatio = mq.devicePixelRatio;
+      // Downsample huge 4K/6K scans during decoding directly in C++ engine to fit screen (capped at 1800px)
+      // This reduces RAM per decoded image from ~100MB to < 8MB, preventing OOM crashes!
+      final targetHeight = (screenMaxDim * pixelRatio).clamp(1080.0, 1800.0).round();
+
       return Image.file(
         File(_filePath!),
         fit: widget.fit,
         width: widget.width,
         height: widget.height,
+        cacheHeight: targetHeight,
         gaplessPlayback: true,
         filterQuality: FilterQuality.medium,
         isAntiAlias: true,

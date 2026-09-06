@@ -11,6 +11,10 @@ import 'services/reader_settings_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Limit Flutter image cache to prevent OOM crashes on memory-constrained devices (tablets <= 3GB RAM)
+  PaintingBinding.instance.imageCache.maximumSize = 25; // max 25 decoded images
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 40 << 20; // 40 MB max
+
   // Initialize persistent services
   await DatabaseService().init();
   await ReaderSettingsService().init();

@@ -231,6 +231,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                       Image.file(
                         File(_cachedCoverPath!),
                         fit: BoxFit.cover,
+                        cacheWidth: 350,
                         errorBuilder: (_, __, ___) => _buildPlaceholder(theme, format),
                       )
                     else

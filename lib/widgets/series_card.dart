@@ -67,6 +67,7 @@ class SeriesCard extends StatelessWidget {
                           ? Image.file(
                               File(series.coverPath!),
                               fit: BoxFit.cover,
+                              cacheWidth: 400,
                             )
                           : Container(
                               color: theme.colorScheme.primary.withAlpha(30),

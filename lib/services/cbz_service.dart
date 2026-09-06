@@ -355,13 +355,13 @@ class CbzService {
     required String bookId,
     required int currentIndex,
     required int totalPages,
-    int count = 4,
+    int count = 2,
   }) {
     Future.microtask(() async {
       final cacheDir = await getCacheDirForBook(bookId);
       final indicesToFetch = <int>[];
 
-      // Prioritize forward reading pages (+1, +2, +3, +4), then backward (-1, -2)
+      // Prioritize forward reading pages (+1, +2), then backward (-1)
       for (int offset = 1; offset <= count; offset++) {
         final nextIdx = currentIndex + offset;
         if (nextIdx < totalPages) {
@@ -372,7 +372,7 @@ class CbzService {
           }
         }
       }
-      for (int offset = 1; offset <= 2; offset++) {
+      for (int offset = 1; offset <= 1; offset++) {
         final prevIdx = currentIndex - offset;
         if (prevIdx >= 0) {
           final formatted = prevIdx.toString().padLeft(4, '0');
