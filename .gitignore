@@ -53,6 +53,7 @@ migrate_working_dir/
 *.env
 *.env.*
 *.secret
+*credentials*
 service_account.json
 *gserviceaccount*.json
 test_playstore_connection.py
@@ -69,4 +70,5 @@ playstore_assets/
 
 # Local private notes & configs
 SETUP_STORAGE_NOTES.md
+SECURITY_CONTEXT.md
 *.private.md
