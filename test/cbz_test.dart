@@ -116,5 +116,40 @@ void main() {
 
       await tempDir.delete(recursive: true);
     });
+
+    test('FastZip extracts DEFLATE compressed pages correctly', () async {
+      final archive = Archive();
+      final img1Data = Uint8List.fromList(List.generate(1024, (i) => (i % 256)));
+      final img2Data = Uint8List.fromList(List.generate(2048, (i) => ((i * 3) % 256)));
+
+      archive.addFile(ArchiveFile('page_10.jpg', img2Data.length, img2Data));
+      archive.addFile(ArchiveFile('page_2.jpg', img1Data.length, img1Data));
+
+      // Encode with DeflateLevel.bestCompression (compression method = 8)
+      final zipBytes = ZipEncoder().encode(archive, level: DeflateLevel.bestCompression);
+
+      final tempDir = await Directory.systemTemp.createTemp('cbz_deflate_test_');
+      final cbzFile = File('${tempDir.path}/comic_deflate.cbz');
+      await cbzFile.writeAsBytes(zipBytes);
+
+      final pages = await CbzService.getPageList(cbzFile.path);
+      expect(pages.length, 2);
+      // Natural sort: page_2.jpg should be before page_10.jpg
+      expect(pages[0].name, 'page_2.jpg');
+      expect(pages[1].name, 'page_10.jpg');
+
+      final cached = await CbzService.loadAndCachePage(
+        cbzFilePath: cbzFile.path,
+        bookId: 'test_deflate_book',
+        pageIndex: 1, // page_10.jpg
+      );
+
+      expect(cached, isNotNull);
+      expect(await File(cached!).exists(), true);
+      final extractedBytes = await File(cached).readAsBytes();
+      expect(extractedBytes, img2Data);
+
+      await tempDir.delete(recursive: true);
+    });
   });
 }
