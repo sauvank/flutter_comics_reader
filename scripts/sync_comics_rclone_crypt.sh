@@ -65,8 +65,8 @@ if [ "$SOURCE_PATH" == "/mnt/books" ]; then
     if [ -z "$(ls -A /mnt/books 2>/dev/null)" ]; then
         echo -e "${YELLOW}⚠️ /mnt/books n'est pas monté. Tentative de montage CIFS automatique...${NC}"
         sudo mount /mnt/books 2>/dev/null || \
-        sudo mount -t cifs //192.168.1.100/public/misc/BOOKS /mnt/books -o credentials=/etc/cifs-credentials,vers=3.0,uid=1000,gid=1000,_netdev 2>/dev/null || \
-        sudo mount -t cifs //192.168.1.100/public/misc/BOOKS /mnt/books -o credentials="$HOME/.cifs-credentials",vers=3.0,uid=1000,gid=1000 2>/dev/null || true
+        sudo mount -t cifs //192.168.1.100/public/misc/BOOKS /mnt/books -o credentials=/etc/cifs-credentials,vers=3.0,nobrl,cache=none,actimeo=1,uid=1000,gid=1000,_netdev 2>/dev/null || \
+        sudo mount -t cifs //192.168.1.100/public/misc/BOOKS /mnt/books -o credentials="$HOME/.cifs-credentials",vers=3.0,nobrl,cache=none,actimeo=1,uid=1000,gid=1000 2>/dev/null || true
     fi
 fi
 

@@ -213,8 +213,8 @@ def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95
                     curr_p = int(parts[0])
                     tot_p = int(parts[1])
                     
-                    # Intervalle dynamique pour un suivi réactif en temps réel
-                    step = 5 if tot_p <= 50 else (10 if tot_p <= 150 else 15)
+                    # Intervalle dynamique pour un suivi réactif en temps réel (toutes les 5 pages)
+                    step = 5
                     
                     if curr_p == 1 or curr_p == tot_p or (curr_p - last_logged_page) >= step:
                         last_logged_page = curr_p
