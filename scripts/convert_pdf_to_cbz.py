@@ -271,6 +271,8 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                 "msg": "Aucune image trouvée dans le fichier"
             }
         
+        num_pages = len(image_files)
+        
         # 4. Création de l'archive CBZ standardisée EN LOCAL (SSD rapide, évite les verrous CIFS)
         local_cbz = os.path.join(temp_dir, "comic_archive.cbz")
         with zipfile.ZipFile(local_cbz, 'w', zipfile.ZIP_STORED, allowZip64=True) as zf:
