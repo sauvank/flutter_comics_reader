@@ -92,13 +92,11 @@ def detect_file_type(path):
         return 'UNKNOWN'
 
 def is_valid_cbz(cbz_path):
-    """Vérifie si une archive CBZ existe et contient au moins une image valide."""
-    if not os.path.exists(cbz_path) or os.path.getsize(cbz_path) == 0:
-        return False
+    """Vérifie rapidement si une archive CBZ existe et contient des images valides sans bloquer le réseau."""
     try:
+        if not os.path.exists(cbz_path) or os.path.getsize(cbz_path) < 100:
+            return False
         with zipfile.ZipFile(cbz_path, 'r') as zf:
-            if zf.testzip() is not None:
-                return False
             valid_images = [
                 name for name in zf.namelist() 
                 if name.lower().endswith(IMAGE_EXTENSIONS) and not name.startswith('__MACOSX/')
@@ -128,6 +126,8 @@ def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95
     dest_cbz = os.path.join(file_dir, f"{base_name}.cbz")
     pdf_rel = os.path.relpath(pdf_path, base_root) if base_root and os.path.isdir(base_root) else os.path.basename(pdf_path)
     tag = f"[{index}/{total}]"
+    
+    print_log(f"{BLUE}{tag} ⏳ Analyse :{NC} {CYAN}{pdf_rel}{NC}...")
     
     # 1. Vérification si le CBZ existe déjà
     if os.path.exists(dest_cbz) and not force:
@@ -179,7 +179,7 @@ def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95
             "msg": f"Conversion simulée ({type_str})"
         }
 
-    print_log(f"{BLUE}{tag} ⏳ Démarrage :{NC} {CYAN}{pdf_rel}{NC} [{detected_type}]...")
+    print_log(f"{BLUE}{tag} 🚀 Démarrage conversion [{detected_type}] :{NC} {CYAN}{pdf_rel}{NC} ({dpi} DPI)...")
 
     # 2. Dossier temporaire pour extraction
     temp_dir = tempfile.mkdtemp(prefix="comic_conv_")
