@@ -1022,7 +1022,11 @@ class _CbzPageWidgetState extends State<_CbzPageWidget> {
   }
 
   void _loadPage() {
-    final cached = CbzService.getCachedPagePathSync(widget.bookId, widget.pageIndex);
+    final targetIndex = widget.pageIndex;
+    final targetBookId = widget.bookId;
+    final targetCbzPath = widget.cbzFilePath;
+
+    final cached = CbzService.getCachedPagePathSync(targetBookId, targetIndex);
     if (cached != null) {
       _filePath = cached;
       _isLoading = false;
@@ -1031,11 +1035,14 @@ class _CbzPageWidgetState extends State<_CbzPageWidget> {
 
     _isLoading = true;
     CbzService.loadAndCachePage(
-      cbzFilePath: widget.cbzFilePath,
-      bookId: widget.bookId,
-      pageIndex: widget.pageIndex,
+      cbzFilePath: targetCbzPath,
+      bookId: targetBookId,
+      pageIndex: targetIndex,
     ).then((path) {
-      if (mounted) {
+      if (mounted &&
+          widget.pageIndex == targetIndex &&
+          widget.bookId == targetBookId &&
+          widget.cbzFilePath == targetCbzPath) {
         setState(() {
           _filePath = path;
           _isLoading = false;
@@ -1135,18 +1142,25 @@ class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
   }
 
   void _loadThumbnail() {
-    final cached = CbzService.getCachedPagePathSync(widget.bookId, widget.pageIndex);
+    final targetIndex = widget.pageIndex;
+    final targetBookId = widget.bookId;
+    final targetCbzPath = widget.cbzFilePath;
+
+    final cached = CbzService.getCachedPagePathSync(targetBookId, targetIndex);
     if (cached != null) {
       _filePath = cached;
       return;
     }
 
     CbzService.loadAndCachePage(
-      cbzFilePath: widget.cbzFilePath,
-      bookId: widget.bookId,
-      pageIndex: widget.pageIndex,
+      cbzFilePath: targetCbzPath,
+      bookId: targetBookId,
+      pageIndex: targetIndex,
     ).then((path) {
-      if (mounted) {
+      if (mounted &&
+          widget.pageIndex == targetIndex &&
+          widget.bookId == targetBookId &&
+          widget.cbzFilePath == targetCbzPath) {
         setState(() {
           _filePath = path;
         });
