@@ -375,6 +375,14 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             currentPage: _currentPage,
             totalPages: _pages.length,
           );
+      // Continuously prefetch upcoming pages as user scrolls vertically
+      CbzService.prefetchPages(
+        cbzFilePath: widget.book.localPath,
+        bookId: widget.book.id,
+        currentIndex: _currentPage,
+        totalPages: _pages.length,
+        count: 3,
+      );
     }
   }
 
@@ -840,6 +848,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       },
       child: ListView.builder(
         controller: _verticalScrollController,
+        cacheExtent: 3500.0,
         itemCount: _pages.length + 1, // +1 for end of book footer
         padding: EdgeInsets.zero,
         physics: _isCurrentPageZoomed
