@@ -105,7 +105,50 @@ if ! rclone listremotes | grep -q "^${REMOTE_NAME}:"; then
     fi
 fi
 
-# 4. Lancement de la synchronisation carbone (Miroir)
+# 4. Conversion automatique des fichiers PDF en CBZ (Optimisation ComicStream)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PDF_CONVERTER="$SCRIPT_DIR/convert_pdf_to_cbz.py"
+
+# Vérification des PDF présents dans le dossier source
+PDF_COUNT=$(find "$SOURCE_PATH" -type f \( -iname "*.pdf" \) 2>/dev/null | wc -l)
+
+if [ "$PDF_COUNT" -gt 0 ]; then
+    echo ""
+    echo -e "${BLUE}======================================================${NC}"
+    echo -e "${YELLOW}📄 Détection de ${PDF_COUNT} fichier(s) PDF à convertir en CBZ${NC}"
+    echo -e "${BLUE}======================================================${NC}"
+    echo -e "ℹ️  ComicStream fonctionne de façon optimale avec les archives CBZ."
+    echo -e "   Conversion automatique avant le téléversement distant..."
+
+    # Vérification des outils de conversion (pdftoppm, unar, 7z)
+    if ! command -v pdftoppm &> /dev/null || (! command -v unar &> /dev/null && ! command -v 7z &> /dev/null); then
+        echo -e "${YELLOW}⚠️ Des outils de conversion (poppler-utils, unar) sont manquants.${NC}"
+        read -p "Souhaitez-vous les installer automatiquement ? (o/n) [Défaut: o] : " INSTALL_TOOLS
+        INSTALL_TOOLS=${INSTALL_TOOLS:-o}
+        if [[ "$INSTALL_TOOLS" =~ ^[oOyY]$ ]]; then
+            sudo apt update && sudo apt install -y poppler-utils unar p7zip-full
+        else
+            echo -e "${RED}❌ Impossible de convertir les fichiers sans ces outils.${NC}"
+            read -p "Poursuivre la synchronisation sans convertir ? (o/n) [Défaut: n] : " CONTINUE_ANYWAY
+            CONTINUE_ANYWAY=${CONTINUE_ANYWAY:-n}
+            if [[ ! "$CONTINUE_ANYWAY" =~ ^[oOyY]$ ]]; then
+                exit 1
+            fi
+        fi
+    fi
+
+    if [ -f "$PDF_CONVERTER" ]; then
+        python3 "$PDF_CONVERTER" "$SOURCE_PATH"
+    else
+        echo -e "${RED}❌ Script convert_pdf_to_cbz.py introuvable dans $SCRIPT_DIR.${NC}"
+        exit 1
+    fi
+else
+    echo ""
+    echo -e "${GREEN}✅ Aucun fichier PDF à convertir (Bibliothèque 100% CBZ/CBR/Images prête).${NC}"
+fi
+
+# 5. Lancement de la synchronisation carbone (Miroir)
 echo ""
 echo -e "${BLUE}======================================================${NC}"
 echo -e "${GREEN}⏳ Lancement de la copie carbone chiffrée (Miroir)...${NC}"
@@ -142,3 +185,4 @@ echo -e "${GREEN}======================================================${NC}"
 echo ""
 echo -e "${BLUE}ℹ️ Vos fichiers distants sont désormais le miroir parfait de votre dossier local.${NC}"
 echo -e "${BLUE}ℹ️ Alist / WebDAV sert votre collection à jour pour ComicStream.${NC}"
+
