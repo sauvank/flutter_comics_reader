@@ -2,36 +2,58 @@
 # -*- coding: utf-8 -*-
 """
 Script intelligent de conversion automatique de fichiers PDF / BD en archives CBZ.
-Optimisé pour ComicStream et la lecture ultra-haute qualité :
+Optimisé pour ComicStream avec retour d'état en temps réel et logs détaillés :
 - Détection automatique du format réel (PDF véritable, ou archive CBR/RAR/ZIP/7Z renommée en .pdf)
 - Extraction Ultra HD pour les vrais PDF via pdftoppm (300 DPI, 95% qualité JPEG par défaut)
+- Suivi en temps réel de la progression page par page
 - Extraction sans perte (100% qualité d'origine) pour les archives CBR/ZIP renommées via unar/7z
 - Numérotation séquentielle standardisée des pages (page_0001.jpg, ...)
-- Traitement parallèle multi-cœurs (ThreadPoolExecutor)
-- Vérification rigoureuse de l'intégrité de l'archive CBZ avant suppression du fichier source
+- Traitement parallèle multi-cœurs (ThreadPoolExecutor) avec verrou d'affichage thread-safe
+- Staging local SSD avant transfert réseau CIFS sécurisé
 """
 
 import os
 import sys
 import re
+import time
 import shutil
 import zipfile
 import tempfile
 import argparse
 import subprocess
+import threading
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Codes couleurs ANSI
-GREEN = '\033[0;32m'
-BLUE = '\033[0;34m'
-YELLOW = '\033[1;33m'
-RED = '\033[0;31m'
-CYAN = '\033[0;36m'
-BOLD = '\033[1m'
-NC = '\033[0m' # No Color
+GREEN = '[0;32m'
+BLUE = '[0;34m'
+YELLOW = '[1;33m'
+RED = '[0;31m'
+CYAN = '[0;36m'
+MAGENTA = '[0;35m'
+BOLD = '[1m'
+NC = '[0m' # No Color
 
 IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+PRINT_LOCK = threading.Lock()
+
+def print_log(message):
+    """Affichage thread-safe avec vidage immédiat du tampon."""
+    with PRINT_LOCK:
+        print(message)
+        sys.stdout.flush()
+
+def format_size(size_bytes):
+    """Formatage lisible de la taille en octets."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} Ko"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} Mo"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.2f} Go"
 
 def natural_sort_key(s):
     """Clé de tri naturel pour ordonner correctement les fichiers numérotés."""
@@ -46,8 +68,8 @@ def check_dependencies():
         missing.append("unar ou p7zip-full")
         
     if missing:
-        print(f"{RED}❌ Erreur : Des dépendances requises sont manquantes : {', '.join(missing)}{NC}")
-        print(f"{YELLOW}💡 Pour les installer : sudo apt update && sudo apt install -y poppler-utils unar p7zip-full{NC}")
+        print_log(f"{RED}❌ Erreur : Des dépendances requises sont manquantes : {', '.join(missing)}{NC}")
+        print_log(f"{YELLOW}💡 Pour les installer : sudo apt update && sudo apt install -y poppler-utils unar p7zip-full{NC}")
         return False
     return True
 
@@ -95,15 +117,17 @@ def collect_extracted_images(directory):
     images.sort(key=natural_sort_key)
     return images
 
-def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_pdf=False, force=False, dry_run=False):
+def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95, format_type="jpeg", keep_pdf=False, force=False, dry_run=False):
     """
-    Convertit un unique fichier PDF (ou archive renommée) en archive CBZ avec la meilleure résolution.
-    Retourne un dictionnaire avec le statut et les détails.
+    Convertit un unique fichier PDF (ou archive renommée) en archive CBZ avec suivi en temps réel.
     """
+    start_time = time.time()
     pdf_path = os.path.abspath(pdf_path)
     file_dir = os.path.dirname(pdf_path)
     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
     dest_cbz = os.path.join(file_dir, f"{base_name}.cbz")
+    pdf_rel = os.path.relpath(pdf_path, base_root) if base_root and os.path.isdir(base_root) else os.path.basename(pdf_path)
+    tag = f"[{index}/{total}]"
     
     # 1. Vérification si le CBZ existe déjà
     if os.path.exists(dest_cbz) and not force:
@@ -111,6 +135,7 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
             if not keep_pdf and not dry_run:
                 try:
                     os.remove(pdf_path)
+                    print_log(f"{YELLOW}{tag} ⏭️  Déjà converti :{NC} {pdf_rel} ➔ {os.path.basename(dest_cbz)} {GREEN}(PDF doublon nettoyé){NC}")
                     return {
                         "status": "SKIPPED_CLEANED",
                         "pdf": pdf_path,
@@ -120,6 +145,7 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                         "msg": "CBZ existant et valide (PDF résiduel nettoyé)"
                     }
                 except Exception as e:
+                    print_log(f"{YELLOW}{tag} ⏭️  Déjà converti :{NC} {pdf_rel} (Erreur suppression PDF: {e})")
                     return {
                         "status": "SKIPPED",
                         "pdf": pdf_path,
@@ -128,6 +154,7 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                         "type": "EXISTS",
                         "msg": f"CBZ existant valide (Erreur suppression PDF: {e})"
                     }
+            print_log(f"{YELLOW}{tag} ⏭️  Ignoré :{NC} {pdf_rel} (Archive CBZ déjà prête)")
             return {
                 "status": "SKIPPED",
                 "pdf": pdf_path,
@@ -142,6 +169,7 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
 
     if dry_run:
         type_str = f"PDF Ultra HD {dpi} DPI" if detected_type == "PDF" else f"Archive {detected_type} ➔ CBZ direct"
+        print_log(f"{CYAN}{tag} [SIMULATION] {pdf_rel} ➔ {os.path.basename(dest_cbz)} ({type_str}){NC}")
         return {
             "status": "DRY_RUN",
             "pdf": pdf_path,
@@ -151,15 +179,17 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
             "msg": f"Conversion simulée ({type_str})"
         }
 
+    print_log(f"{BLUE}{tag} ⏳ Démarrage :{NC} {CYAN}{pdf_rel}{NC} [{detected_type}]...")
+
     # 2. Dossier temporaire pour extraction
     temp_dir = tempfile.mkdtemp(prefix="comic_conv_")
-    tmp_cbz = dest_cbz + f".tmp_{os.getpid()}"
     
     try:
-        # A) CAS VRAI PDF : Extraction via pdftoppm (Rendu Ultra HD)
+        # A) CAS VRAI PDF : Extraction via pdftoppm (Rendu Ultra HD avec progression page par page)
         if detected_type == "PDF":
             cmd = [
                 "pdftoppm",
+                "-progress",
                 "-r", str(dpi),
                 "-aa", "yes",
                 "-aaVector", "yes"
@@ -171,32 +201,36 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
 
             cmd.extend([pdf_path, os.path.join(temp_dir, "page")])
             
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, bufsize=1)
+            
+            last_logged_page = 0
+            for line in proc.stderr:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split()
+                if len(parts) >= 2 and parts[0].isdigit() and parts[1].isdigit():
+                    curr_p = int(parts[0])
+                    tot_p = int(parts[1])
+                    
+                    if curr_p == 1 or curr_p == tot_p or (curr_p - last_logged_page) >= 25:
+                        last_logged_page = curr_p
+                        pct = int((curr_p / tot_p) * 100)
+                        print_log(f"   {YELLOW}↳ {tag} Rendu Ultra HD ({base_name[:32]}...):{NC} page {curr_p}/{tot_p} ({pct}%)")
+            
+            proc.wait()
             if proc.returncode != 0:
-                # Si pdftoppm échoue, tenter en fallback unar (au cas où la signature PDF était ambiguë)
                 if shutil.which("unar"):
+                    print_log(f"   {YELLOW}↳ {tag} Fallback extraction unar...{NC}")
                     unar_proc = subprocess.run(["unar", "-quiet", "-output-directory", temp_dir, pdf_path], capture_output=True)
                     if unar_proc.returncode != 0:
-                        return {
-                            "status": "ERROR",
-                            "pdf": pdf_path,
-                            "cbz": dest_cbz,
-                            "pages": 0,
-                            "type": detected_type,
-                            "msg": f"Erreur pdftoppm : {proc.stderr.strip() or proc.returncode}"
-                        }
+                        raise RuntimeError(f"Erreur d'extraction pdftoppm/unar (code {proc.returncode})")
                 else:
-                    return {
-                        "status": "ERROR",
-                        "pdf": pdf_path,
-                        "cbz": dest_cbz,
-                        "pages": 0,
-                        "type": detected_type,
-                        "msg": f"Erreur pdftoppm : {proc.stderr.strip() or proc.returncode}"
-                    }
+                    raise RuntimeError(f"Erreur d'extraction pdftoppm (code {proc.returncode})")
 
         # B) CAS ARCHIVE RAR/CBR : Extraction sans perte via unar ou 7z
         elif detected_type == "RAR":
+            print_log(f"   {YELLOW}↳ {tag} Décompression archive CBR/RAR en cours...{NC}")
             extracted = False
             if shutil.which("unar"):
                 proc = subprocess.run(["unar", "-quiet", "-output-directory", temp_dir, pdf_path], capture_output=True)
@@ -204,20 +238,14 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                     extracted = True
             if not extracted and shutil.which("7z"):
                 proc = subprocess.run(["7z", "x", f"-o{temp_dir}", "-y", pdf_path], capture_output=True)
-                if proc.returncode in (0, 1): # 0 = ok, 1 = warning mineur
+                if proc.returncode in (0, 1):
                     extracted = True
             if not extracted:
-                return {
-                    "status": "ERROR",
-                    "pdf": pdf_path,
-                    "cbz": dest_cbz,
-                    "pages": 0,
-                    "type": detected_type,
-                    "msg": "Échec de l'extraction de l'archive RAR/CBR"
-                }
+                raise RuntimeError("Échec de décompression de l'archive RAR/CBR")
 
-        # C) CAS ARCHIVE ZIP/CBZ : Extraction directe via zipfile ou unar
+        # C) CAS ARCHIVE ZIP/CBZ : Extraction directe
         elif detected_type == "ZIP":
+            print_log(f"   {YELLOW}↳ {tag} Décompression archive CBZ/ZIP en cours...{NC}")
             try:
                 with zipfile.ZipFile(pdf_path, 'r') as zf:
                     zf.extractall(temp_dir)
@@ -227,53 +255,35 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                 else:
                     raise
 
-        # D) CAS ARCHIVE 7Z / CB7 : Extraction via 7z ou unar
+        # D) CAS ARCHIVE 7Z / CB7
         elif detected_type == "7Z":
+            print_log(f"   {YELLOW}↳ {tag} Décompression archive CB7/7Z en cours...{NC}")
             if shutil.which("7z"):
                 subprocess.run(["7z", "x", f"-o{temp_dir}", "-y", pdf_path], check=True, capture_output=True)
             elif shutil.which("unar"):
                 subprocess.run(["unar", "-quiet", "-output-directory", temp_dir, pdf_path], check=True, capture_output=True)
 
-        # E) CAS INCONNU : Essayer pdftoppm puis unar
+        # E) CAS INCONNU : Fallback
         else:
+            print_log(f"   {YELLOW}↳ {tag} Tentative de lecture du format inconnu...{NC}")
             proc = subprocess.run(["pdftoppm", "-jpeg", "-r", str(dpi), pdf_path, os.path.join(temp_dir, "page")], capture_output=True)
             if proc.returncode != 0:
                 if shutil.which("unar"):
                     unar_proc = subprocess.run(["unar", "-quiet", "-output-directory", temp_dir, pdf_path], capture_output=True)
                     if unar_proc.returncode != 0:
-                        return {
-                            "status": "ERROR",
-                            "pdf": pdf_path,
-                            "cbz": dest_cbz,
-                            "pages": 0,
-                            "type": detected_type,
-                            "msg": "Format de fichier non reconnu et illisible"
-                        }
+                        raise RuntimeError("Format de fichier non reconnu et illisible")
                 else:
-                    return {
-                        "status": "ERROR",
-                        "pdf": pdf_path,
-                        "cbz": dest_cbz,
-                        "pages": 0,
-                        "type": detected_type,
-                        "msg": "Format de fichier non reconnu et illisible"
-                    }
+                    raise RuntimeError("Format de fichier non reconnu et illisible")
 
         # 3. Récupération et tri de toutes les images extraites
         image_files = collect_extracted_images(temp_dir)
         if not image_files:
-            return {
-                "status": "ERROR",
-                "pdf": pdf_path,
-                "cbz": dest_cbz,
-                "pages": 0,
-                "type": detected_type,
-                "msg": "Aucune image trouvée dans le fichier"
-            }
+            raise RuntimeError("Aucune image valide trouvée dans le fichier")
         
         num_pages = len(image_files)
         
-        # 4. Création de l'archive CBZ standardisée EN LOCAL (SSD rapide, évite les verrous CIFS)
+        # 4. Création de l'archive CBZ standardisée EN LOCAL (SSD rapide)
+        print_log(f"   {BLUE}↳ {tag} Empaquetage CBZ local ({num_pages} pages)...{NC}")
         local_cbz = os.path.join(temp_dir, "comic_archive.cbz")
         with zipfile.ZipFile(local_cbz, 'w', zipfile.ZIP_STORED, allowZip64=True) as zf:
             for idx, img_path in enumerate(image_files, start=1):
@@ -281,18 +291,15 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                 entry_name = f"page_{idx:04d}{ext}"
                 zf.write(img_path, arcname=entry_name)
         
-        # 5. Contrôle d'intégrité strict du CBZ EN LOCAL (Instantané et 100% fiable)
+        # 5. Contrôle d'intégrité strict du CBZ EN LOCAL
         if not is_valid_cbz(local_cbz):
-            return {
-                "status": "ERROR",
-                "pdf": pdf_path,
-                "cbz": dest_cbz,
-                "pages": 0,
-                "type": detected_type,
-                "msg": "Échec de validation locale de l'archive CBZ générée"
-            }
+            raise RuntimeError("Échec de validation de l'archive CBZ générée en local")
+        
+        final_size = os.path.getsize(local_cbz)
+        final_size_str = format_size(final_size)
         
         # 6. Transfert sécurisé vers le dossier de destination (NAS CIFS ou Disque Local)
+        print_log(f"   {MAGENTA}↳ {tag} Transfert vers le stockage ({final_size_str})...{NC}")
         dest_tmp = dest_cbz + f".tmp_{os.getpid()}"
         if os.path.exists(dest_tmp):
             try:
@@ -310,50 +317,43 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
         
         # Vérification finale de la présence sur la destination
         if not os.path.exists(dest_cbz) or os.path.getsize(dest_cbz) == 0:
-            return {
-                "status": "ERROR",
-                "pdf": pdf_path,
-                "cbz": dest_cbz,
-                "pages": 0,
-                "type": detected_type,
-                "msg": "Le fichier CBZ final n'a pas pu être écrit sur le stockage de destination"
-            }
+            raise RuntimeError("Le fichier CBZ final n'a pas pu être écrit sur le stockage distant")
         
         # 7. Suppression sécurisée du fichier source d'origine
+        clean_note = ""
         if not keep_pdf:
             try:
                 os.remove(pdf_path)
+                clean_note = " (PDF supprimé 🗑️)"
             except Exception as e:
-                return {
-                    "status": "SUCCESS_KEEP_ON_ERROR",
-                    "pdf": pdf_path,
-                    "cbz": dest_cbz,
-                    "pages": num_pages,
-                    "type": detected_type,
-                    "msg": f"CBZ créé ({num_pages} pages), mais impossible de supprimer l'original: {e}"
-                }
+                clean_note = f" (Avertissement: Impossible de supprimer le PDF: {e})"
         
-        detail_type = "PDF ➔ CBZ Ultra HD (300 DPI)" if detected_type == "PDF" else f"Archive {detected_type} renommée ➔ CBZ standardisé (100% Qualité brute)"
+        elapsed = time.time() - start_time
+        detail_type = "PDF ➔ CBZ Ultra HD (300 DPI)" if detected_type == "PDF" else f"Archive {detected_type} ➔ CBZ"
+        
+        print_log(f"{GREEN}{tag} ✅ Terminé :{NC} {pdf_rel} ➔ {CYAN}{os.path.basename(dest_cbz)}{NC} ({num_pages} pages, {final_size_str}) en {elapsed:.1f}s{clean_note}")
+        
         return {
             "status": "SUCCESS",
             "pdf": pdf_path,
             "cbz": dest_cbz,
             "pages": num_pages,
+            "size": final_size,
+            "elapsed": elapsed,
             "type": detected_type,
-            "msg": f"{num_pages} pages [{detail_type}]"
+            "msg": f"{num_pages} pages [{detail_type}] ({final_size_str}) en {elapsed:.1f}s"
         }
 
     except Exception as e:
-        if os.path.exists(tmp_cbz):
-            try:
-                os.remove(tmp_cbz)
-            except Exception:
-                pass
+        elapsed = time.time() - start_time
+        print_log(f"{RED}{tag} ❌ Erreur :{NC} {pdf_rel} ➔ {e}")
         return {
             "status": "ERROR",
             "pdf": pdf_path,
             "cbz": dest_cbz,
             "pages": 0,
+            "size": 0,
+            "elapsed": elapsed,
             "type": detected_type,
             "msg": f"Exception lors de la conversion : {e}"
         }
@@ -400,93 +400,79 @@ def main():
         
     target_path = os.path.abspath(args.path)
     if not os.path.exists(target_path):
-        print(f"{RED}❌ Erreur : Le chemin '{target_path}' n'existe pas.{NC}")
+        print_log(f"{RED}❌ Erreur : Le chemin '{target_path}' n'existe pas.{NC}")
         sys.exit(1)
         
     pdfs = find_pdf_files(target_path)
     total_pdfs = len(pdfs)
     
     if total_pdfs == 0:
-        print(f"{GREEN}✅ Aucun fichier PDF trouvé dans '{target_path}'. Bibliothèque 100% CBZ/CBR.${NC}")
+        print_log(f"{GREEN}✅ Aucun fichier PDF trouvé dans '{target_path}'. Bibliothèque 100% CBZ/CBR.")
         sys.exit(0)
         
-    print(f"{BLUE}======================================================{NC}")
-    print(f"{BOLD}📚 CONVERSION INTELLIGENTE PDF ➔ CBZ (ComicStream Ultra HD){NC}")
-    print(f"{BLUE}======================================================{NC}")
-    print(f"📂 Cible        : {CYAN}{target_path}{NC}")
-    print(f"📄 Total PDF(s) : {YELLOW}{total_pdfs}{NC}")
-    print(f"⚙️  Paramètres   : {args.dpi} DPI (Ultra HD) | {args.format.upper()} Qualité {args.quality}% | {args.workers} workers")
-    print(f"🗑️  Nettoyage   : {'Conservation des originaux' if args.keep_pdf else 'Suppression automatique des originaux après validation'}")
+    print_log(f"{BLUE}======================================================{NC}")
+    print_log(f"{BOLD}📚 CONVERSION INTELLIGENTE PDF ➔ CBZ (ComicStream Ultra HD){NC}")
+    print_log(f"{BLUE}======================================================{NC}")
+    print_log(f"📂 Cible        : {CYAN}{target_path}{NC}")
+    print_log(f"📄 Total PDF(s) : {YELLOW}{total_pdfs}{NC}")
+    print_log(f"⚙️  Paramètres   : {args.dpi} DPI (Ultra HD) | {args.format.upper()} Qualité {args.quality}% | {args.workers} workers")
+    print_log(f"🗑️  Nettoyage   : {'Conservation des originaux' if args.keep_pdf else 'Suppression automatique des originaux après validation'}")
     if args.dry_run:
-        print(f"{YELLOW}⚠️  MODE SIMULATION (DRY-RUN) : Aucun fichier ne sera altéré.{NC}")
-    print(f"{BLUE}======================================================{NC}\n")
+        print_log(f"{YELLOW}⚠️  MODE SIMULATION (DRY-RUN) : Aucun fichier ne sera altéré.{NC}")
+    print_log(f"{BLUE}======================================================{NC}\n")
 
     stats = {
         "success": 0,
         "skipped": 0,
         "error": 0,
-        "total_pages": 0
+        "total_pages": 0,
+        "total_bytes": 0
     }
+    
+    total_start = time.time()
     
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         futures = {
             executor.submit(
                 convert_single_pdf,
                 pdf,
+                idx,
+                total_pdfs,
+                base_root=target_path,
                 dpi=args.dpi,
                 quality=args.quality,
                 format_type=args.format,
                 keep_pdf=args.keep_pdf,
                 force=args.force,
                 dry_run=args.dry_run
-            ): pdf for pdf in pdfs
+            ): pdf for idx, pdf in enumerate(pdfs, start=1)
         }
         
-        completed_count = 0
         for future in as_completed(futures):
-            completed_count += 1
             res = future.result()
-            pdf_rel = os.path.relpath(res["pdf"], target_path) if os.path.isdir(target_path) else os.path.basename(res["pdf"])
-            cbz_name = os.path.basename(res["cbz"])
-            
-            tag = f"[{completed_count}/{total_pdfs}]"
             
             if res["status"] == "SUCCESS":
                 stats["success"] += 1
-                stats["total_pages"] += res["pages"]
-                clean_info = " (Original supprimé 🗑️)" if not args.keep_pdf else ""
-                type_tag = f"[{res['type']}] " if res.get('type') and res['type'] != 'PDF' else ""
-                print(f"{GREEN}{tag} ✅ Converti :{NC} {pdf_rel} ➔ {CYAN}{cbz_name}{NC} ({res['pages']} pages) {YELLOW}{type_tag}{NC}{clean_info}")
-                
-            elif res["status"] == "SKIPPED_CLEANED":
+                stats["total_pages"] += res.get("pages", 0)
+                stats["total_bytes"] += res.get("size", 0)
+            elif res["status"] in ("SKIPPED", "SKIPPED_CLEANED"):
                 stats["skipped"] += 1
-                print(f"{YELLOW}{tag} ⏭️  Déjà converti :{NC} {pdf_rel} ➔ {cbz_name} {GREEN}(Fichier doublon supprimé){NC}")
-                
-            elif res["status"] == "SKIPPED":
-                stats["skipped"] += 1
-                print(f"{YELLOW}{tag} ⏭️  Ignoré :{NC} {pdf_rel} (CBZ déjà présent)")
-                
             elif res["status"] == "DRY_RUN":
                 stats["success"] += 1
-                print(f"{CYAN}{tag} [SIMULATION] {pdf_rel} ➔ {cbz_name} ({res['msg']}){NC}")
-                
-            elif res["status"] == "SUCCESS_KEEP_ON_ERROR":
-                stats["success"] += 1
-                stats["total_pages"] += res["pages"]
-                print(f"{YELLOW}{tag} ⚠️ Converti avec avertissement :{NC} {pdf_rel} ➔ {cbz_name} ({res['msg']})")
-                
-            else: # ERROR
+            else:
                 stats["error"] += 1
-                print(f"{RED}{tag} ❌ Erreur :{NC} {pdf_rel} ➔ {res['msg']}")
 
-    print(f"\n{BLUE}======================================================{NC}")
-    print(f"{BOLD}📊 Résumé de la conversion :{NC}")
-    print(f"   • Total traités      : {total_pdfs}")
-    print(f"   • Convertis avec succès : {GREEN}{stats['success']}{NC} ({stats['total_pages']} pages)")
-    print(f"   • Déjà prêts/ignorés : {YELLOW}{stats['skipped']}{NC}")
+    total_time = time.time() - total_start
+    
+    print_log(f"\n{BLUE}======================================================{NC}")
+    print_log(f"{BOLD}📊 Résumé de la conversion :{NC}")
+    print_log(f"   • Total traités         : {total_pdfs}")
+    print_log(f"   • Convertis avec succès : {GREEN}{stats['success']}{NC} ({stats['total_pages']} pages, {format_size(stats['total_bytes'])})")
+    print_log(f"   • Déjà prêts/ignorés    : {YELLOW}{stats['skipped']}{NC}")
     if stats["error"] > 0:
-        print(f"   • Échecs / Erreurs   : {RED}{stats['error']}{NC}")
-    print(f"{BLUE}======================================================{NC}\n")
+        print_log(f"   • Échecs / Erreurs      : {RED}{stats['error']}{NC}")
+    print_log(f"   ⏱️  Temps total          : {total_time:.1f}s")
+    print_log(f"{BLUE}======================================================{NC}\n")
 
     if stats["error"] > 0:
         sys.exit(2)
