@@ -191,6 +191,15 @@ class CbzService {
     return supportedImageExtensions.contains(ext);
   }
 
+  /// Deterministic natural sorting of archive entries preserving directory hierarchy
+  static int compareZipEntries(String nameA, String nameB) {
+    final normA = nameA.replaceAll('\\', '/');
+    final normB = nameB.replaceAll('\\', '/');
+    final comp = NaturalSort.compare(normA, normB);
+    if (comp != 0) return comp;
+    return normA.compareTo(normB);
+  }
+
   /// Extracts cover image and page count in a single efficient pass without reading whole file into memory
   static Future<CbzScanResult> extractCoverAndPageCount({
     required String cbzFilePath,
@@ -520,7 +529,7 @@ class CbzService {
       final imageEntries = archive.files
           .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
           .toList();
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       final List<ComicPage> pages = [];
       for (int i = 0; i < imageEntries.length; i++) {
@@ -560,7 +569,7 @@ class CbzService {
         return _loadPagesFromZip(bytes);
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       final List<ComicPage> pages = [];
       for (int i = 0; i < imageEntries.length; i++) {
@@ -603,7 +612,7 @@ class CbzService {
         return _ZipScanData(coverBytes: null, pageCount: 0);
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       final firstImage = imageEntries.first;
       final coverBytes = _getArchiveFileBytes(firstImage);
@@ -636,7 +645,7 @@ class CbzService {
         return _scanZipIsolate(bytes);
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
       final coverEntry = imageEntries.first;
       final coverBytes = _FastZip.extractEntry(raf, coverEntry);
 
@@ -703,7 +712,7 @@ class CbzService {
         return _getPageListIsolate(bytes);
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       return List.generate(
         imageEntries.length,
@@ -734,7 +743,7 @@ class CbzService {
     final imageEntries = archive.files
         .where((f) => !f.name.endsWith('/') && isImageFile(f.name))
         .toList();
-    imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+    imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
     return List.generate(
       imageEntries.length,
@@ -774,7 +783,7 @@ class CbzService {
         return false;
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
       final targetEntry = imageEntries[task.targetIndex];
       final bytes = _FastZip.extractEntry(raf, targetEntry);
       if (bytes != null && bytes.isNotEmpty) {
@@ -816,7 +825,7 @@ class CbzService {
 
       if (imageEntries.isEmpty) return 0;
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       for (final idx in task.targetIndices) {
         if (idx >= 0 && idx < imageEntries.length) {
@@ -855,7 +864,7 @@ class CbzService {
         return null;
       }
 
-      imageEntries.sort((a, b) => NaturalSort.compare(p.basename(a.name), p.basename(b.name)));
+      imageEntries.sort((a, b) => compareZipEntries(a.name, b.name));
 
       final targetEntry = imageEntries[task.targetIndex];
       return _getArchiveFileBytes(targetEntry);

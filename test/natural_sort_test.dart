@@ -17,6 +17,25 @@ void main() {
       expect(files, ['Tome_1_ch2_p1.png', 'Tome_1_ch2_p10.png', 'Tome_1_ch10_p01.png', 'Tome_1_ch10_p02.png']);
     });
 
+    test('NaturalSort sorts folder hierarchy correctly without shuffling', () {
+      final paths = [
+        'Chapter 02/02.jpg',
+        'Chapter 01/01.jpg',
+        'Chapter 02/01.jpg',
+        'Chapter 01/02.jpg',
+        'Chapter 01/03.jpg',
+      ];
+      paths.sort(NaturalSort.compare);
+
+      expect(paths, [
+        'Chapter 01/01.jpg',
+        'Chapter 01/02.jpg',
+        'Chapter 01/03.jpg',
+        'Chapter 02/01.jpg',
+        'Chapter 02/02.jpg',
+      ]);
+    });
+
     test('FormatUtils formats bytes correctly', () {
       expect(FormatUtils.formatBytes(500), '500.0 B');
       expect(FormatUtils.formatBytes(1024 * 1024 * 45), '45.0 MB');

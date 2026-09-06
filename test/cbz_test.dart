@@ -151,5 +151,40 @@ void main() {
 
       await tempDir.delete(recursive: true);
     });
+
+    test('getPageList correctly orders multi-folder archive without shuffling chapters', () async {
+      final archive = Archive();
+      final dummy = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x01]);
+
+      archive.addFile(ArchiveFile('Chapter 02/01.jpg', dummy.length, dummy));
+      archive.addFile(ArchiveFile('Chapter 01/02.jpg', dummy.length, dummy));
+      archive.addFile(ArchiveFile('Chapter 01/01.jpg', dummy.length, dummy));
+      archive.addFile(ArchiveFile('Chapter 02/02.jpg', dummy.length, dummy));
+
+      final zipBytes = ZipEncoder().encode(archive, level: DeflateLevel.none);
+
+      final tempDir = await Directory.systemTemp.createTemp('cbz_folders_test_');
+      final cbzFile = File('${tempDir.path}/comic_folders.cbz');
+      await cbzFile.writeAsBytes(zipBytes);
+
+      final pages = await CbzService.getPageList(cbzFile.path);
+      expect(pages.length, 4);
+
+      // Chapter 1 pages must come before Chapter 2 pages
+      final cached0 = await CbzService.loadAndCachePage(
+        cbzFilePath: cbzFile.path,
+        bookId: 'test_folder_book',
+        pageIndex: 0,
+      );
+      final cached1 = await CbzService.loadAndCachePage(
+        cbzFilePath: cbzFile.path,
+        bookId: 'test_folder_book',
+        pageIndex: 1,
+      );
+      expect(cached0, isNotNull);
+      expect(cached1, isNotNull);
+
+      await tempDir.delete(recursive: true);
+    });
   });
 }

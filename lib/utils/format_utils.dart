@@ -1,7 +1,7 @@
 // Utility functions for string sorting, byte formatting, and time helpers
 
 class NaturalSort {
-  /// Sorts a list of strings naturally (e.g., 'page2.jpg' before 'page10.jpg')
+  /// Sorts a list of strings naturally (e.g., 'page2.jpg' before 'page10.jpg', 'Ch01/01.jpg' before 'Ch02/01.jpg')
   static int compare(String a, String b) {
     final regex = RegExp(r'(\d+|\D+)');
     final matchesA = regex.allMatches(a).map((m) => m.group(0)!).toList();
@@ -20,6 +20,11 @@ class NaturalSort {
         if (numA != numB) {
           return numA.compareTo(numB);
         }
+        // If numeric values are equal (e.g. "01" vs "001"), compare string lengths/representations
+        final strComp = chunkA.compareTo(chunkB);
+        if (strComp != 0) {
+          return strComp;
+        }
       } else {
         final comp = chunkA.toLowerCase().compareTo(chunkB.toLowerCase());
         if (comp != 0) {
@@ -28,7 +33,9 @@ class NaturalSort {
       }
     }
 
-    return matchesA.length.compareTo(matchesB.length);
+    final lenComp = matchesA.length.compareTo(matchesB.length);
+    if (lenComp != 0) return lenComp;
+    return a.compareTo(b);
   }
 }
 
