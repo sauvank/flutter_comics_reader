@@ -1,8 +1,12 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book_item.dart';
 import '../providers/library_provider.dart';
 import '../services/epub_service.dart';
@@ -28,69 +32,253 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
   int _currentChapterIndex = 0;
   bool _showControls = false;
   String _tocSearchQuery = '';
-  final Map<int, double> _chapterScrollOffsets = {};
+
+  Timer? _saveDebounceTimer;
+  double _lastSavedOffset = 0.0;
+  double _currentChapterProgress = 0.0;
+  bool _isRestoringPosition = false;
 
   @override
   void initState() {
     super.initState();
-    _currentChapterIndex = widget.book.currentPage;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _scrollController.addListener(_onScroll);
     _loadEpub();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _isRestoringPosition) return;
+
+    final offset = _scrollController.offset;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final ratio = maxExtent > 0 ? (offset / maxExtent).clamp(0.0, 1.0) : 0.0;
+
+    if ((ratio - _currentChapterProgress).abs() > 0.02 || (offset - _lastSavedOffset).abs() > 50) {
+      setState(() {
+        _currentChapterProgress = ratio;
+      });
+      _debounceSavePosition(offset, ratio);
+    }
+  }
+
+  void _debounceSavePosition(double offset, double ratio) {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(const Duration(milliseconds: 350), () {
+      _saveExactPosition(offset: offset, ratio: ratio);
+    });
+  }
+
+  Future<void> _saveExactPosition({double? offset, double? ratio}) async {
+    if (_chapters.isEmpty) return;
+
+    final effectiveOffset = offset ?? (_scrollController.hasClients ? _scrollController.offset : _lastSavedOffset);
+    final maxExtent = _scrollController.hasClients ? _scrollController.position.maxScrollExtent : 1.0;
+    final effectiveRatio = ratio ?? (maxExtent > 0 ? (effectiveOffset / maxExtent).clamp(0.0, 1.0) : 0.0);
+
+    _lastSavedOffset = effectiveOffset;
+    _currentChapterProgress = effectiveRatio;
+
+    final totalChapters = _chapters.length;
+    final totalBookProgress = totalChapters > 0
+        ? ((_currentChapterIndex + effectiveRatio) / totalChapters).clamp(0.0, 1.0)
+        : 0.0;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final progressData = {
+        'chapterIndex': _currentChapterIndex,
+        'scrollOffset': effectiveOffset,
+        'scrollRatio': effectiveRatio,
+        'totalProgress': totalBookProgress,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      await prefs.setString('epub_pos_${widget.book.id}', jsonEncode(progressData));
+    } catch (e) {
+      debugPrint('Error saving exact epub position: $e');
+    }
+
+    if (mounted) {
+      context.read<LibraryProvider>().updateBookProgress(
+            bookId: widget.book.id,
+            currentPage: _currentChapterIndex,
+            totalPages: totalChapters,
+            isCompleted: totalBookProgress >= 0.98,
+          );
+    }
   }
 
   Future<void> _loadEpub() async {
     final chapters = await EpubService.loadChapters(widget.book.localPath);
     if (!mounted) return;
 
+    if (chapters.isEmpty) {
+      setState(() {
+        _chapters = [];
+        _isLoading = false;
+      });
+      return;
+    }
+
+    int initialChapter = widget.book.currentPage;
+    double initialOffset = 0.0;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedJson = prefs.getString('epub_pos_${widget.book.id}');
+      if (savedJson != null) {
+        final data = jsonDecode(savedJson) as Map<String, dynamic>;
+        initialChapter = data['chapterIndex'] as int? ?? initialChapter;
+        initialOffset = (data['scrollOffset'] as num?)?.toDouble() ?? 0.0;
+      }
+    } catch (_) {}
+
+    if (initialChapter >= chapters.length || initialChapter < 0) {
+      initialChapter = 0;
+      initialOffset = 0.0;
+    }
+
     setState(() {
       _chapters = chapters;
+      _currentChapterIndex = initialChapter;
       _isLoading = false;
-      if (_currentChapterIndex >= _chapters.length || _currentChapterIndex < 0) {
-        _currentChapterIndex = 0;
-      }
     });
 
-    _saveProgress();
+    _restorePosition(initialOffset);
   }
 
-  void _saveProgress() {
-    if (_chapters.isEmpty) return;
-    context.read<LibraryProvider>().updateBookProgress(
-          bookId: widget.book.id,
-          currentPage: _currentChapterIndex,
-          totalPages: _chapters.length,
-        );
+  void _restorePosition(double targetOffset) {
+    if (targetOffset <= 0) return;
+    _isRestoringPosition = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (mounted && _scrollController.hasClients) {
+          final maxExtent = _scrollController.position.maxScrollExtent;
+          final clampedOffset = targetOffset.clamp(0.0, maxExtent);
+          _scrollController.jumpTo(clampedOffset);
+          _lastSavedOffset = clampedOffset;
+          _isRestoringPosition = false;
+        }
+      });
+    });
   }
 
-  void _goToChapter(int index) {
+  void _goToChapter(int index, {bool fromTop = true, double? initialOffset}) {
     if (index < 0 || index >= _chapters.length) return;
-    if (_scrollController.hasClients) {
-      _chapterScrollOffsets[_currentChapterIndex] = _scrollController.offset;
-    }
+
+    _saveDebounceTimer?.cancel();
+    _saveExactPosition();
+
     setState(() {
       _currentChapterIndex = index;
+      _currentChapterProgress = fromTop ? 0.0 : 1.0;
     });
+
+    _isRestoringPosition = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
-        final savedOffset = _chapterScrollOffsets[_currentChapterIndex] ?? 0.0;
-        _scrollController.jumpTo(savedOffset);
+        if (initialOffset != null) {
+          _scrollController.jumpTo(initialOffset.clamp(0.0, _scrollController.position.maxScrollExtent));
+        } else if (fromTop) {
+          _scrollController.jumpTo(0.0);
+        } else {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
+        _lastSavedOffset = _scrollController.offset;
+        _isRestoringPosition = false;
+        _saveExactPosition();
       }
     });
-    _saveProgress();
+  }
+
+  void _pageForward() {
+    if (!_scrollController.hasClients) return;
+
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    final currentOffset = _scrollController.offset;
+
+    // 15% overlap for comfortable reading continuity
+    final stepSize = viewportHeight * 0.85;
+
+    if (currentOffset + 25 >= maxExtent) {
+      // Reached the end of the chapter -> advance to next chapter
+      if (_currentChapterIndex < _chapters.length - 1) {
+        HapticFeedback.selectionClick();
+        _goToChapter(_currentChapterIndex + 1, fromTop: true);
+      } else {
+        HapticFeedback.lightImpact();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vous êtes arrivé à la fin du livre !'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } else {
+      final target = (currentOffset + stepSize).clamp(0.0, maxExtent);
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _pageBackward() {
+    if (!_scrollController.hasClients) return;
+
+    final viewportHeight = _scrollController.position.viewportDimension;
+    final currentOffset = _scrollController.offset;
+    final stepSize = viewportHeight * 0.85;
+
+    if (currentOffset <= 25) {
+      // Reached the top of the chapter -> go back to previous chapter
+      if (_currentChapterIndex > 0) {
+        HapticFeedback.selectionClick();
+        _goToChapter(_currentChapterIndex - 1, fromTop: false);
+      }
+    } else {
+      final target = (currentOffset - stepSize).clamp(0.0, _scrollController.position.maxScrollExtent);
+      _scrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  void _toggleBookmark() {
+    context.read<LibraryProvider>().toggleBookmark(
+          bookId: widget.book.id,
+          pageNumber: _currentChapterIndex,
+        );
   }
 
   @override
   void dispose() {
+    _saveDebounceTimer?.cancel();
+    _saveExactPosition();
     _focusNode.dispose();
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     _tocSearchController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
+  double get _totalProgress {
+    if (_chapters.isEmpty) return 0.0;
+    return ((_currentChapterIndex + _currentChapterProgress) / _chapters.length).clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<ReaderSettingsService>();
+    final library = context.watch<LibraryProvider>();
+    final currentBook = library.getBookById(widget.book.id) ?? widget.book;
+    final isBookmarked = currentBook.bookmarks.contains(_currentChapterIndex);
     final bgColor = settings.epubBackgroundColor;
     final textColor = settings.epubTextColor;
 
@@ -106,111 +294,119 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
           setState(() => _showControls = false);
           return;
         }
-        Navigator.of(context).pop();
+        final navigator = Navigator.of(context);
+        _saveExactPosition().then((_) {
+          if (mounted) navigator.pop();
+        });
       },
       child: KeyboardListener(
         focusNode: _focusNode,
         autofocus: true,
         onKeyEvent: (event) {
-        if (event is KeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
-              event.logicalKey == LogicalKeyboardKey.pageDown) {
-            _goToChapter(_currentChapterIndex + 1);
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
-              event.logicalKey == LogicalKeyboardKey.pageUp) {
-            _goToChapter(_currentChapterIndex - 1);
-          } else if (event.logicalKey == LogicalKeyboardKey.escape) {
-            Navigator.of(context).pop();
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowRight ||
+                event.logicalKey == LogicalKeyboardKey.space ||
+                event.logicalKey == LogicalKeyboardKey.pageDown) {
+              _pageForward();
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                event.logicalKey == LogicalKeyboardKey.backspace ||
+                event.logicalKey == LogicalKeyboardKey.pageUp) {
+              _pageBackward();
+            } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.of(context).pop();
+            }
           }
-        }
-      },
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: bgColor,
-        drawer: _buildTableOfContentsDrawer(settings),
-        body: _isLoading
-            ? Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Chargement du livre...',
-                      style: TextStyle(color: textColor.withAlpha(180)),
-                    ),
-                  ],
-                ),
-              )
-            : _chapters.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.error_outline_rounded, size: 64, color: textColor.withAlpha(120)),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Impossible de charger ce livre',
-                            style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w600),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Le format du fichier est peut-être corrompu ou non supporté.',
-                            style: TextStyle(color: textColor.withAlpha(150), fontSize: 14),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
-                          FilledButton.icon(
-                            onPressed: _loadEpub,
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Réessayer'),
-                            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
-                          ),
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.arrow_back_rounded),
-                            label: const Text('Retour à la bibliothèque'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : Stack(
+        },
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: bgColor,
+          drawer: _buildTableOfContentsDrawer(settings),
+          body: _isLoading
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Reader Content
-                      GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onTapUp: (details) {
-                          final screenWidth = MediaQuery.of(context).size.width;
-                          final tapX = details.globalPosition.dx;
-                          final leftBoundary = screenWidth * 0.30;
-                          final rightBoundary = screenWidth * 0.70;
+                      const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Chargement du livre...',
+                        style: TextStyle(color: textColor.withAlpha(180)),
+                      ),
+                    ],
+                  ),
+                )
+              : _chapters.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline_rounded, size: 64, color: textColor.withAlpha(120)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Impossible de charger ce livre',
+                              style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.w600),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Le format du fichier est peut-être corrompu ou non supporté.',
+                              style: TextStyle(color: textColor.withAlpha(150), fontSize: 14),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 24),
+                            FilledButton.icon(
+                              onPressed: _loadEpub,
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Réessayer'),
+                              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+                            ),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: const Icon(Icons.arrow_back_rounded),
+                              label: const Text('Retour à la bibliothèque'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Stack(
+                      children: [
+                        // Reader Content with 3-zone Tap Navigation
+                        GestureDetector(
+                          behavior: HitTestBehavior.translucent,
+                          onTapUp: (details) {
+                            final screenWidth = MediaQuery.of(context).size.width;
+                            final tapX = details.globalPosition.dx;
+                            final leftBoundary = screenWidth * 0.25;
+                            final rightBoundary = screenWidth * 0.75;
 
-                          if (tapX < leftBoundary) {
-                            _goToChapter(_currentChapterIndex - 1);
-                          } else if (tapX > rightBoundary) {
-                            _goToChapter(_currentChapterIndex + 1);
-                          } else {
-                            setState(() => _showControls = !_showControls);
-                          }
-                        },
-                        child: Center(
+                            if (tapX < leftBoundary) {
+                              _pageBackward();
+                            } else if (tapX > rightBoundary) {
+                              _pageForward();
+                            } else {
+                              setState(() => _showControls = !_showControls);
+                            }
+                          },
+                          child: Center(
                             child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 860),
+                              constraints: const BoxConstraints(maxWidth: 820),
                               child: SingleChildScrollView(
                                 controller: _scrollController,
+                                physics: const ClampingScrollPhysics(),
                                 padding: EdgeInsets.symmetric(
                                   horizontal: settings.epubHorizontalPadding,
-                                  vertical: 60,
+                                  vertical: 40,
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 28),
+
+                                    // Chapter Header
                                     Text(
                                       _chapters[_currentChapterIndex].title,
                                       style: TextStyle(
@@ -221,7 +417,9 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                         height: 1.3,
                                       ),
                                     ),
-                                    const SizedBox(height: 20),
+                                    const SizedBox(height: 24),
+
+                                    // HTML Rendered Content
                                     HtmlWidget(
                                       _chapters[_currentChapterIndex].htmlContent,
                                       textStyle: TextStyle(
@@ -233,7 +431,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                       customStylesBuilder: (element) {
                                         final styles = <String, String>{};
                                         if (element.localName == 'p') {
-                                          styles['margin-bottom'] = '1.1em';
+                                          styles['margin-bottom'] = '1.15em';
                                           styles['text-align'] = settings.epubTextAlign == EpubTextAlign.justify
                                               ? 'justify'
                                               : 'left';
@@ -241,30 +439,13 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                         return styles.isNotEmpty ? styles : null;
                                       },
                                     ),
+
                                     const SizedBox(height: 48),
-                                    // Bottom chapter navigation
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        if (_currentChapterIndex > 0)
-                                          FilledButton.tonalIcon(
-                                            onPressed: () => _goToChapter(_currentChapterIndex - 1),
-                                            icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                                            label: const Text('Chapitre précédent'),
-                                          )
-                                        else
-                                          const SizedBox.shrink(),
-                                        if (_currentChapterIndex < _chapters.length - 1)
-                                          FilledButton.icon(
-                                            onPressed: () => _goToChapter(_currentChapterIndex + 1),
-                                            icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                                            label: const Text('Chapitre suivant'),
-                                          )
-                                        else
-                                          const SizedBox.shrink(),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 60),
+
+                                    // Refined Literary Chapter Ending
+                                    _buildChapterEndingSection(textColor),
+
+                                    const SizedBox(height: 48),
                                   ],
                                 ),
                               ),
@@ -272,143 +453,324 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                           ),
                         ),
 
-                      // Top Navigation Bar
-                      if (_showControls)
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            color: Colors.black.withAlpha(220),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        // Discreet Minimal Reading Status Bar (when controls hidden)
+                        if (!_showControls && settings.showPageNumbers)
+                          Positioned(
+                            bottom: 12,
+                            left: 20,
+                            right: 20,
                             child: SafeArea(
-                              bottom: false,
                               child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-                                    onPressed: () => Navigator.of(context).pop(),
-                                  ),
                                   Expanded(
                                     child: Text(
-                                      widget.book.title,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
+                                      _chapters[_currentChapterIndex].title,
+                                      style: TextStyle(
+                                        color: textColor.withAlpha(90),
+                                        fontSize: 11,
+                                        fontFamily: settings.epubFontFamilyName,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
-                                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                                    tooltip: 'Table des matières',
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.text_format_rounded, color: Colors.white),
-                                    onPressed: () => _showSettingsModal(context, settings),
-                                    tooltip: 'Personnaliser la lecture',
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    '${(_totalProgress * 100).toInt()}% • Chap. ${_currentChapterIndex + 1}/${_chapters.length}',
+                                    style: TextStyle(
+                                      color: textColor.withAlpha(110),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        ),
 
-                      // Bottom Progress & Chapter Slider
-                      if (_showControls)
-                        Positioned(
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            color: Colors.black.withAlpha(220),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            child: SafeArea(
-                              top: false,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.skip_previous_rounded, color: Colors.white70),
-                                        onPressed: _currentChapterIndex > 0
-                                            ? () => _goToChapter(_currentChapterIndex - 1)
-                                            : null,
-                                      ),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // Frosted Glass Top Navigation Bar
+                        if (_showControls)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: ClipRect(
+                              child: BackdropFilter(
+                                filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                                child: Container(
+                                  color: Colors.black.withAlpha(190),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                  child: SafeArea(
+                                    bottom: false,
+                                    child: Row(
+                                      children: [
+                                        IconButton(
+                                          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            widget.book.title,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(
+                                            isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                                            color: isBookmarked ? const Color(0xFF8B5CF6) : Colors.white,
+                                          ),
+                                          onPressed: _toggleBookmark,
+                                          tooltip: 'Marque-page',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.menu_book_rounded, color: Colors.white),
+                                          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                                          tooltip: 'Table des matières',
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.text_format_rounded, color: Colors.white),
+                                          onPressed: () => _showSettingsModal(context, settings),
+                                          tooltip: 'Personnaliser la lecture',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Frosted Glass Bottom Progress Bar & Slider
+                        if (_showControls)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: ClipRect(
+                              child: BackdropFilter(
+                                filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                                child: Container(
+                                  color: Colors.black.withAlpha(190),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                  child: SafeArea(
+                                    top: false,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
                                           children: [
-                                            Text(
-                                              'Chapitre ${_currentChapterIndex + 1} / ${_chapters.length}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
+                                            IconButton(
+                                              icon: const Icon(Icons.skip_previous_rounded, color: Colors.white70),
+                                              onPressed: _currentChapterIndex > 0
+                                                  ? () => _goToChapter(_currentChapterIndex - 1, fromTop: true)
+                                                  : null,
+                                            ),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Chapitre ${_currentChapterIndex + 1} / ${_chapters.length}',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                  Text(
+                                                    _chapters[_currentChapterIndex].title,
+                                                    style: TextStyle(
+                                                      color: Colors.white.withAlpha(170),
+                                                      fontSize: 11,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ],
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
                                             ),
                                             Text(
-                                              _chapters[_currentChapterIndex].title,
-                                              style: TextStyle(
-                                                color: Colors.white.withAlpha(180),
-                                                fontSize: 11,
+                                              '${(_totalProgress * 100).toInt()}%',
+                                              style: const TextStyle(
+                                                color: Color(0xFF8B5CF6),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
                                               ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(Icons.skip_next_rounded, color: Colors.white70),
+                                              onPressed: _currentChapterIndex < _chapters.length - 1
+                                                  ? () => _goToChapter(_currentChapterIndex + 1, fromTop: true)
+                                                  : null,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                      Text(
-                                        '${((_currentChapterIndex + 1) / _chapters.length * 100).toInt()}%',
-                                        style: const TextStyle(
-                                          color: Color(0xFF8B5CF6),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
+                                        SliderTheme(
+                                          data: SliderTheme.of(context).copyWith(
+                                            activeTrackColor: const Color(0xFF8B5CF6),
+                                            inactiveTrackColor: Colors.white24,
+                                            thumbColor: Colors.white,
+                                            trackHeight: 3,
+                                          ),
+                                          child: Slider(
+                                            value: _currentChapterIndex.toDouble(),
+                                            min: 0,
+                                            max: math.max(0, _chapters.length - 1).toDouble(),
+                                            divisions: _chapters.length > 1 ? _chapters.length - 1 : 1,
+                                            onChanged: (val) {
+                                              _goToChapter(val.toInt(), fromTop: true);
+                                            },
+                                          ),
                                         ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.skip_next_rounded, color: Colors.white70),
-                                        onPressed: _currentChapterIndex < _chapters.length - 1
-                                            ? () => _goToChapter(_currentChapterIndex + 1)
-                                            : null,
-                                      ),
-                                    ],
-                                  ),
-                                  SliderTheme(
-                                    data: SliderTheme.of(context).copyWith(
-                                      activeTrackColor: const Color(0xFF8B5CF6),
-                                      inactiveTrackColor: Colors.white24,
-                                      thumbColor: Colors.white,
-                                      trackHeight: 3,
-                                    ),
-                                    child: Slider(
-                                      value: _currentChapterIndex.toDouble(),
-                                      min: 0,
-                                      max: math.max(0, _chapters.length - 1).toDouble(),
-                                      divisions: _chapters.length > 1 ? _chapters.length - 1 : 1,
-                                      onChanged: (val) {
-                                        _goToChapter(val.toInt());
-                                      },
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
+                      ],
+                    ),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
+  /// Elegant literary chapter ending without clunky buttons
+  Widget _buildChapterEndingSection(Color textColor) {
+    final hasNext = _currentChapterIndex < _chapters.length - 1;
+
+    return Center(
+      child: Column(
+        children: [
+          // Literary divider
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(width: 40, height: 1, color: textColor.withAlpha(40)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  '✦  ✦  ✦',
+                  style: TextStyle(
+                    color: textColor.withAlpha(90),
+                    fontSize: 11,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              Container(width: 40, height: 1, color: textColor.withAlpha(40)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Fin du Chapitre ${_currentChapterIndex + 1}',
+            style: TextStyle(
+              color: textColor.withAlpha(120),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Next chapter card preview
+          if (hasNext)
+            InkWell(
+              onTap: () => _goToChapter(_currentChapterIndex + 1, fromTop: true),
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: textColor.withAlpha(12),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: textColor.withAlpha(24)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8B5CF6).withAlpha(30),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 18,
+                        color: Color(0xFF8B5CF6),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CHAPITRE SUIVANT',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                              color: Color(0xFF8B5CF6),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _chapters[_currentChapterIndex + 1].title,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: textColor.withAlpha(140)),
+                  ],
+                ),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withAlpha(20),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(50)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle_outline_rounded, color: Color(0xFF8B5CF6), size: 20),
+                  SizedBox(width: 10),
+                  Text(
+                    'Vous avez terminé ce livre !',
+                    style: TextStyle(
+                      color: Color(0xFF8B5CF6),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildTableOfContentsDrawer(ReaderSettingsService settings) {
     final filteredChapters = _tocSearchQuery.isEmpty
