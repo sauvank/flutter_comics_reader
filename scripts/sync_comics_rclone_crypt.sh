@@ -138,7 +138,7 @@ if [ "$PDF_COUNT" -gt 0 ]; then
     fi
 
     if [ -f "$PDF_CONVERTER" ]; then
-        python3 "$PDF_CONVERTER" "$SOURCE_PATH"
+        PYTHONUNBUFFERED=1 python3 -u "$PDF_CONVERTER" "$SOURCE_PATH"
     else
         echo -e "${RED}❌ Script convert_pdf_to_cbz.py introuvable dans $SCRIPT_DIR.${NC}"
         exit 1
@@ -160,6 +160,7 @@ echo ""
 # Options :
 # sync : Copie carbone exacte (miroir parfait de la source vers le distant)
 # -P : Affichage de la progression en temps réel
+# --stats 3s : Actualisation de la vitesse et des fichiers toutes les 3 secondes
 # --fast-list : Optimise les requêtes pour lister les fichiers
 # --transfers 2 : Téléverse 2 gros fichiers en parallèle
 # --tpslimit 5 : Limite le nombre de requêtes par seconde pour éviter les blocages API
@@ -168,6 +169,7 @@ echo ""
 # --timeout 30m : Laisse le temps pour les très gros fichiers
 rclone sync "$SOURCE_PATH" "${REMOTE_NAME}:" \
     --progress \
+    --stats 3s \
     --transfers 2 \
     --tpslimit 5 \
     --checkers 4 \

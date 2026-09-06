@@ -201,11 +201,11 @@ def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95
 
             cmd.extend([pdf_path, os.path.join(temp_dir, "page")])
             
-            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True, bufsize=1)
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             
             last_logged_page = 0
-            for line in proc.stderr:
-                line = line.strip()
+            for raw_line in iter(proc.stderr.readline, ''):
+                line = raw_line.strip()
                 if not line:
                     continue
                 parts = line.split()
@@ -213,10 +213,13 @@ def convert_single_pdf(pdf_path, index, total, base_root="", dpi=300, quality=95
                     curr_p = int(parts[0])
                     tot_p = int(parts[1])
                     
-                    if curr_p == 1 or curr_p == tot_p or (curr_p - last_logged_page) >= 25:
+                    # Intervalle dynamique pour un suivi réactif en temps réel
+                    step = 5 if tot_p <= 50 else (10 if tot_p <= 150 else 15)
+                    
+                    if curr_p == 1 or curr_p == tot_p or (curr_p - last_logged_page) >= step:
                         last_logged_page = curr_p
                         pct = int((curr_p / tot_p) * 100)
-                        print_log(f"   {YELLOW}↳ {tag} Rendu Ultra HD ({base_name[:32]}...):{NC} page {curr_p}/{tot_p} ({pct}%)")
+                        print_log(f"   {YELLOW}↳ {tag} Rendu Ultra HD ({base_name[:30]}...):{NC} page {curr_p}/{tot_p} ({pct}%)")
             
             proc.wait()
             if proc.returncode != 0:
