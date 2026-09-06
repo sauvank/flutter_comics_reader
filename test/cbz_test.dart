@@ -5,6 +5,8 @@ import 'package:comic_reader_app/services/cbz_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('CBZ Archive Fast Mode Tests', () {
     test('Creates and parses uncompressed STORE zip archive correctly', () {
       final archive = Archive();
@@ -84,6 +86,33 @@ void main() {
       expect(pages[1].name, 'page_0002.jpg');
       expect(pages[2].pageIndex, 2);
       expect(pages[2].name, 'page_0003.jpg');
+
+      await tempDir.delete(recursive: true);
+    });
+
+    test('InputFileStream reads only needed page without loading full file', () async {
+      final archive = Archive();
+      final img1Data = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x01, 0x02, 0x03]);
+      final img2Data = Uint8List.fromList([0xFF, 0xD8, 0xFF, 0xE0, 0x04, 0x05, 0x06]);
+
+      archive.addFile(ArchiveFile('page_0001.jpg', img1Data.length, img1Data));
+      archive.addFile(ArchiveFile('page_0002.jpg', img2Data.length, img2Data));
+
+      final zipBytes = ZipEncoder().encode(archive, level: DeflateLevel.none);
+
+      final tempDir = await Directory.systemTemp.createTemp('cbz_stream_test_');
+      final cbzFile = File('${tempDir.path}/comic.cbz');
+      await cbzFile.writeAsBytes(zipBytes);
+
+      final cached = await CbzService.loadAndCachePage(
+        cbzFilePath: cbzFile.path,
+        bookId: 'test_stream_book',
+        pageIndex: 1,
+      );
+
+      expect(cached, isNotNull);
+      expect(await File(cached!).exists(), true);
+      expect(await File(cached).readAsBytes(), img2Data);
 
       await tempDir.delete(recursive: true);
     });
