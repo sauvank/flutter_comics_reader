@@ -271,31 +271,50 @@ def convert_single_pdf(pdf_path, dpi=300, quality=95, format_type="jpeg", keep_p
                 "msg": "Aucune image trouvée dans le fichier"
             }
         
-        num_pages = len(image_files)
-        
-        # 4. Création de l'archive CBZ standardisée avec noms séquentiels normalisés
-        with zipfile.ZipFile(tmp_cbz, 'w', zipfile.ZIP_STORED) as zf:
+        # 4. Création de l'archive CBZ standardisée EN LOCAL (SSD rapide, évite les verrous CIFS)
+        local_cbz = os.path.join(temp_dir, "comic_archive.cbz")
+        with zipfile.ZipFile(local_cbz, 'w', zipfile.ZIP_STORED, allowZip64=True) as zf:
             for idx, img_path in enumerate(image_files, start=1):
                 ext = os.path.splitext(img_path)[1].lower()
                 entry_name = f"page_{idx:04d}{ext}"
                 zf.write(img_path, arcname=entry_name)
         
-        # 5. Déplacement atomique du CBZ final
-        if os.path.exists(dest_cbz):
-            os.remove(dest_cbz)
-        os.replace(tmp_cbz, dest_cbz)
-        
-        # 6. Contrôle d'intégrité strict du CBZ final
-        if not is_valid_cbz(dest_cbz):
-            if os.path.exists(dest_cbz):
-                os.remove(dest_cbz)
+        # 5. Contrôle d'intégrité strict du CBZ EN LOCAL (Instantané et 100% fiable)
+        if not is_valid_cbz(local_cbz):
             return {
                 "status": "ERROR",
                 "pdf": pdf_path,
                 "cbz": dest_cbz,
                 "pages": 0,
                 "type": detected_type,
-                "msg": "Échec de validation de l'archive CBZ générée"
+                "msg": "Échec de validation locale de l'archive CBZ générée"
+            }
+        
+        # 6. Transfert sécurisé vers le dossier de destination (NAS CIFS ou Disque Local)
+        dest_tmp = dest_cbz + f".tmp_{os.getpid()}"
+        if os.path.exists(dest_tmp):
+            try:
+                os.remove(dest_tmp)
+            except Exception:
+                pass
+        
+        shutil.copyfile(local_cbz, dest_tmp)
+        if os.path.exists(dest_cbz):
+            try:
+                os.remove(dest_cbz)
+            except Exception:
+                pass
+        os.replace(dest_tmp, dest_cbz)
+        
+        # Vérification finale de la présence sur la destination
+        if not os.path.exists(dest_cbz) or os.path.getsize(dest_cbz) == 0:
+            return {
+                "status": "ERROR",
+                "pdf": pdf_path,
+                "cbz": dest_cbz,
+                "pages": 0,
+                "type": detected_type,
+                "msg": "Le fichier CBZ final n'a pas pu être écrit sur le stockage de destination"
             }
         
         # 7. Suppression sécurisée du fichier source d'origine
