@@ -346,31 +346,7 @@ class WebDavService {
       }
     } catch (_) {}
 
-    // 2. High-speed 2-part parallel download for large files (>= 16MB)
-    if (totalBytes >= 16 * 1024 * 1024) {
-      try {
-        await _downloadMultiPart(
-          downloadUrl: downloadUrl,
-          destinationLocalPath: destinationLocalPath,
-          server: server,
-          totalBytes: totalBytes,
-          onProgress: onProgress,
-          cancelToken: cancelToken,
-        );
-        return;
-      } catch (e) {
-        if (cancelToken?.isCancelled == true) rethrow;
-        debugPrint('Multi-part download fallback to direct stream: $e');
-      }
-    }
-
     final tempFile = File('$destinationLocalPath.tmp');
-    if (await tempFile.exists()) {
-      try {
-        await tempFile.delete();
-      } catch (_) {}
-    }
-
     int attempts = 0;
     const maxAttempts = 3;
     dynamic lastError;
@@ -378,22 +354,56 @@ class WebDavService {
     while (attempts < maxAttempts) {
       attempts++;
       if (cancelToken?.isCancelled == true) {
+        if (await tempFile.exists()) {
+          try {
+            await tempFile.delete();
+          } catch (_) {}
+        }
         throw DioException(
           requestOptions: RequestOptions(path: downloadUrl),
           type: DioExceptionType.cancel,
         );
       }
 
+      int existingBytes = 0;
+      if (await tempFile.exists()) {
+        existingBytes = await tempFile.length();
+      }
+
+      // If already fully downloaded from a previous attempt
+      if (totalBytes > 0 && existingBytes == totalBytes) {
+        final finalFile = File(destinationLocalPath);
+        if (await finalFile.exists()) {
+          try {
+            await finalFile.delete();
+          } catch (_) {}
+        }
+        try {
+          await tempFile.rename(destinationLocalPath);
+        } catch (_) {
+          await tempFile.copy(destinationLocalPath);
+          await tempFile.delete().catchError((_) => tempFile);
+        }
+        onProgress(totalBytes, totalBytes);
+        return;
+      }
+
       try {
+        final headers = <String, dynamic>{...getHeaders(server)};
+        if (existingBytes > 0) {
+          headers['Range'] = 'bytes=$existingBytes-';
+        }
+
         final response = await _dio.get<ResponseBody>(
           downloadUrl,
           cancelToken: cancelToken,
           options: Options(
-            headers: getHeaders(server),
+            headers: headers,
             responseType: ResponseType.stream,
             followRedirects: true,
             maxRedirects: 10,
-            receiveTimeout: const Duration(seconds: 45),
+            receiveTimeout: const Duration(seconds: 60),
+            sendTimeout: const Duration(seconds: 20),
           ),
         );
 
@@ -402,13 +412,20 @@ class WebDavService {
           throw Exception('Réponse vide du serveur');
         }
 
+        final isPartial = response.statusCode == 206;
         final lengthHeader = response.headers.value(Headers.contentLengthHeader);
         if (totalBytes <= 0 && lengthHeader != null && lengthHeader.isNotEmpty) {
-          totalBytes = int.tryParse(lengthHeader) ?? -1;
+          final contentLen = int.tryParse(lengthHeader) ?? -1;
+          if (contentLen > 0) {
+            totalBytes = isPartial ? existingBytes + contentLen : contentLen;
+          }
         }
 
-        int receivedBytes = 0;
-        final sink = tempFile.openWrite(mode: FileMode.writeOnly);
+        // If server returned 200 instead of 206, it restarted the stream from 0
+        final writeMode = (isPartial && existingBytes > 0) ? FileMode.append : FileMode.writeOnly;
+        int receivedBytes = (isPartial && existingBytes > 0) ? existingBytes : 0;
+
+        final sink = tempFile.openWrite(mode: writeMode);
 
         try {
           await for (final chunk in responseBody.stream) {
@@ -421,7 +438,7 @@ class WebDavService {
             }
             sink.add(chunk);
             receivedBytes += chunk.length;
-            onProgress(receivedBytes, totalBytes);
+            onProgress(receivedBytes, totalBytes > 0 ? totalBytes : receivedBytes);
           }
           await sink.flush();
         } finally {
@@ -455,19 +472,18 @@ class WebDavService {
 
         if (e is DioException && e.type == DioExceptionType.badResponse) {
           final code = e.response?.statusCode ?? 0;
-          if (code >= 400 && code < 500) {
+          if (code >= 400 && code < 500 && code != 416) {
             rethrow; // Don't retry client errors (401, 403, 404...)
+          }
+          // If 416 Range Not Satisfiable, delete temp file and retry from 0
+          if (code == 416 && await tempFile.exists()) {
+            try {
+              await tempFile.delete();
+            } catch (_) {}
           }
         }
 
         debugPrint('WebDAV download attempt $attempts/$maxAttempts failed for $remoteRelativePath: $e');
-
-        // Delete partially written temp file before next attempt
-        if (await tempFile.exists()) {
-          try {
-            await tempFile.delete();
-          } catch (_) {}
-        }
 
         if (attempts < maxAttempts) {
           await Future.delayed(Duration(milliseconds: 600 * attempts));
@@ -477,116 +493,6 @@ class WebDavService {
 
     if (lastError != null) {
       throw lastError;
-    }
-  }
-
-  /// Multi-connection segmented downloader (2 parallel chunks for safe NAS/WAN saturation)
-  Future<void> _downloadMultiPart({
-    required String downloadUrl,
-    required String destinationLocalPath,
-    required ServerProfile server,
-    required int totalBytes,
-    required void Function(int receivedBytes, int totalBytes) onProgress,
-    CancelToken? cancelToken,
-  }) async {
-    const int numParts = 2;
-    final partSize = (totalBytes / numParts).ceil();
-    final List<File> partFiles = [];
-    final List<int> partProgress = List.filled(numParts, 0);
-
-    for (int i = 0; i < numParts; i++) {
-      final partFile = File('$destinationLocalPath.part$i');
-      if (await partFile.exists()) {
-        try {
-          await partFile.delete();
-        } catch (_) {}
-      }
-      partFiles.add(partFile);
-    }
-
-    try {
-      final futures = <Future<void>>[];
-
-      for (int i = 0; i < numParts; i++) {
-        final start = i * partSize;
-        final end = (i == numParts - 1) ? totalBytes - 1 : ((i + 1) * partSize - 1);
-        final partIndex = i;
-        final partFile = partFiles[i];
-
-        futures.add(() async {
-          final partSink = partFile.openWrite(mode: FileMode.writeOnly);
-          try {
-            final response = await _dio.get<ResponseBody>(
-              downloadUrl,
-              cancelToken: cancelToken,
-              options: Options(
-                headers: {
-                  ...getHeaders(server),
-                  'Range': 'bytes=$start-$end',
-                },
-                responseType: ResponseType.stream,
-                followRedirects: true,
-                maxRedirects: 10,
-                receiveTimeout: const Duration(seconds: 45),
-              ),
-            );
-
-            // Server MUST return 206 Partial Content. If 200, Range is unsupported!
-            if (response.statusCode != 206) {
-              throw Exception('Server does not support Range requests (HTTP ${response.statusCode})');
-            }
-
-            final stream = response.data?.stream;
-            if (stream == null) throw Exception('Null stream for part $partIndex');
-
-            await for (final chunk in stream) {
-              if (cancelToken?.isCancelled == true) {
-                await partSink.close();
-                throw DioException(
-                  requestOptions: RequestOptions(path: downloadUrl),
-                  type: DioExceptionType.cancel,
-                );
-              }
-              partSink.add(chunk);
-              partProgress[partIndex] += chunk.length;
-              final currentTotal = partProgress.fold<int>(0, (sum, p) => sum + p);
-              onProgress(currentTotal.clamp(0, totalBytes), totalBytes);
-            }
-            await partSink.flush();
-          } finally {
-            await partSink.close();
-          }
-        }());
-      }
-
-      await Future.wait(futures);
-
-      // Concatenate all parts into the final destination file
-      final finalFile = File(destinationLocalPath);
-      if (await finalFile.exists()) {
-        try {
-          await finalFile.delete();
-        } catch (_) {}
-      }
-
-      final finalSink = finalFile.openWrite(mode: FileMode.writeOnly);
-      try {
-        for (final partFile in partFiles) {
-          await finalSink.addStream(partFile.openRead());
-        }
-        await finalSink.flush();
-      } finally {
-        await finalSink.close();
-      }
-    } finally {
-      // Clean up part files
-      for (final partFile in partFiles) {
-        if (await partFile.exists()) {
-          try {
-            await partFile.delete();
-          } catch (_) {}
-        }
-      }
     }
   }
 }
