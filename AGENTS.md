@@ -18,3 +18,9 @@ flutter test
 
 ## 🚀 Workflow de Release
 - Incrémentation automatique de version & tag Git : `./scripts/bump_and_push.sh`
+
+## 🔄 Synchronisation du Contexte & Documentation
+À chaque évolution, ajout de fonctionnalité ou refonte technique :
+- **Mettre à jour systématiquement** les fichiers de documentation associés (`docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `README.md`).
+- Maintenir une cohérence parfaite entre le code réel et les spécifications documentées.
+

@@ -8,6 +8,10 @@
 ## 🧪 Validation & Tests
 - Exécuter `flutter analyze` et `flutter test` avant tout commit.
 
-## 📦 Conventions
+## 📦 Conventions & Release
 - Suivre **Conventional Commits**.
 - Utiliser `./scripts/bump_and_push.sh` pour incrémenter et tagger les versions.
+
+## 🔄 Mise à jour du Contexte & Documentation
+- **Répercussion systématique** : Lors de tout changement fonctionnel, architectural ou d'infrastructure, mettre à jour immédiatement les fichiers de contexte correspondants (`docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `README.md`).
+

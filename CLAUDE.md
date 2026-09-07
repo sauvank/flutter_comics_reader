@@ -20,3 +20,9 @@ flutter test
 ## 🏷️ Commits & Releases
 - Adopter la convention **Conventional Commits** (`feat:`, `fix:`, `perf:`, `chore:`, `docs:`, etc.).
 - Pour incrémenter la version, créer le tag et pousser : `./scripts/bump_and_push.sh [patch|minor|major]`
+
+## 🔄 Synchronisation du Contexte & Documentation
+À chaque évolution, ajout de fonctionnalité ou refonte technique :
+- **Mettre à jour systématiquement** les fichiers de documentation correspondants dans `docs/` (`docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `README.md`).
+- Veiller à ce que l'état d'avancement, les formats pris en charge et la structure des données reflètent toujours fidèlement le code réel.
+

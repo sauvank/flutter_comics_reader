@@ -8,3 +8,7 @@
 - Analyse : `flutter analyze`
 - Tests unitaires : `flutter test`
 - Déploiement / Bump de version : `./scripts/bump_and_push.sh`
+
+## 🔄 Synchronisation du Contexte
+- Toute évolution technique, ajout d'une fonctionnalité ou refonte doit être répercutée dans les fichiers de documentation associés (`docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `README.md`).
+
