@@ -1,0 +1,79 @@
+[
+  {
+    "file": "exports/feature-graphic.jpg",
+    "width": 1024,
+    "height": 500,
+    "bytes": 142216,
+    "sha256": "51048988cc364eecc6abb9444f31dca1674bc82857702d712fa5fb89fb4d0c0f"
+  },
+  {
+    "file": "exports/phone/01-library.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 443063,
+    "sha256": "c4c7b5833c7690e783a669b4dc3001b6cfb66474db491184630e9e7ca8240ce5"
+  },
+  {
+    "file": "exports/phone/02-reader.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 541717,
+    "sha256": "3c957bb07d1ab1c50eb4c88d613fb9a8faa880f6924ee07b456187249f1415e5"
+  },
+  {
+    "file": "exports/phone/03-vertical.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 581524,
+    "sha256": "b88ad1b65b3a9f73a9d334d76c426b72cde9b7c51278f1095979b2590905c697"
+  },
+  {
+    "file": "exports/phone/04-settings.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 298714,
+    "sha256": "3b1f5ca1185b8a64ad1e39ef3b62cd5fb6589e14f8bfdee5be337e717f1d14b1"
+  },
+  {
+    "file": "exports/phone/05-servers.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 175621,
+    "sha256": "2dcc0b764f6d39a81459c85e8d2b79523bfa98bf3f0a54aa85b36b4c1f873277"
+  },
+  {
+    "file": "exports/phone/06-favorites.jpg",
+    "width": 1080,
+    "height": 1920,
+    "bytes": 409194,
+    "sha256": "633bf25d04b3f3b31c64e6aab57a63d3bec1f6e2a245e58a52048f49bd5fbc60"
+  },
+  {
+    "file": "exports/tablet/01-library.jpg",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 480170,
+    "sha256": "f2f90694e6dc133ef7e907fbe01dcb10c7e6bce1e07e3aa46af10f3d562bec94"
+  },
+  {
+    "file": "exports/tablet/02-reader.jpg",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 901729,
+    "sha256": "f57a5d42af1a393ddd91abc10a6b5f839e20750292d9fa01acf7de732d61b45f"
+  },
+  {
+    "file": "exports/tablet/03-settings.jpg",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 541322,
+    "sha256": "b45d78b51d02e89f31a6472df244ed009c6857b6acb1eed2e59c8ce1a1c463cd"
+  },
+  {
+    "file": "exports/tablet/04-servers.jpg",
+    "width": 1200,
+    "height": 1920,
+    "bytes": 86176,
+    "sha256": "8282d5c3dc731ce6ed8865292ce6f223dab25220fbaa0da18345298cb5347da4"
+  }
+]

@@ -1,5 +1,9 @@
 # 📖 Contexte & Spécifications Techniques — ComicStream
 
+## Présentation Google Play
+
+Le kit `marketing/play-store/` utilise la vraie interface de ComicStream avec des livres et profils serveurs fictifs. Les illustrations de démonstration restent hors des assets de production. Voir le [guide du kit](../marketing/play-store/README.md) pour les exports, leur provenance et leur régénération.
+
 Ce document résume l'environnement matériel, l'infrastructure serveur, les protocoles réseau, et l'état actuel de l'application **ComicStream**.
 
 > [!CAUTION]

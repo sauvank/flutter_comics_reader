@@ -1,5 +1,9 @@
 # 📚 ComicStream - Lecteur BD / Manga & Client Serveur Local Flutter
 
+## Visuels Google Play
+
+Le [kit de présentation en français](marketing/play-store/README.md) contient six visuels téléphone, quatre captures tablette et une bannière, issus de la vraie interface avec des livres fictifs. Les sources et scripts permettent de renouveler les captures.
+
 Application mobile et desktop Flutter permettant de se connecter à un serveur local (WebDAV ou HTTP), d'explorer ses dossiers de bandes dessinées et mangas, de les télécharger en local sur l'appareil et de les lire hors-ligne avec un lecteur complet et optimisé.
 
 ---

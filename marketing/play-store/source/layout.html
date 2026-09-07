@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<title>ComicStream — Google Play</title>
+<style>
+@font-face{font-family:Manrope;src:url('./fonts/Manrope.ttf');font-weight:200 800;font-display:block}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:Manrope,sans-serif;background:#201b38;color:#fff8ec}
+.canvas{width:1080px;height:1920px;position:relative;overflow:hidden;background:var(--bg);color:var(--fg)}
+.canvas::before{content:"";position:absolute;width:1480px;height:1480px;border:2px solid var(--line);border-radius:50%;left:140px;top:810px;box-shadow:0 0 0 100px var(--wash),0 0 0 102px var(--line)}
+.brand{position:absolute;top:67px;left:86px;display:flex;align-items:center;gap:17px;font-size:30px;font-weight:800;letter-spacing:-1px}
+.mark{width:35px;height:29px;display:flex;gap:5px;transform:skewY(-8deg)}.mark i{display:block;width:15px;height:29px;background:currentColor;border-radius:3px}
+.index{position:absolute;right:86px;top:74px;font-size:20px;font-weight:600;opacity:.6;letter-spacing:3px}
+.copy{position:absolute;top:167px;left:86px;right:70px}h1{font-size:80px;line-height:1.07;letter-spacing:-4.5px;font-weight:800;margin:0}p{font-size:28px;line-height:1.45;letter-spacing:-.5px;margin:26px 0 0;opacity:.84}
+.screen{position:absolute;left:144px;top:456px;width:792px;height:1408px;border-radius:24px;overflow:hidden;box-shadow:0 30px 70px #0005,0 0 0 2px var(--line);background:#13151f}.screen img{display:block;width:100%;height:100%;object-fit:contain}
+.feature{width:1024px;height:500px;background:#201b38;color:#fff8ec}.feature::before{top:120px;left:540px;width:650px;height:650px}.feature .brand{top:66px;left:57px;font-size:33px}.feature .copy{top:161px;left:57px;right:auto;width:525px}.feature h1{font-size:58px;letter-spacing:-2.9px;line-height:1.07}.feature p{font-size:21px;margin-top:23px;max-width:370px}.mini{position:absolute;width:223px;height:396px;border-radius:15px;overflow:hidden;box-shadow:0 17px 40px #0006,0 0 0 1px #ffffff35;transform:rotate(-7deg);left:557px;top:104px}.mini img{width:100%;height:100%;display:block}.mini.second{left:762px;top:28px;transform:rotate(7deg)}
+.raw{width:1200px;height:1920px}.raw img{display:block;width:1200px;height:1920px}
+/* Android returns the physical 1200px surface with 60px side bars in phone mode. */
+.screen img,.mini img{width:111.111111%;max-width:none;margin-left:-5.555556%;height:100%;object-fit:fill}
+</style>
+<main id="canvas"></main>
+<script>
+const cards = [
+ {id:'01-library',title:'Vos BD.<br>Votre univers.',caption:'Vos fichiers, votre bibliothèque.',bg:'#29213f',fg:'#fff8ec',line:'#c2abe44a',wash:'#c2abe407'},
+ {id:'02-reader',title:'Ouvrez.<br>Évadez-vous.',caption:'Lecture page par page, zoom au geste.',bg:'#e8f1e9',fg:'#193e3a',line:'#406f6440',wash:'#406f6405'},
+ {id:'03-vertical',title:'Faites défiler<br>vos histoires.',caption:'Le mode vertical, à votre rythme.',bg:'#f5e6d5',fg:'#442d39',line:'#986f8140',wash:'#986f8105'},
+ {id:'04-settings',title:'Votre lecture.<br>Vos réglages.',caption:'Sens de lecture, ajustement et fond.',bg:'#3d315e',fg:'#fff8ec',line:'#dfc9ff40',wash:'#dfc9ff06'},
+ {id:'05-servers',title:'Votre collection,<br>connectée.',caption:'Vos serveurs WebDAV, HTTP et FTP.',bg:'#dcebe8',fg:'#183e3b',line:'#386b6240',wash:'#386b6205'},
+ {id:'06-favorites',title:'Retrouvez<br>vos essentiels.',caption:'Vos favoris, toujours à portée de main.',bg:'#f2dcd9',fg:'#452d41',line:'#85587340',wash:'#85587305'},
+];
+const params=new URLSearchParams(location.search),kind=params.get('kind')||'phone',id=params.get('id')||cards[0].id;
+const main=document.querySelector('main');
+const brand='<div class="brand">ComicStream</div>';
+if(kind==='feature'){
+ main.className='canvas feature';main.style.cssText='--line:#c2abe44a;--wash:#c2abe407';
+ main.innerHTML=brand+'<div class="copy"><h1>Vos BD, partout<br>avec vous.</h1><p>Votre bibliothèque.<br>Votre façon de lire.</p></div><div class="mini"><img src="../captures/phone/01-library.png"></div><div class="mini second"><img src="../captures/phone/02-reader.png"></div>';
+}else if(kind==='tablet'){
+ main.className='raw';main.innerHTML=`<img src="../captures/tablet/${id}.png">`;
+}else{
+ const c=cards.find(c=>c.id===id);if(!c)throw Error('Unknown card '+id);
+ main.className='canvas';main.style.cssText=`--bg:${c.bg};--fg:${c.fg};--line:${c.line};--wash:${c.wash}`;
+ main.innerHTML=brand+`<div class="index">0${cards.indexOf(c)+1} / 06</div><div class="copy"><h1>${c.title}</h1><p>${c.caption}</p></div><div class="screen"><img src="../captures/phone/${id}.png"></div>`;
+}
+window.assetReady=Promise.all([...document.images].map(i=>i.decode())).then(()=>document.fonts.ready);
+</script>
+</html>
