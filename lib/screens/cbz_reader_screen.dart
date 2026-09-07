@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +8,9 @@ import '../providers/library_provider.dart';
 import '../services/cbz_service.dart';
 import '../services/reader_settings_service.dart';
 import '../widgets/reader_controls.dart';
+import '../widgets/cbz_page_image.dart';
+import '../widgets/cbz_zoom_viewport.dart';
+import '../utils/cbz_page_layout.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
 
@@ -20,9 +23,21 @@ class CbzReaderScreen extends StatefulWidget {
   State<CbzReaderScreen> createState() => _CbzReaderScreenState();
 }
 
-class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _CbzReaderScreenState extends State<CbzReaderScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   late PageController _pageController;
-  final ScrollController _verticalScrollController = ScrollController();
+  ScrollController _verticalScrollController = ScrollController();
+  final TransformationController _verticalTransform =
+      TransformationController();
+  CbzPageLayout? _verticalLayout;
+  LibraryProvider? _library;
+  ReaderSettingsService? _readerSettings;
+  ReadingMode? _readingMode;
+  Timer? _progressTimer;
+  Timer? _prefetchTimer;
+  int _prefetchGeneration = 0;
+  int? _lastSavedPage;
+  bool _adjustingVerticalLayout = false;
   final FocusNode _focusNode = FocusNode();
 
   List<CbzPageInfo> _pages = [];
@@ -37,13 +52,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
   AnimationController? _zoomAnimationController;
   Animation<Matrix4>? _zoomAnimation;
-
-  // Keys and controllers for vertical Webtoon mode
-  final Map<int, GlobalKey> _pageKeys = {};
-
-  GlobalKey _getPageKey(int index) {
-    return _pageKeys.putIfAbsent(index, () => GlobalKey());
-  }
 
   // Each visible page needs its own controller, but all pages share the same
   // zoom and pan so reading remains consistent when navigating.
@@ -87,7 +95,11 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     return _transformControllers.putIfAbsent(index, () {
       final ctrl = TransformationController(_calculateInitialMatrixForPage());
       ctrl.addListener(() {
-        if (_isSynchronizingTransformation || !mounted) return;
+        if (_isSynchronizingTransformation ||
+            !mounted ||
+            index != _currentPage) {
+          return;
+        }
 
         final isZoomed = ctrl.value.getMaxScaleOnAxis() > 1.05;
         if (isZoomed != _isCurrentPageZoomed) {
@@ -123,23 +135,112 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   void _resetZoomPositionForPage(int targetIndex) {
     if (!mounted) return;
     final scale = _sharedTransformation.getMaxScaleOnAxis();
-    if (scale <= 1.05) return;
-
-    final newMatrix = _calculateInitialMatrixForPage();
+    final newMatrix =
+        scale <= 1.05 ? Matrix4.identity() : _calculateInitialMatrixForPage();
     _isSynchronizingTransformation = true;
     _sharedTransformation = Matrix4.copy(newMatrix);
     _getTransformController(targetIndex).value = Matrix4.copy(newMatrix);
     _isSynchronizingTransformation = false;
   }
 
+  double get _verticalContentWidth {
+    final width = MediaQuery.sizeOf(context).width;
+    return width > 850 ? 800 : width;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _library = context.read<LibraryProvider>();
+    final settings = context.read<ReaderSettingsService>();
+    if (_readerSettings != settings) {
+      _readerSettings?.removeListener(_onReaderSettingsChanged);
+      _readerSettings = settings;
+      _readingMode = settings.readingMode;
+      settings.addListener(_onReaderSettingsChanged);
+    }
+  }
+
+  void _onReaderSettingsChanged() {
+    final mode = _readerSettings!.readingMode;
+    if (!mounted || mode == _readingMode) return;
+    _readingMode = mode;
+    if (_pages.isEmpty) return;
+    final targetPage = _currentPage.clamp(0, _pages.length - 1);
+    _resetZoom();
+    _pageController.dispose();
+    _pageController = PageController(initialPage: targetPage);
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _jumpToPage(targetPage);
+    });
+  }
+
+  void _scheduleProgressSave() {
+    _progressTimer?.cancel();
+    _progressTimer =
+        Timer(const Duration(milliseconds: 650), _persistCurrentProgress);
+  }
+
   void _persistCurrentProgress() {
-    if (_pages.isEmpty || !mounted) return;
-    final targetPage = _currentPage < _pages.length ? _currentPage : _pages.length - 1;
-    context.read<LibraryProvider>().updateBookProgress(
+    _progressTimer?.cancel();
+    if (_pages.isEmpty) return;
+    final targetPage = _currentPage.clamp(0, _pages.length - 1);
+    if (_lastSavedPage == targetPage) return;
+    _lastSavedPage = targetPage;
+    final library = _library;
+    final bookId = widget.book.id;
+    final totalPages = _pages.length;
+    // Disposal can happen while Flutter has locked the widget tree. Notify
+    // library listeners once that frame has finished tearing down the reader.
+    scheduleMicrotask(() {
+      library?.updateBookProgress(
+        bookId: bookId,
+        currentPage: targetPage,
+        totalPages: totalPages,
+      );
+    });
+  }
+
+  void _schedulePrefetch() {
+    _prefetchTimer?.cancel();
+    final generation = ++_prefetchGeneration;
+    CbzService.cancelPrefetch(widget.book.id);
+    // Let the current page and the page-turn animation finish first.
+    _prefetchTimer = Timer(const Duration(milliseconds: 300), () async {
+      final page = _currentPage;
+      if (!mounted || page >= _pages.length) return;
+      for (final index in [page + 1, page - 1]) {
+        if (index < 0 || index >= _pages.length) continue;
+        final path = await CbzService.loadAndCachePage(
+          cbzFilePath: widget.book.localPath,
           bookId: widget.book.id,
-          currentPage: targetPage,
-          totalPages: _pages.length,
+          pageIndex: index,
+          priority: CbzPagePriority.prefetch,
         );
+        if (!mounted || generation != _prefetchGeneration) return;
+        if (path != null) {
+          await precacheImage(
+            cbzPageImageProvider(path, cbzDecodeExtent(MediaQuery.of(context))),
+            context,
+            onError: (error, stack) {},
+          );
+        }
+        if (!mounted || generation != _prefetchGeneration) return;
+      }
+    });
+  }
+
+  void _resetZoom() {
+    _zoomAnimationController?.stop();
+    _sharedTransformation = Matrix4.identity();
+    _isSynchronizingTransformation = true;
+    _verticalTransform.value = Matrix4.identity();
+    for (final controller in _transformControllers.values) {
+      controller.value = Matrix4.identity();
+    }
+    _isSynchronizingTransformation = false;
+    _isCurrentPageZoomed = false;
   }
 
   @override
@@ -149,6 +250,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
       _persistCurrentProgress();
+      _prefetchTimer?.cancel();
+      _prefetchGeneration++;
+      CbzService.cancelPrefetch(widget.book.id);
     }
   }
 
@@ -156,7 +260,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _currentPage = widget.book.currentPage;
+    _currentPage = widget.book.currentPage < 0 ? 0 : widget.book.currentPage;
     _pageController = PageController(initialPage: _currentPage);
     _verticalScrollController.addListener(_onVerticalScroll);
 
@@ -166,7 +270,11 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
 
   @override
   void dispose() {
-    PaintingBinding.instance.imageCache.clearLiveImages();
+    _readerSettings?.removeListener(_onReaderSettingsChanged);
+    _prefetchTimer?.cancel();
+    _prefetchGeneration++;
+    CbzService.cancelPendingLoads(widget.book.id);
+    _verticalTransform.dispose();
     _persistCurrentProgress();
     WidgetsBinding.instance.removeObserver(this);
     _zoomAnimationController?.dispose();
@@ -187,6 +295,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
     try {
       final file = File(widget.book.localPath);
       if (!await file.exists()) {
+        if (!mounted) return;
         setState(() {
           _errorMessage = 'Fichier CBZ introuvable sur l\'appareil.';
           _isLoading = false;
@@ -204,15 +313,18 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             headerBytes[0] == 0x25 && // %
             headerBytes[1] == 0x50 && // P
             headerBytes[2] == 0x44 && // D
-            headerBytes[3] == 0x46;   // F
+            headerBytes[3] == 0x46; // F
 
         if (isPdf) {
           if (!mounted) return;
           _navigatedAway = true;
-          context.read<LibraryProvider>().updateBookFormat(widget.book.id, BookFormat.pdf);
+          context
+              .read<LibraryProvider>()
+              .updateBookFormat(widget.book.id, BookFormat.pdf);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => PdfReaderScreen(book: widget.book.copyWith(format: BookFormat.pdf)),
+              builder: (_) => PdfReaderScreen(
+                  book: widget.book.copyWith(format: BookFormat.pdf)),
             ),
           );
           return;
@@ -220,6 +332,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       } catch (_) {}
 
       final pages = await CbzService.getPageList(widget.book.localPath);
+      if (!mounted) return;
 
       if (pages.isEmpty) {
         setState(() {
@@ -239,31 +352,24 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
         _isLoading = false;
       });
 
+      _pageController.dispose();
       _pageController = PageController(initialPage: _currentPage);
-
-      // Trigger instant background prefetch for adjacent pages (lean count to avoid RAM pressure)
-      CbzService.prefetchPages(
-        cbzFilePath: widget.book.localPath,
-        bookId: widget.book.id,
-        currentIndex: _currentPage,
-        totalPages: pages.length,
-        count: 2,
-      );
-
-      // Save page count if not already recorded
-      if (widget.book.totalPages != pages.length && mounted) {
-        context.read<LibraryProvider>().updateBookProgress(
-              bookId: widget.book.id,
-              currentPage: _currentPage,
-              totalPages: pages.length,
-            );
-      }
+      _verticalLayout = CbzPageLayout(pages.length);
+      _verticalScrollController.dispose();
+      _verticalScrollController = ScrollController(
+        initialScrollOffset:
+            _verticalLayout!.offsetFor(_currentPage, _verticalContentWidth),
+      )..addListener(_onVerticalScroll);
+      _scheduleProgressSave();
     } catch (e) {
       if (!mounted) return;
-      final fileSize = await File(widget.book.localPath).length().catchError((_) => 0);
+      final fileSize =
+          await File(widget.book.localPath).length().catchError((_) => 0);
+      if (!mounted) return;
       final sizeMb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
       setState(() {
-        _errorMessage = 'Erreur de lecture ($sizeMb Mo): $e\n\nLe fichier est peut-être corrompu ou le téléchargement est incomplet.';
+        _errorMessage =
+            'Erreur de lecture ($sizeMb Mo): $e\n\nLe fichier est peut-être corrompu ou le téléchargement est incomplet.';
         _isLoading = false;
       });
     }
@@ -277,34 +383,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       _isCurrentPageZoomed = wasZoomed;
     });
 
-    if (wasZoomed && index < _pages.length) {
+    if (index < _pages.length) {
       _resetZoomPositionForPage(index);
     }
-
-    // Prefetch around new page
-    CbzService.prefetchPages(
-      cbzFilePath: widget.book.localPath,
-      bookId: widget.book.id,
-      currentIndex: index,
-      totalPages: _pages.length,
-      count: 2,
-    );
-
-    // Persist progress
-    if (index < _pages.length) {
-      context.read<LibraryProvider>().updateBookProgress(
-            bookId: widget.book.id,
-            currentPage: _currentPage,
-            totalPages: _pages.length,
-          );
-    }
+    _schedulePrefetch();
+    _scheduleProgressSave();
   }
 
   void _nextPage() {
     final settings = context.read<ReaderSettingsService>();
     if (settings.readingMode == ReadingMode.vertical) {
+      if (!_verticalScrollController.hasClients) return;
       _verticalScrollController.animateTo(
-        _verticalScrollController.offset + 500,
+        (_verticalScrollController.offset + 500).clamp(
+          0.0,
+          _verticalScrollController.position.maxScrollExtent,
+        ),
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
@@ -321,6 +415,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   void _prevPage() {
     final settings = context.read<ReaderSettingsService>();
     if (settings.readingMode == ReadingMode.vertical) {
+      if (!_verticalScrollController.hasClients) return;
       _verticalScrollController.animateTo(
         (_verticalScrollController.offset - 500).clamp(0.0, double.infinity),
         duration: const Duration(milliseconds: 250),
@@ -337,91 +432,61 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   }
 
   void _onVerticalScroll() {
-    if (!_verticalScrollController.hasClients || _pages.isEmpty) return;
-
-    final screenHeight = MediaQuery.of(context).size.height;
-    int? bestPage;
-    double minDistance = double.infinity;
-
-    for (final entry in _pageKeys.entries) {
-      final ctx = entry.value.currentContext;
-      if (ctx != null) {
-        final renderBox = ctx.findRenderObject() as RenderBox?;
-        if (renderBox != null && renderBox.hasSize) {
-          final position = renderBox.localToGlobal(Offset.zero);
-          final top = position.dy;
-          final bottom = top + renderBox.size.height;
-
-          // If this page covers the upper/middle viewport
-          if (top <= screenHeight * 0.45 && bottom >= screenHeight * 0.15) {
-            bestPage = entry.key;
-            break;
-          }
-
-          final dist = (top - 120).abs();
-          if (dist < minDistance) {
-            minDistance = dist;
-            bestPage = entry.key;
-          }
-        }
-      }
+    if (!_verticalScrollController.hasClients ||
+        _pages.isEmpty ||
+        _adjustingVerticalLayout) {
+      return;
     }
-
-    if (bestPage != null && bestPage != _currentPage) {
-      _currentPage = bestPage;
-      setState(() {});
-      context.read<LibraryProvider>().updateBookProgress(
-            bookId: widget.book.id,
-            currentPage: _currentPage,
-            totalPages: _pages.length,
-          );
-      // Continuously prefetch upcoming pages as user scrolls vertically
-      CbzService.prefetchPages(
-        cbzFilePath: widget.book.localPath,
-        bookId: widget.book.id,
-        currentIndex: _currentPage,
-        totalPages: _pages.length,
-        count: 3,
-      );
+    final bestPage = _verticalLayout!.pageAtOffset(
+      _verticalScrollController.offset +
+          MediaQuery.sizeOf(context).height * 0.2,
+      _verticalContentWidth,
+    );
+    if (bestPage != _currentPage) {
+      setState(() => _currentPage = bestPage);
+      _scheduleProgressSave();
+      _schedulePrefetch();
     }
+  }
+
+  void _updatePageAspectRatio(int index, double ratio) {
+    if (!mounted || !_verticalScrollController.hasClients) return;
+    final oldOffset = _verticalScrollController.offset;
+    final adjusted = _verticalLayout!.updateAspectRatio(
+      index,
+      ratio,
+      oldOffset,
+      _verticalContentWidth,
+    );
+    _adjustingVerticalLayout = true;
+    setState(() {});
+    // jumpTo accepts an offset beyond the old extent. The next layout uses the
+    // new page heights, so pages above the viewport cannot push the reader away.
+    if ((adjusted - oldOffset).abs() > 0.5) {
+      _verticalScrollController.jumpTo(adjusted);
+    }
+    _adjustingVerticalLayout = false;
   }
 
   void _jumpToPage(int pageIndex) {
     if (pageIndex < 0 || pageIndex >= _pages.length) return;
-    _onPageChanged(pageIndex);
     final settings = context.read<ReaderSettingsService>();
     if (settings.readingMode == ReadingMode.vertical) {
-      final key = _pageKeys[pageIndex];
-      final currentContext = key?.currentContext;
-      if (currentContext != null) {
-        Scrollable.ensureVisible(
-          currentContext,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          alignment: 0.0,
-        );
-      } else if (_verticalScrollController.hasClients) {
-        final maxScroll = _verticalScrollController.position.maxScrollExtent;
-        final estimatedOffset = (pageIndex / _pages.length) * (maxScroll > 0 ? maxScroll : pageIndex * 800.0);
+      setState(() {
+        _resetZoom();
+        _currentPage = pageIndex;
+      });
+      if (_verticalScrollController.hasClients) {
+        _adjustingVerticalLayout = true;
         _verticalScrollController.jumpTo(
-          estimatedOffset.clamp(0.0, _verticalScrollController.position.maxScrollExtent),
+          _verticalLayout!.offsetFor(pageIndex, _verticalContentWidth),
         );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final key2 = _pageKeys[pageIndex];
-          final ctx2 = key2?.currentContext;
-          if (ctx2 != null) {
-            Scrollable.ensureVisible(
-              ctx2,
-              duration: const Duration(milliseconds: 200),
-              alignment: 0.0,
-            );
-          }
-        });
+        _adjustingVerticalLayout = false;
       }
-    } else {
-      if (_pageController.hasClients) {
-        _pageController.jumpToPage(pageIndex);
-      }
+      _scheduleProgressSave();
+      _schedulePrefetch();
+    } else if (_pageController.hasClients) {
+      _pageController.jumpToPage(pageIndex);
     }
   }
 
@@ -465,7 +530,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                     children: [
                       Text(
                         'Pages (${_pages.length})',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close),
@@ -477,8 +543,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
                 Expanded(
                   child: GridView.builder(
                     controller: scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       childAspectRatio: 0.7,
                       crossAxisSpacing: 10,
@@ -540,7 +608,19 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   }
 
   void _handleDoubleTap(int pageIndex, TapDownDetails? details) {
-    final controller = _getTransformController(pageIndex);
+    final vertical = context.read<ReaderSettingsService>().readingMode ==
+        ReadingMode.vertical;
+    final controller =
+        vertical ? _verticalTransform : _getTransformController(pageIndex);
+    void completed() {
+      if (vertical) {
+        setState(() =>
+            _isCurrentPageZoomed = controller.value.getMaxScaleOnAxis() > 1.05);
+      } else {
+        _synchronizeTransformation(pageIndex);
+      }
+    }
+
     final currentScale = controller.value.getMaxScaleOnAxis();
 
     if (currentScale > 1.1) {
@@ -548,7 +628,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       _animateTransformation(
         controller,
         Matrix4.identity(),
-        onCompleted: () => _synchronizeTransformation(pageIndex),
+        onCompleted: completed,
       );
     } else {
       // Zoom in smoothly to 2.5x centered at the double-tapped point
@@ -563,12 +643,13 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       _animateTransformation(
         controller,
         target,
-        onCompleted: () => _synchronizeTransformation(pageIndex),
+        onCompleted: completed,
       );
     }
   }
 
-  void _onTapZone(TapUpDetails details, BuildContext context, ReaderSettingsService settings) {
+  void _onTapZone(TapUpDetails details, BuildContext context,
+      ReaderSettingsService settings) {
     // If controls are visible, tapping anywhere hides controls
     if (_showControls) {
       setState(() {
@@ -610,10 +691,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<ReaderSettingsService>();
-    final library = context.watch<LibraryProvider>();
-    final currentBook = library.getBookById(widget.book.id) ?? widget.book;
-    final isBookmarked = currentBook.bookmarks.contains(_currentPage);
-    final isFavorite = currentBook.isFavorite;
+    final library = context.read<LibraryProvider>();
+    final (isBookmarked, isFavorite) =
+        context.select<LibraryProvider, (bool, bool)>((library) {
+      final book = library.getBookById(widget.book.id) ?? widget.book;
+      return (book.bookmarks.contains(_currentPage), book.isFavorite);
+    });
 
     if (_isLoading) {
       return Scaffold(
@@ -644,9 +727,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const Icon(Icons.error_outline,
+                    size: 48, color: Colors.redAccent),
                 const SizedBox(height: 16),
-                Text(_errorMessage!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white)),
+                Text(_errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white)),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -681,91 +767,94 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
           const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
           const SingleActivator(LogicalKeyboardKey.backspace): _prevPage,
-          const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+          const SingleActivator(LogicalKeyboardKey.escape): () =>
+              Navigator.of(context).pop(),
         },
         child: Focus(
           autofocus: true,
           focusNode: _focusNode,
           child: Scaffold(
-          backgroundColor: settings.actualBackgroundColor,
-          body: Stack(
-            children: [
-              // Main Reader Pages
-              settings.readingMode == ReadingMode.vertical
-                  ? _buildVerticalReader(settings)
-                  : _buildHorizontalReader(settings),
+            backgroundColor: settings.actualBackgroundColor,
+            body: Stack(
+              children: [
+                // Main Reader Pages
+                settings.readingMode == ReadingMode.vertical
+                    ? _buildVerticalReader(settings)
+                    : _buildHorizontalReader(settings),
 
-              // Top Controls Bar
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ReaderTopBar(
-                  visible: _showControls,
-                  title: widget.book.title,
-                  currentPage: _currentPage < _pages.length ? _currentPage : _pages.length - 1,
-                  totalPages: _pages.length,
-                  isBookmarked: isBookmarked,
-                  isFavorite: isFavorite,
-                  onBack: () => Navigator.of(context).pop(),
-                  onToggleBookmark: _toggleBookmark,
-                  onToggleFavorite: () => library.toggleFavorite(widget.book.id),
-                  onOpenSettings: _showSettings,
-                ),
-              ),
-
-              // Bottom Controls Bar
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: ReaderBottomBar(
-                  visible: _showControls,
-                  currentPage: _currentPage < _pages.length ? _currentPage : _pages.length - 1,
-                  totalPages: _pages.length,
-                  readingMode: settings.readingMode,
-                  onPageChanged: _jumpToPage,
-                  onOpenThumbnails: _showThumbnailsGrid,
-                  onReadingModeChanged: (mode) {
-                    final targetPage = _currentPage < _pages.length ? _currentPage : _pages.length - 1;
-                    _pageController.dispose();
-                    _pageController = PageController(initialPage: targetPage);
-                    settings.setReadingMode(mode);
-                    setState(() {});
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _jumpToPage(targetPage);
-                    });
-                  },
-                ),
-              ),
-
-              // Floating Page Number Badge (when controls hidden)
-              if (!_showControls && settings.showPageNumbers && _currentPage < _pages.length)
+                // Top Controls Bar
                 Positioned(
-                  bottom: 16,
+                  top: 0,
                   left: 0,
                   right: 0,
-                  child: Center(
-                    child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(160),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${_currentPage + 1} / ${_pages.length}',
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                    ),
+                  child: ReaderTopBar(
+                    visible: _showControls,
+                    title: widget.book.title,
+                    currentPage: _currentPage < _pages.length
+                        ? _currentPage
+                        : _pages.length - 1,
+                    totalPages: _pages.length,
+                    isBookmarked: isBookmarked,
+                    isFavorite: isFavorite,
+                    onBack: () => Navigator.of(context).pop(),
+                    onToggleBookmark: _toggleBookmark,
+                    onToggleFavorite: () =>
+                        library.toggleFavorite(widget.book.id),
+                    onOpenSettings: _showSettings,
                   ),
                 ),
-              ),
-            ],
+
+                // Bottom Controls Bar
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: ReaderBottomBar(
+                    visible: _showControls,
+                    currentPage: _currentPage < _pages.length
+                        ? _currentPage
+                        : _pages.length - 1,
+                    totalPages: _pages.length,
+                    readingMode: settings.readingMode,
+                    onPageChanged: _jumpToPage,
+                    onOpenThumbnails: _showThumbnailsGrid,
+                    onReadingModeChanged: settings.setReadingMode,
+                  ),
+                ),
+
+                // Floating Page Number Badge (when controls hidden)
+                if (!_showControls &&
+                    settings.showPageNumbers &&
+                    _currentPage < _pages.length)
+                  Positioned(
+                    bottom: 16,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(160),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${_currentPage + 1} / ${_pages.length}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildHorizontalReader(ReaderSettingsService settings) {
     final isRTL = settings.readingMode == ReadingMode.rightToLeft;
@@ -800,15 +889,9 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
             onDoubleTapDown: (details) => doubleTapDetails = details,
             onTapUp: (details) => _onTapZone(details, context, settings),
             onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
-            child: InteractiveViewer(
-              transformationController: transformCtrl,
-              minScale: 1.0,
-              maxScale: 6.0,
-              panAxis: PanAxis.free,
-              panEnabled: _isCurrentPageZoomed,
-              scaleEnabled: true,
-              boundaryMargin: EdgeInsets.zero,
-              clipBehavior: Clip.hardEdge,
+            child: CbzZoomViewport(
+              controller: transformCtrl,
+              zoomed: _isCurrentPageZoomed,
               onInteractionUpdate: (_) {
                 final scale = transformCtrl.value.getMaxScaleOnAxis();
                 final isZoomed = scale > 1.05;
@@ -818,13 +901,21 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               },
               onInteractionEnd: (_) => _synchronizeTransformation(index),
               child: Center(
-                child: _CbzPageWidget(
+                child: CbzPageImage(
                   cbzFilePath: widget.book.localPath,
                   bookId: widget.book.id,
                   pageIndex: index,
                   fit: effectiveFit,
-                  width: (!isWidescreen && settings.fitMode == FitMode.fitWidth) ? screenSize.width : null,
-                  height: (effectiveFit == BoxFit.contain || effectiveFit == BoxFit.fitHeight) ? screenSize.height : null,
+                  onReady: () {
+                    if (index == _currentPage) _schedulePrefetch();
+                  },
+                  width: (!isWidescreen && settings.fitMode == FitMode.fitWidth)
+                      ? screenSize.width
+                      : null,
+                  height: (effectiveFit == BoxFit.contain ||
+                          effectiveFit == BoxFit.fitHeight)
+                      ? screenSize.height
+                      : null,
                 ),
               ),
             ),
@@ -835,79 +926,58 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
   }
 
   Widget _buildVerticalReader(ReaderSettingsService settings) {
-    final screenSize = MediaQuery.of(context).size;
-    final isWidescreen = screenSize.width > 850;
-    final verticalContentWidth = isWidescreen ? 800.0 : screenSize.width;
-
+    final width = _verticalContentWidth;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    TapDownDetails? doubleTapDetails;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () {
-        setState(() {
-          _showControls = !_showControls;
-        });
-      },
-      child: ListView.builder(
-        controller: _verticalScrollController,
-        cacheExtent: 3500.0,
-        itemCount: _pages.length + 1, // +1 for end of book footer
-        padding: EdgeInsets.zero,
-        physics: _isCurrentPageZoomed
-            ? const NeverScrollableScrollPhysics()
-            : const ClampingScrollPhysics(),
-        itemBuilder: (context, index) {
-          if (index == _pages.length) {
-            return _buildEndOfBookWidget(context);
+      onTap: () => setState(() => _showControls = !_showControls),
+      onDoubleTapDown: (details) => doubleTapDetails = details,
+      onDoubleTap: () => _handleDoubleTap(_currentPage, doubleTapDetails),
+      child: CbzZoomViewport(
+        controller: _verticalTransform,
+        zoomed: _isCurrentPageZoomed,
+        onInteractionUpdate: (_) {
+          final zoomed = _verticalTransform.value.getMaxScaleOnAxis() > 1.05;
+          if (zoomed != _isCurrentPageZoomed) {
+            setState(() => _isCurrentPageZoomed = zoomed);
           }
-
-          final transformCtrl = _getTransformController(index);
-          TapDownDetails? doubleTapDetails;
-
-          return Container(
-            key: _getPageKey(index),
-            width: double.infinity,
-            color: settings.actualBackgroundColor,
-            child: Center(
-              child: SizedBox(
-                width: verticalContentWidth,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onDoubleTapDown: (details) => doubleTapDetails = details,
-                  onTap: () {
-                    setState(() {
-                      _showControls = !_showControls;
-                    });
-                  },
-                  onDoubleTap: () => _handleDoubleTap(index, doubleTapDetails),
-                  child: InteractiveViewer(
-                    transformationController: transformCtrl,
-                    minScale: 1.0,
-                    maxScale: 6.0,
-                    panAxis: PanAxis.free,
-                    panEnabled: _isCurrentPageZoomed,
-                    scaleEnabled: true,
-                    boundaryMargin: EdgeInsets.zero,
-                    clipBehavior: Clip.hardEdge,
-                    onInteractionUpdate: (_) {
-                      final scale = transformCtrl.value.getMaxScaleOnAxis();
-                      final isZoomed = scale > 1.05;
-                      if (isZoomed != _isCurrentPageZoomed) {
-                        setState(() => _isCurrentPageZoomed = isZoomed);
-                      }
-                    },
-                    onInteractionEnd: (_) => _synchronizeTransformation(index),
-                    child: _CbzPageWidget(
-                      cbzFilePath: widget.book.localPath,
-                      bookId: widget.book.id,
-                      pageIndex: index,
-                      fit: BoxFit.fitWidth,
-                      width: verticalContentWidth,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
         },
+        onInteractionEnd: (_) {
+          if (_verticalTransform.value.getMaxScaleOnAxis() <= 1.05) {
+            setState(_resetZoom);
+          }
+        },
+        child: ListView.builder(
+          controller: _verticalScrollController,
+          cacheExtent: screenHeight * 0.5,
+          itemCount: _pages.length + 1,
+          itemExtentBuilder: (index, _) => index == _pages.length
+              ? screenHeight
+              : _verticalLayout!.heightFor(index, width),
+          padding: EdgeInsets.zero,
+          physics: _isCurrentPageZoomed
+              ? const NeverScrollableScrollPhysics()
+              : const ClampingScrollPhysics(),
+          itemBuilder: (context, index) {
+            if (index == _pages.length) return _buildEndOfBookWidget(context);
+            return Center(
+              child: CbzPageImage(
+                key: ValueKey(index),
+                cbzFilePath: widget.book.localPath,
+                bookId: widget.book.id,
+                pageIndex: index,
+                fit: BoxFit.contain,
+                width: width,
+                height: _verticalLayout!.heightFor(index, width),
+                onAspectRatio: (ratio) => _updatePageAspectRatio(index, ratio),
+                onReady: () {
+                  if (index == _currentPage) _schedulePrefetch();
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -929,12 +999,14 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
               color: const Color(0xFF10B981).withAlpha(40),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 40),
+            child: const Icon(Icons.check_circle_rounded,
+                color: Color(0xFF10B981), size: 40),
           ),
           const SizedBox(height: 14),
           const Text(
             'Tome terminé ! 🎉',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 6),
           Text(
@@ -946,24 +1018,30 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           if (nextBook != null)
             FilledButton.icon(
               icon: const Icon(Icons.skip_next_rounded),
-              label: Text('Passer au Tome suivant ➔\n${nextBook.title}', textAlign: TextAlign.center),
+              label: Text('Passer au Tome suivant ➔\n${nextBook.title}',
+                  textAlign: TextAlign.center),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
                 if (nextBook.format == BookFormat.pdf) {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => PdfReaderScreen(book: nextBook)),
+                    MaterialPageRoute(
+                        builder: (_) => PdfReaderScreen(book: nextBook)),
                   );
                 } else if (nextBook.format == BookFormat.epub) {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => EpubReaderScreen(book: nextBook)),
+                    MaterialPageRoute(
+                        builder: (_) => EpubReaderScreen(book: nextBook)),
                   );
                 } else {
                   Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => CbzReaderScreen(book: nextBook)),
+                    MaterialPageRoute(
+                        builder: (_) => CbzReaderScreen(book: nextBook)),
                   );
                 }
               },
@@ -971,7 +1049,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
           else
             OutlinedButton.icon(
               icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              label: const Text('Retour à la bibliothèque', style: TextStyle(color: Colors.white)),
+              label: const Text('Retour à la bibliothèque',
+                  style: TextStyle(color: Colors.white)),
               onPressed: () => Navigator.of(context).pop(),
             ),
         ],
@@ -988,135 +1067,6 @@ class _CbzReaderScreenState extends State<CbzReaderScreen> with TickerProviderSt
       case FitMode.fitScreen:
         return BoxFit.contain;
     }
-  }
-}
-
-class _CbzPageWidget extends StatefulWidget {
-  final String cbzFilePath;
-  final String bookId;
-  final int pageIndex;
-  final BoxFit fit;
-  final double? width;
-  final double? height;
-
-  const _CbzPageWidget({
-    required this.cbzFilePath,
-    required this.bookId,
-    required this.pageIndex,
-    required this.fit,
-    this.width,
-    this.height,
-  });
-
-  @override
-  State<_CbzPageWidget> createState() => _CbzPageWidgetState();
-}
-
-class _CbzPageWidgetState extends State<_CbzPageWidget> {
-  String? _filePath;
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPage();
-  }
-
-  @override
-  void didUpdateWidget(covariant _CbzPageWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.pageIndex != widget.pageIndex ||
-        oldWidget.cbzFilePath != widget.cbzFilePath ||
-        oldWidget.bookId != widget.bookId) {
-      _loadPage();
-    }
-  }
-
-  void _loadPage() {
-    final targetIndex = widget.pageIndex;
-    final targetBookId = widget.bookId;
-    final targetCbzPath = widget.cbzFilePath;
-
-    final cached = CbzService.getCachedPagePathSync(targetBookId, targetIndex);
-    if (cached != null) {
-      _filePath = cached;
-      _isLoading = false;
-      return;
-    }
-
-    _isLoading = true;
-    CbzService.loadAndCachePage(
-      cbzFilePath: targetCbzPath,
-      bookId: targetBookId,
-      pageIndex: targetIndex,
-    ).then((path) {
-      if (mounted &&
-          widget.pageIndex == targetIndex &&
-          widget.bookId == targetBookId &&
-          widget.cbzFilePath == targetCbzPath) {
-        setState(() {
-          _filePath = path;
-          _isLoading = false;
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_filePath != null) {
-      final mq = MediaQuery.of(context);
-      final screenMaxDim = math.max(mq.size.width, mq.size.height);
-      final pixelRatio = mq.devicePixelRatio;
-      // Downsample huge 4K/6K scans during decoding directly in C++ engine to fit screen (capped at 1800px)
-      // This reduces RAM per decoded image from ~100MB to < 8MB, preventing OOM crashes!
-      final targetHeight = (screenMaxDim * pixelRatio).clamp(1080.0, 1800.0).round();
-
-      return Image.file(
-        File(_filePath!),
-        fit: widget.fit,
-        width: widget.width,
-        height: widget.height,
-        cacheHeight: targetHeight,
-        gaplessPlayback: true,
-        filterQuality: FilterQuality.medium,
-        isAntiAlias: true,
-        errorBuilder: (context, error, stackTrace) {
-          return SizedBox(
-            width: widget.width,
-            height: widget.height ?? 300,
-            child: const Center(
-              child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
-            ),
-          );
-        },
-      );
-    }
-
-    if (_isLoading) {
-      return SizedBox(
-        width: widget.width,
-        height: widget.height ?? 300,
-        child: const Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.5,
-              color: Color(0xFF8B5CF6),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: widget.width,
-      height: widget.height ?? 300,
-      child: const Center(
-        child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
-      ),
-    );
   }
 }
 
@@ -1171,10 +1121,12 @@ class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
       return;
     }
 
+    _filePath = null;
     CbzService.loadAndCachePage(
       cbzFilePath: targetCbzPath,
       bookId: targetBookId,
       pageIndex: targetIndex,
+      priority: CbzPagePriority.thumbnail,
     ).then((path) {
       if (mounted &&
           widget.pageIndex == targetIndex &&
@@ -1210,7 +1162,9 @@ class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
                 cacheWidth: 250,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.white10,
-                  child: const Center(child: Icon(Icons.broken_image, color: Colors.white30, size: 24)),
+                  child: const Center(
+                      child: Icon(Icons.broken_image,
+                          color: Colors.white30, size: 24)),
                 ),
               )
             else
@@ -1220,7 +1174,8 @@ class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
                   child: SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white24),
                   ),
                 ),
               ),
@@ -1250,4 +1205,3 @@ class _CbzThumbnailItemState extends State<_CbzThumbnailItem> {
     );
   }
 }
-
