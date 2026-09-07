@@ -2,6 +2,14 @@
 
 Ce document résume l'environnement matériel, l'infrastructure serveur, les protocoles réseau, et l'état actuel de l'application **ComicStream**.
 
+> [!CAUTION]
+> **RÈGLE ABSOLUE DE SÉCURITÉ & ANONYMAT : ZÉRO DONNÉE PRIVÉE DANS LE DÉPÔT**
+> Le dépôt étant public, il est **strictement interdit** de commiter la moindre information personnelle ou sensible :
+> - ❌ Aucun mot de passe, token API, clé privée, fichier keystore (`.jks`, `.keystore`, `.pepk`) ou compte de service (`service_account.json`).
+> - ❌ Aucun identifiant matériel unique (numéro de série ADB, adresses MAC).
+> - ❌ Aucune adresse IP privée réelle, nom d'hôte ou arborescence locale personnelle (utiliser uniquement des placeholders génériques : `192.168.1.100`, `user`, `0123456789ABCDEF`, `/media/comics/...`).
+> - ❌ Les notes privées doivent rester locales et être systématiquement ignorées par `.gitignore`.
+
 ---
 
 ## 🛠️ 1. Environnement Matériel & Système

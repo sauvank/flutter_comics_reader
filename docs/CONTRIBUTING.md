@@ -7,12 +7,16 @@ Ce document consigne les règles et conventions de commit obligatoires pour le d
 ## 🎯 1. Principes Fondamentaux
 
 1. **Commits Atomiques** : Un commit ne doit traiter qu'un seul sujet bien défini (une fonctionnalité, une correction ou une optimisation).
-2. **Zéro Secrets / Sécurité Stricte** : Le dépôt étant public, vérifier systématiquement l'absence de tokens, clés privées, mots de passe ou chemins absolus privés avant tout commit.
+2. **Zéro Secrets & Zéro Donnée Privée** : Le dépôt étant public, il est formellement interdit de commiter :
+   - Des tokens, secrets d'API, clés privées, keystores ou comptes de service.
+   - Des identifiants matériels réels (numéro de série ADB), noms d'utilisateurs personnels, adresses IP privées locales réelles ou chemins absolus spécifiques.
+   - Toujours employer des placeholders génériques (`192.168.1.100`, `user`, `0123456789ABCDEF`, `/media/comics/...`).
 3. **Validation Pré-commit** : Chaque lot de commits doit être précédé de l'exécution réussie de :
    ```bash
    flutter analyze
    flutter test
    ```
+
 
 ---
 
