@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
@@ -33,6 +35,12 @@ class _AccountScreenState extends State<AccountScreen> {
       await action();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opération terminée.')));
     } catch (error) {
+      if (error is GoogleSignInException && error.code == GoogleSignInExceptionCode.canceled) {
+        return;
+      }
+      if (error is FirebaseAuthException && error.code == 'web-context-canceled') {
+        return;
+      }
       var message = 'Impossible de continuer : $error';
       if (error.toString().contains('invalid-cert-hash')) {
         final hashes = await AndroidSigningCertificateService.currentSha1();

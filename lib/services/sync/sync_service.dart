@@ -3,12 +3,14 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../models/book_item.dart';
 import '../../models/server_profile.dart';
 import '../database_service.dart';
 import '../reader_settings_service.dart';
 import 'crypto_service.dart';
+import 'firebase_bootstrap.dart';
 import 'sync_models.dart';
 import 'vault_service.dart';
 
@@ -21,11 +23,13 @@ class SyncService {
     DatabaseService? database,
     VaultService? vault,
     CryptoService? crypto,
+    GoogleSignIn? googleSignIn,
   })  : _authOverride = auth,
         _firestoreOverride = firestore,
         _database = database ?? DatabaseService(),
         _vault = vault ?? VaultService(),
-        _crypto = crypto ?? CryptoService();
+        _crypto = crypto ?? CryptoService(),
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   final FirebaseAuth? _authOverride;
   final FirebaseFirestore? _firestoreOverride;
@@ -34,6 +38,7 @@ class SyncService {
   final DatabaseService _database;
   final VaultService _vault;
   final CryptoService _crypto;
+  final GoogleSignIn _googleSignIn;
 
   User? get user => _auth.currentUser;
   Stream<User?> get authChanges => _auth.authStateChanges();
@@ -44,9 +49,36 @@ class SyncService {
   Future<UserCredential> signIn({required String email, required String password}) =>
       _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
 
-  Future<void> signOut() => _auth.signOut();
+  Future<void> signOut() async {
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
+    await _auth.signOut();
+  }
 
-  Future<UserCredential> signInWithGoogle() => _auth.signInWithProvider(GoogleAuthProvider());
+  Future<UserCredential> signInWithGoogle() async {
+    bool canAuthenticateNatively = false;
+    try {
+      canAuthenticateNatively = _googleSignIn.supportsAuthenticate();
+    } catch (_) {
+      canAuthenticateNatively = false;
+    }
+
+    if (canAuthenticateNatively) {
+      await FirebaseBootstrap.ensureGoogleSignInInitialized();
+      final account = await _googleSignIn.authenticate();
+      final auth = account.authentication;
+      if (auth.idToken == null) {
+        throw StateError('Jeton d’authentification Google introuvable.');
+      }
+      final credential = GoogleAuthProvider.credential(
+        idToken: auth.idToken,
+      );
+      return _auth.signInWithCredential(credential);
+    }
+
+    return _auth.signInWithProvider(GoogleAuthProvider());
+  }
 
   Future<void> sendPasswordReset(String email) => _auth.sendPasswordResetEmail(email: email.trim());
 
