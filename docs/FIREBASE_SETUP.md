@@ -27,6 +27,10 @@ poste configuré, exécuter `gh secret set FIREBASE_ANDROID_CONFIG <
 android/app/google-services.json`. Ne jamais afficher le contenu du fichier
 dans un journal de CI.
 
+Les APK distribués depuis GitHub sont signés par la même clé d'importation que
+l'AAB envoyé à Google Play. Cela garantit que Firebase Authentication reconnaît
+la même empreinte SHA-1 quel que soit le canal d'installation.
+
 ## Protection des données
 
 Les données de lecture, réglages et profils de serveurs sont chiffrés avec
