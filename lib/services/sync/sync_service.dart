@@ -82,6 +82,21 @@ class SyncService {
 
   Future<void> sendPasswordReset(String email) => _auth.sendPasswordResetEmail(email: email.trim());
 
+  /// Checks whether this device has unlocked its local encryption key.
+  Future<bool> hasLocalKey() => _vault.hasLocalVault();
+
+  /// Checks whether a remote vault exists in Firestore for the current user.
+  Future<bool> hasRemoteVault() async {
+    final currentUser = user;
+    if (currentUser == null) return false;
+    try {
+      final snapshot = await _firestore.doc('users/${currentUser.uid}/private/vault').get();
+      return snapshot.exists;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Creates a device vault. Call once after the user has safely recorded a
   /// recovery phrase; the phrase is not persisted on this device.
   Future<void> createVault(String recoveryPhrase) async {
