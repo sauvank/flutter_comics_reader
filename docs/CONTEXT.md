@@ -6,6 +6,17 @@ Le kit `marketing/play-store/` utilise la vraie interface de ComicStream avec de
 
 Ce document résume l'environnement matériel, l'infrastructure serveur, les protocoles réseau, et l'état actuel de l'application **ComicStream**.
 
+## Synchronisation de compte (préparation)
+
+Firebase Authentication et Cloud Firestore constituent le backend prévu pour
+la synchronisation multi-appareils. Avant envoi, les profils de serveurs, la
+progression et les réglages sont chiffrés côté client ; les mots de passe de
+serveurs sont également gardés dans le coffre sécurisé de l'OS. La phrase de
+récupération n'est jamais stockée par l'application. Les fichiers, couvertures
+et chemins locaux ne sont pas synchronisés. La configuration de projet reste
+décrite dans `docs/FIREBASE_SETUP.md` et ne doit inclure aucun secret dans ce
+dépôt.
+
 > [!CAUTION]
 > **RÈGLE ABSOLUE DE SÉCURITÉ & ANONYMAT : ZÉRO DONNÉE PRIVÉE DANS LE DÉPÔT**
 > Le dépôt étant public, il est **strictement interdit** de commiter la moindre information personnelle ou sensible :
@@ -53,7 +64,7 @@ Ce document résume l'environnement matériel, l'infrastructure serveur, les pro
 | :--- | :--- | :--- |
 | **CBZ / ZIP** | `.cbz`, `.zip` | Lecture native ultra-rapide via `CbzReaderScreen` (décompression mémoire des pages). |
 | **CBR / RAR** | `.cbr`, `.rar` | Décompression des archives d'images vers le lecteur de BD. |
-| **PDF** | `.pdf` | **Double mode** : <br>1. **Conversion Auto en CBZ** : Rend chaque page en PNG HD super-échantillonné pour le lecteur de BD.<br>2. **Lecture Directe Instantanée** : Rendu vectoriel C++ à la volée via `PdfReaderScreen` (0.0s d'attente). |
+| **PDF** | `.pdf` | **Double mode** : <br>1. **Conversion Auto en CBZ Native Sans Perte** : Extraction native directe bit à bit via `pdfimages -all` (100% qualité d'origine, zéro recompression) avec repli sur rendu matriciel Ultra HD 300 DPI pour les PDF vectoriels/textes.<br>2. **Lecture Directe Instantanée** : Rendu vectoriel C++ à la volée via `PdfReaderScreen` (0.0s d'attente). |
 | **EPUB** | `.epub` | Format ebook supporté. |
 
 ---

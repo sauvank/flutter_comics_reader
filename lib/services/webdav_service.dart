@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import '../models/remote_file.dart';
@@ -18,22 +17,7 @@ class WebDavService {
             sendTimeout: const Duration(seconds: 30),
             validateStatus: (status) => status != null && status >= 200 && status < 400,
           ),
-        ) {
-    if (!kIsWeb) {
-      final adapter = _dio.httpClientAdapter;
-      if (adapter is IOHttpClientAdapter) {
-        adapter.createHttpClient = () {
-          final client = HttpClient();
-          client.badCertificateCallback = (cert, host, port) => true;
-          client.idleTimeout = const Duration(seconds: 30);
-          client.connectionTimeout = const Duration(seconds: 15);
-          client.maxConnectionsPerHost = 16;
-          client.autoUncompress = false;
-          return client;
-        };
-      }
-    }
-  }
+        );
 
   Map<String, String> getHeaders(ServerProfile server) {
     final headers = <String, String>{

@@ -328,7 +328,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                         decoration: const InputDecoration(
                           labelText: 'Hôte / IP',
                           prefixIcon: Icon(Icons.router_outlined),
-                          hintText: 'ex: 192.168.1.10 ou nas.local',
+                          hintText: 'ex. 192.168.1.100 ou nas.local',
                         ),
                         validator: (val) => val == null || val.trim().isEmpty ? 'IP ou domaine requis' : null,
                       ),

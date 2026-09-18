@@ -1,51 +1,57 @@
-# 🛡️ Politique de Confidentialité (Privacy Policy) — ComicStream
+# Politique de confidentialité — ComicStream
 
-**Date d'effet** : 25 Août 2026
+**Date d'effet : 18 septembre 2026**
 
-L'application **ComicStream** (« nous », « notre » ou « l'Application ») est développée dans le respect absolu de la vie privée de ses utilisateurs. Cette politique de confidentialité détaille les principes régissant l'utilisation des données lors de l'utilisation de ComicStream.
+ComicStream est un lecteur de bandes dessinées. Cette politique décrit les
+données traitées par l'application et les choix qui restent sous votre
+contrôle.
 
----
+## Données locales
 
-## 1. Collecte et Utilisation des Données
+Les fichiers lus, couvertures, progression, marque-pages, favoris et réglages
+de lecture sont conservés sur l'appareil. Les identifiants de serveurs sont
+enregistrés dans le coffre sécurisé fourni par le système d'exploitation ; ils
+ne sont ni inclus dans un export de serveurs, ni enregistrés dans les
+préférences ordinaires de l'application.
 
-**ComicStream ne collecte, ne stocke, ne transmet et ne vend AUCUNE donnée personnelle.**
+La suppression de l'application ou de ses données locales peut supprimer ces
+données locales. Pensez à utiliser la synchronisation ou une sauvegarde que
+vous contrôlez si vous souhaitez les conserver.
 
-* **Aucun compte utilisateur requis** : L'utilisation de l'Application ne nécessite aucune création de compte, adresse e-mail ou inscription.
-* **Aucune donnée de télémétrie** : Nous n'utilisons aucun outil de tracking ou d'analyse tiers (pas de Google Analytics, Firebase, Facebook SDK, etc.).
-* **Aucune publicité** : L'Application ne contient aucun réseau publicitaire.
+## Compte et synchronisation facultatifs
 
----
+La lecture locale ne requiert aucun compte. Si vous choisissez de créer un
+compte par e-mail/mot de passe ou de vous connecter avec Google, Firebase
+Authentication traite l'adresse e-mail, l'identifiant du fournisseur de
+connexion et les informations nécessaires à l'authentification.
 
-## 2. Autorisations Système et Finalités
+Lorsque la synchronisation est activée, les réglages, profils de serveurs et
+progression de lecture sont chiffrés sur l'appareil avec AES-256-GCM avant leur
+envoi vers Cloud Firestore. La clé de déchiffrement reste sur vos appareils ;
+la phrase de récupération sert à restaurer cette clé et n'est jamais envoyée
+au serveur. Les fichiers de BD, leurs couvertures et leurs chemins locaux ne
+sont jamais synchronisés.
 
-L'Application nécessite un nombre minimal d'autorisations pour assurer son fonctionnement :
+## Réseau et sécurité
 
-| Autorisation | Raison d'utilisation |
-| :--- | :--- |
-| **`INTERNET`** | Permet exclusivement à l'application de se connecter aux serveurs distants ou locaux (NAS, FTP, WebDAV) explicitement configurés par l'utilisateur pour télécharger ses fichiers de bandes dessinées. |
-| **`ACCESS_NETWORK_STATE`** | Permet de vérifier la disponibilité du réseau avant de lancer une connexion vers votre serveur local. |
-| **`WAKE_LOCK`** | Permet de maintenir l'écran allumé pendant la lecture d'une bande dessinée si l'option est activée dans les paramètres de lecture. |
+L'accès réseau sert uniquement aux serveurs explicitement configurés par
+l'utilisateur, aux mises à jour de l'application et, en cas d'utilisation
+d'un compte, à Firebase. HTTPS/WebDAV valide les certificats TLS du serveur.
+Les connexions HTTP, FTP ou WebDAV non chiffrées dépendent du serveur choisi
+par l'utilisateur et exposent potentiellement les données en transit ; utilisez
+HTTPS ou SFTP lorsque votre serveur le permet.
 
----
+ComicStream n'intègre ni publicité ni outil de télémétrie ou d'analyse
+comportementale.
 
-## 3. Stockage Local des Données
+## Suppression et contact
 
-Toutes vos données restent exclusivement stockées sur votre appareil :
-* **Fichiers de BD / Manga** : Les fichiers téléchargés (`.cbz`, `.pdf`, etc.) et les miniatures de couverture sont enregistrés dans l'espace de stockage sécurisé dédié de l'Application.
-* **Progression de lecture** : Vos marque-pages, pourcentages d'avancement et paramètres sont stockés localement via les préférences de l'appareil.
-* **Profils de serveurs** : Les adresses IP et identifiants de vos serveurs locaux sont conservés uniquement sur votre appareil.
+Vous pouvez vous déconnecter à tout moment depuis l'écran Compte. Pour une
+demande de suppression de compte et des données de synchronisation associées,
+ouvrez une demande via le dépôt du projet :
+[github.com/sauvank/flutter_comics_reader](https://github.com/sauvank/flutter_comics_reader).
 
-La suppression de l'Application ou l'effacement de ses données via les paramètres d'Android entraîne la suppression définitive de ces éléments.
+## Enfants
 
----
-
-## 4. Données Relatives aux Enfants
-
-L'Application est un utilitaire neutre de lecture de documents. Elle ne recueille sciemment aucune information personnelle auprès des enfants de moins de 13 ans.
-
----
-
-## 5. Contact
-
-Pour toute question ou demande relative à cette politique de confidentialité, vous pouvez contacter le développeur via la page du projet :  
-**GitHub** : [https://github.com/sauvank/flutter_comics_reader](https://github.com/sauvank/flutter_comics_reader)
+ComicStream est un utilitaire de lecture. Il ne cible pas les enfants et ne
+collecte pas sciemment de données personnelles auprès d'enfants.

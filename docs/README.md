@@ -6,17 +6,17 @@ Ce dossier contient toute la documentation technique, le contexte d'exécution e
 
 ## 📑 Sommaire des Documents
 
-1. **[🗺️ ROADMAP.md](file:///root/perso/comic_reader_app/docs/ROADMAP.md)** :  
+1. **[🗺️ ROADMAP.md](ROADMAP.md)** :
    Feuille de route détaillée en 4 phases stratégiques (Confort Tablette, Bibliothèque & Ergonomie, Synchronisation & Stockage, Personnalisation & Métadonnées).
 
-2. **[📖 CONTEXT.md](file:///root/perso/comic_reader_app/docs/CONTEXT.md)** :  
-   Spécifications de l'environnement matériel (tablette Huawei MediaPad M5 Lite 10.1"), infrastructure serveur FTP (Serveur NAS `192.168.1.100`), formats supportés et état actuel des fonctionnalités.
+2. **[📖 CONTEXT.md](CONTEXT.md)** :
+   Contexte technique, protocoles réseau, formats supportés et état actuel des fonctionnalités.
 
-3. **[🏗️ ARCHITECTURE.md](file:///root/perso/comic_reader_app/docs/ARCHITECTURE.md)** :  
+3. **[🏗️ ARCHITECTURE.md](ARCHITECTURE.md)** :
    Architecture logicielle (Providers & Services), diagrammes de flux de données, pipeline de conversion PDF ➔ CBZ super-échantillonné et structure de stockage local.
 
-4. **[📋 CONTRIBUTING.md](file:///root/perso/comic_reader_app/docs/CONTRIBUTING.md)** :  
+4. **[📋 CONTRIBUTING.md](CONTRIBUTING.md)** :
    Guide des règles de commit, conventions Conventional Commits et sécurité pour dépôt public.
 
-5. **[🛡️ PRIVACY_POLICY.md](file:///root/perso/comic_reader_app/docs/PRIVACY_POLICY.md)** :  
+5. **[🛡️ PRIVACY_POLICY.md](PRIVACY_POLICY.md)** :
    Politique de confidentialité officielle pour la fiche Google Play Store.

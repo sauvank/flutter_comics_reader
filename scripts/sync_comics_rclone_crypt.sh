@@ -4,7 +4,7 @@
 # Script de Synchronisation Carbone Chiffrée (Rclone Crypt -> TeraBox)
 # ==============================================================================
 
-set -e
+set -euo pipefail
 
 # Couleurs d'affichage
 GREEN='\033[0;32m'
@@ -38,7 +38,7 @@ else
     DEFAULT_SOURCE="/mnt/bd"
 fi
 
-if [ -z "$1" ]; then
+if [ -z "${1:-}" ]; then
     echo ""
     read -p "📂 Chemin du dossier source à synchroniser [Défaut: $DEFAULT_SOURCE] : " SOURCE_PATH
     SOURCE_PATH=${SOURCE_PATH:-$DEFAULT_SOURCE}
@@ -120,13 +120,13 @@ if [ "$PDF_COUNT" -gt 0 ]; then
     echo -e "ℹ️  ComicStream fonctionne de façon optimale avec les archives CBZ."
     echo -e "   Conversion automatique avant le téléversement distant..."
 
-    # Vérification des outils de conversion (pdftoppm, unar, 7z)
-    if ! command -v pdftoppm &> /dev/null || (! command -v unar &> /dev/null && ! command -v 7z &> /dev/null); then
-        echo -e "${YELLOW}⚠️ Des outils de conversion (poppler-utils, unar) sont manquants.${NC}"
+    # Vérification des outils de conversion (poppler-utils, pdfimages, pdftoppm, unar, 7z)
+    if ! command -v pdftoppm &> /dev/null || ! command -v pdfimages &> /dev/null || (! command -v unar &> /dev/null && ! command -v 7z &> /dev/null); then
+        echo -e "${YELLOW}⚠️ Des outils de conversion (poppler-utils, unar, python3-pil) sont manquants.${NC}"
         read -p "Souhaitez-vous les installer automatiquement ? (o/n) [Défaut: o] : " INSTALL_TOOLS
         INSTALL_TOOLS=${INSTALL_TOOLS:-o}
         if [[ "$INSTALL_TOOLS" =~ ^[oOyY]$ ]]; then
-            sudo apt update && sudo apt install -y poppler-utils unar p7zip-full
+            sudo apt update && sudo apt install -y poppler-utils unar p7zip-full python3-pil
         else
             echo -e "${RED}❌ Impossible de convertir les fichiers sans ces outils.${NC}"
             read -p "Poursuivre la synchronisation sans convertir ? (o/n) [Défaut: n] : " CONTINUE_ANYWAY
@@ -148,7 +148,32 @@ else
     echo -e "${GREEN}✅ Aucun fichier PDF à convertir (Bibliothèque 100% CBZ/CBR/Images prête).${NC}"
 fi
 
-# 5. Lancement de la synchronisation carbone (Miroir)
+# 5. Nettoyage optionnel des conflits d'horodatage sur le stockage brut
+# TeraBox/Alist peut générer des fichiers en doublon suffixés par '_YYYYMMDD_HHMMSS'.
+# Ces suffixes corrompent le chiffrement base32 d'origine et provoquent des erreurs 'illegal base32 data'.
+# Ce nettoyage s'exécute directement sur le backend sous-jacent non chiffré.
+UNDERLYING_REMOTE=$(python3 -c "import subprocess, json; print(json.loads(subprocess.check_output(['rclone', 'config', 'dump']).decode()).get('${REMOTE_NAME}', {}).get('remote', ''))" 2>/dev/null || echo "")
+
+if [ "${RCLONE_CLEANUP_DUPLICATES:-0}" = "1" ] && [ -n "$UNDERLYING_REMOTE" ]; then
+    echo ""
+    echo -e "${BLUE}======================================================${NC}"
+    echo -e "${BLUE}🧹 Nettoyage préventif des conflits d'horodatage sur ${UNDERLYING_REMOTE}...${NC}"
+    echo -e "${BLUE}======================================================${NC}"
+    echo -e "${YELLOW}⚠️ Cette action supprime définitivement les doublons correspondants.${NC}"
+    read -r -p "Saisissez SUPPRIMER pour continuer : " CONFIRM_DELETE
+    if [ "$CONFIRM_DELETE" = "SUPPRIMER" ]; then
+        rclone delete "$UNDERLYING_REMOTE" \
+            --include "*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]*" \
+            --tpslimit 5 \
+            --fast-list
+    else
+        echo -e "${YELLOW}Nettoyage annulé.${NC}"
+    fi
+elif [ -n "$UNDERLYING_REMOTE" ]; then
+    echo -e "${BLUE}ℹ️ Nettoyage des doublons désactivé (définir RCLONE_CLEANUP_DUPLICATES=1 pour l'autoriser).${NC}"
+fi
+
+# 6. Lancement de la synchronisation carbone (Miroir)
 echo ""
 echo -e "${BLUE}======================================================${NC}"
 echo -e "${GREEN}⏳ Lancement de la copie carbone chiffrée (Miroir)...${NC}"
@@ -187,4 +212,3 @@ echo -e "${GREEN}======================================================${NC}"
 echo ""
 echo -e "${BLUE}ℹ️ Vos fichiers distants sont désormais le miroir parfait de votre dossier local.${NC}"
 echo -e "${BLUE}ℹ️ Alist / WebDAV sert votre collection à jour pour ComicStream.${NC}"
-

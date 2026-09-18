@@ -12,7 +12,7 @@ echo "=========================================="
 
 # 1. Dossier source à chiffrer
 if [ -z "$1" ]; then
-    read -p "📂 Chemin du dossier à chiffrer (ex: /home/user/comics) : " SOURCE_DIR
+    read -p "📂 Chemin du dossier à chiffrer (ex: /media/comics) : " SOURCE_DIR
 else
     SOURCE_DIR="$1"
 fi
@@ -39,7 +39,7 @@ done
 
 # 2. Dossier de destination pour l'archive chiffrée
 if [ -z "$2" ]; then
-    read -p "💾 Dossier de destination (ex: /home/user/backups) [Défaut: ./backups] : " DEST_DIR
+    read -p "💾 Dossier de destination (ex: /media/backups) [Défaut: ./backups] : " DEST_DIR
     DEST_DIR=${DEST_DIR:-"./backups"}
 else
     DEST_DIR="$2"
