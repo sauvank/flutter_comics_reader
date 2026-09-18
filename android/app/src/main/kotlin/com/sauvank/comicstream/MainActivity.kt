@@ -24,9 +24,9 @@ class MainActivity : FlutterActivity() {
     private fun signingCertificateSha1(): List<String> {
         val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNING_CERTIFICATES)
-                .signingInfo.apkContentsSigners
+                .signingInfo?.apkContentsSigners ?: emptyArray()
         } else {
-            packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures
+            packageManager.getPackageInfo(packageName, PackageManager.GET_SIGNATURES).signatures ?: emptyArray()
         }
         return signatures.map { signature ->
             MessageDigest.getInstance("SHA-1").digest(signature.toByteArray())
