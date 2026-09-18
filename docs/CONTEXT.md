@@ -12,7 +12,10 @@ Firebase Authentication et Cloud Firestore constituent le backend prévu pour
 la synchronisation multi-appareils. Avant envoi, les profils de serveurs, la
 progression et les réglages sont chiffrés côté client ; les mots de passe de
 serveurs sont également gardés dans le coffre sécurisé de l'OS. La phrase de
-récupération n'est jamais stockée par l'application. Les fichiers, couvertures
+récupération n'est jamais stockée par l'application : l'utilisateur dispose d'un
+contrôle visuel (masquage/affichage), d'un champ de confirmation, d'une boîte de
+dialogue de vérification avant enregistrement, et de la possibilité de modifier
+sa phrase secrète à tout moment sur un coffre déverrouillé. Les fichiers, couvertures
 et chemins locaux ne sont pas synchronisés. La configuration de projet reste
 décrite dans `docs/FIREBASE_SETUP.md` et ne doit inclure aucun secret dans ce
 dépôt.

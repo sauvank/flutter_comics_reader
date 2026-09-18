@@ -50,13 +50,21 @@ class VaultService {
 
   Future<String> recoverySalt() => _newOrStoredSalt();
 
-  Future<String> _newOrStoredSalt() async {
-    final existing = await _storage.read(key: _recoverySalt);
-    if (existing != null) return existing;
+  Future<void> saveRecoverySalt(String salt) async {
+    await _storage.write(key: _recoverySalt, value: salt);
+  }
+
+  Future<String> generateNewRecoverySalt() async {
     final random = Random.secure();
     final bytes = List<int>.generate(16, (_) => random.nextInt(256));
     final value = base64UrlEncode(bytes);
     await _storage.write(key: _recoverySalt, value: value);
     return value;
+  }
+
+  Future<String> _newOrStoredSalt() async {
+    final existing = await _storage.read(key: _recoverySalt);
+    if (existing != null) return existing;
+    return generateNewRecoverySalt();
   }
 }

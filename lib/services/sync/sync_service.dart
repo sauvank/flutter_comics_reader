@@ -126,9 +126,37 @@ class SyncService {
     final snapshot = await _firestore.doc('users/${currentUser.uid}/private/vault').get();
     final data = snapshot.data();
     if (data == null) throw StateError('Aucun coffre de synchronisation trouvé.');
-    final recovery = await _vault.recoveryKey(recoveryPhrase, salt: data['salt'] as String);
+    final salt = data['salt'] as String;
+    final recovery = await _vault.recoveryKey(recoveryPhrase, salt: salt);
     final value = await _crypto.decryptJson(key: recovery, envelope: Map<String, dynamic>.from(data['envelope'] as Map));
     await _vault.saveLocalKey(await _crypto.keyFromBytes(base64Url.decode(value['masterKey'] as String)));
+    await _vault.saveRecoverySalt(salt);
+  }
+
+  /// Updates the recovery phrase for the existing vault without losing any synced data.
+  /// The vault must already be unlocked on this device.
+  Future<void> updateRecoveryPhrase(String newRecoveryPhrase) async {
+    if (newRecoveryPhrase.trim().length < 16) {
+      throw ArgumentError('La phrase de récupération doit comporter au moins 16 caractères.');
+    }
+    final currentUser = user;
+    if (currentUser == null) throw StateError('Connexion requise');
+    final master = await _vault.readLocalKey();
+    if (master == null) {
+      throw StateError('Le coffre doit être déverrouillé pour modifier la phrase secrète.');
+    }
+    final salt = await _vault.generateNewRecoverySalt();
+    final recovery = await _vault.recoveryKey(newRecoveryPhrase, salt: salt);
+    final envelope = await _crypto.encryptJson(
+      key: recovery,
+      value: {'masterKey': base64UrlEncode(await master.extractBytes())},
+    );
+    await _firestore.doc('users/${currentUser.uid}/private/vault').set({
+      'version': 1,
+      'salt': salt,
+      'envelope': envelope,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 
   Future<List<SyncConflict>> syncNow() async {

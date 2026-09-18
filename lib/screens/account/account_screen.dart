@@ -18,12 +18,20 @@ class _AccountScreenState extends State<AccountScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _recovery = TextEditingController();
+  final _confirmRecovery = TextEditingController();
   final _phrase = TextEditingController();
+  final _confirmPhrase = TextEditingController();
   bool _createMode = false;
   bool _busy = false;
   bool? _hasLocalVault;
   bool? _hasRemoteVault;
   bool _loadingVault = false;
+
+  bool _obscurePassword = true;
+  bool _obscureRecovery = true;
+  bool _obscureConfirmRecovery = true;
+  bool _obscurePhrase = true;
+  bool _obscureConfirmPhrase = true;
 
   @override
   void initState() {
@@ -38,7 +46,9 @@ class _AccountScreenState extends State<AccountScreen> {
     _email.dispose();
     _password.dispose();
     _recovery.dispose();
+    _confirmRecovery.dispose();
     _phrase.dispose();
+    _confirmPhrase.dispose();
     super.dispose();
   }
 
@@ -83,6 +93,204 @@ class _AccountScreenState extends State<AccountScreen> {
     );
     if (confirmed == true && mounted) {
       setState(() => _hasRemoteVault = false);
+    }
+  }
+
+  Future<bool> _showConfirmCreationDialog(String phrase) async {
+    return await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.amber),
+            SizedBox(width: 8),
+            Expanded(child: Text('Confirmer la phrase secrète')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Avez-vous bien noté votre phrase secrète dans un endroit sûr ?\n\n'
+              'Elle est indispensable pour restaurer vos données ou synchroniser un nouvel appareil. '
+              'ComicStream ne la conserve pas et ne pourra jamais la récupérer pour vous.',
+            ),
+            const SizedBox(height: 12),
+            const Text('Votre phrase secrète :', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 4),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant),
+              ),
+              child: SelectableText(
+                phrase,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Modifier'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('J’ai bien noté, continuer'),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
+
+  Future<void> _showEditRecoveryPhraseDialog() async {
+    final newPhraseController = TextEditingController();
+    final confirmPhraseController = TextEditingController();
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+    String? errorText;
+
+    final result = await showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Modifier la phrase secrète'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Définissez une nouvelle phrase secrète (16 caractères minimum) pour sécuriser votre synchronisation.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: newPhraseController,
+                  obscureText: obscureNew,
+                  decoration: InputDecoration(
+                    labelText: 'Nouvelle phrase secrète',
+                    helperText: '16 caractères minimum',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureNew ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                      tooltip: obscureNew ? 'Afficher la phrase' : 'Masquer la phrase',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmPhraseController,
+                  obscureText: obscureConfirm,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmer la nouvelle phrase',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscureConfirm ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                      tooltip: obscureConfirm ? 'Afficher la phrase' : 'Masquer la phrase',
+                    ),
+                  ),
+                ),
+                if (errorText != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    errorText!,
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontSize: 13),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(null),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final phrase = newPhraseController.text.trim();
+                final confirm = confirmPhraseController.text.trim();
+                if (phrase.length < 16) {
+                  setDialogState(() => errorText = 'La phrase doit comporter au moins 16 caractères.');
+                  return;
+                }
+                if (phrase != confirm) {
+                  setDialogState(() => errorText = 'Les deux phrases ne correspondent pas.');
+                  return;
+                }
+                Navigator.of(ctx).pop(phrase);
+              },
+              child: const Text('Continuer'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    newPhraseController.dispose();
+    confirmPhraseController.dispose();
+
+    if (result != null && mounted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Confirmer le changement ?'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Votre coffre va être mis à jour avec cette nouvelle phrase secrète.\n'
+                'Assurez-vous de l’avoir bien notée :',
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant),
+                ),
+                child: SelectableText(
+                  result,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Modifier'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Confirmer et enregistrer'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true && mounted) {
+        await _run(() async {
+          await _sync.updateRecoveryPhrase(result);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Phrase secrète mise à jour avec succès.')),
+            );
+          }
+        });
+      }
     }
   }
 
@@ -185,27 +393,62 @@ class _AccountScreenState extends State<AccountScreen> {
                           const SizedBox(height: 16),
                           TextField(
                             controller: _phrase,
-                            obscureText: true,
+                            obscureText: _obscurePhrase,
                             decoration: InputDecoration(
                               labelText: _hasRemoteVault == true
                                   ? 'Phrase de récupération'
                                   : 'Phrase secrète (16 caractères minimum)',
                               border: const OutlineInputBorder(),
+                              suffixIcon: IconButton(
+                                icon: Icon(_obscurePhrase ? Icons.visibility : Icons.visibility_off),
+                                onPressed: () => setState(() => _obscurePhrase = !_obscurePhrase),
+                                tooltip: _obscurePhrase ? 'Afficher la phrase' : 'Masquer la phrase',
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          if (_hasRemoteVault != true) ...[
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _confirmPhrase,
+                              obscureText: _obscureConfirmPhrase,
+                              decoration: InputDecoration(
+                                labelText: 'Confirmer la phrase secrète',
+                                border: const OutlineInputBorder(),
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscureConfirmPhrase ? Icons.visibility : Icons.visibility_off),
+                                  onPressed: () => setState(() => _obscureConfirmPhrase = !_obscureConfirmPhrase),
+                                  tooltip: _obscureConfirmPhrase ? 'Afficher la phrase' : 'Masquer la phrase',
+                                ),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
                               onPressed: _busy
                                   ? null
                                   : () => _run(() async {
+                                        final phrase = _phrase.text.trim();
                                         if (_hasRemoteVault == true) {
-                                          await _sync.restoreVault(_phrase.text);
+                                          if (phrase.isEmpty) {
+                                            throw ArgumentError('Veuillez saisir votre phrase de récupération.');
+                                          }
+                                          await _sync.restoreVault(phrase);
                                         } else {
-                                          await _sync.createVault(_phrase.text);
+                                          final confirm = _confirmPhrase.text.trim();
+                                          if (phrase.length < 16) {
+                                            throw ArgumentError('La phrase secrète doit comporter au moins 16 caractères.');
+                                          }
+                                          if (phrase != confirm) {
+                                            throw ArgumentError('Les phrases secrètes ne correspondent pas.');
+                                          }
+                                          final confirmed = await _showConfirmCreationDialog(phrase);
+                                          if (!confirmed) return;
+                                          await _sync.createVault(phrase);
                                         }
                                         _phrase.clear();
+                                        _confirmPhrase.clear();
                                         await _checkVault();
                                       }),
                               icon: Icon(_hasRemoteVault == true ? Icons.lock_open : Icons.vpn_key),
@@ -229,15 +472,52 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   const SizedBox(height: 16),
                 ] else ...[
-                  FilledButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _run(() async {
-                              final conflicts = await _sync.syncNow();
-                              if (conflicts.isNotEmpty) throw StateError('${conflicts.length} conflit(s) à résoudre');
-                            }),
-                    icon: const Icon(Icons.sync),
-                    label: const Text('Synchroniser maintenant'),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.verified_user, color: Colors.green),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Coffre déverrouillé',
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'La synchronisation est active et protégée par chiffrement de bout en bout.',
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FilledButton.icon(
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _run(() async {
+                                            final conflicts = await _sync.syncNow();
+                                            if (conflicts.isNotEmpty) throw StateError('${conflicts.length} conflit(s) à résoudre');
+                                          }),
+                                  icon: const Icon(Icons.sync),
+                                  label: const Text('Synchroniser'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton.icon(
+                                onPressed: _busy ? null : _showEditRecoveryPhraseDialog,
+                                icon: const Icon(Icons.key),
+                                label: const Text('Modifier la phrase'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -256,14 +536,91 @@ class _AccountScreenState extends State<AccountScreen> {
               ] else ...[
                 Text(_createMode ? 'Créer un compte' : 'Se connecter', style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
-                TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail')),
-                TextField(controller: _password, obscureText: true, decoration: const InputDecoration(labelText: 'Mot de passe (12 caractères minimum)')),
-                if (_createMode) TextField(controller: _recovery, obscureText: true, decoration: const InputDecoration(labelText: 'Phrase de récupération (à conserver hors ligne)')),
+                TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _password,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe (12 caractères minimum)',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      tooltip: _obscurePassword ? 'Afficher le mot de passe' : 'Masquer le mot de passe',
+                    ),
+                  ),
+                ),
+                if (_createMode) ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _recovery,
+                    obscureText: _obscureRecovery,
+                    decoration: InputDecoration(
+                      labelText: 'Phrase secrète (16 caractères minimum)',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureRecovery ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _obscureRecovery = !_obscureRecovery),
+                        tooltip: _obscureRecovery ? 'Afficher la phrase' : 'Masquer la phrase',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _confirmRecovery,
+                    obscureText: _obscureConfirmRecovery,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmer la phrase secrète',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscureConfirmRecovery ? Icons.visibility : Icons.visibility_off),
+                        onPressed: () => setState(() => _obscureConfirmRecovery = !_obscureConfirmRecovery),
+                        tooltip: _obscureConfirmRecovery ? 'Afficher la phrase' : 'Masquer la phrase',
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
-                FilledButton(onPressed: _busy ? null : () => _run(() async { if (_createMode) { await _sync.createAccount(email: _email.text, password: _password.text); await _sync.createVault(_recovery.text); } else { await _sync.signIn(email: _email.text, password: _password.text); } await _checkVault(); }), child: Text(_createMode ? 'Créer le compte' : 'Se connecter')),
-                TextButton(onPressed: _busy ? null : () => setState(() => _createMode = !_createMode), child: Text(_createMode ? 'J’ai déjà un compte' : 'Créer un compte')),
+                FilledButton(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(() async {
+                            if (_createMode) {
+                              final phrase = _recovery.text.trim();
+                              final confirm = _confirmRecovery.text.trim();
+                              if (phrase.length < 16) {
+                                throw ArgumentError('La phrase secrète doit comporter au moins 16 caractères.');
+                              }
+                              if (phrase != confirm) {
+                                throw ArgumentError('Les phrases secrètes ne correspondent pas.');
+                              }
+                              final confirmed = await _showConfirmCreationDialog(phrase);
+                              if (!confirmed) return;
+                              await _sync.createAccount(email: _email.text, password: _password.text);
+                              await _sync.createVault(phrase);
+                            } else {
+                              await _sync.signIn(email: _email.text, password: _password.text);
+                            }
+                            await _checkVault();
+                          }),
+                  child: Text(_createMode ? 'Créer le compte' : 'Se connecter'),
+                ),
+                TextButton(
+                  onPressed: _busy ? null : () => setState(() => _createMode = !_createMode),
+                  child: Text(_createMode ? 'J’ai déjà un compte' : 'Créer un compte'),
+                ),
                 const Divider(height: 32),
-                OutlinedButton.icon(onPressed: _busy ? null : () => _run(() async { await _sync.signInWithGoogle(); await _checkVault(); }), icon: const Icon(Icons.g_mobiledata), label: const Text('Continuer avec Google')),
+                OutlinedButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(() async {
+                            await _sync.signInWithGoogle();
+                            await _checkVault();
+                          }),
+                  icon: const Icon(Icons.g_mobiledata),
+                  label: const Text('Continuer avec Google'),
+                ),
               ],
               const SizedBox(height: 24),
               const Text('La phrase de récupération est indispensable pour restaurer les mots de passe de serveurs sur un nouvel appareil. Elle n’est jamais sauvegardée par ComicStream.'),

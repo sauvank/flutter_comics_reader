@@ -112,9 +112,10 @@ gantt
 - [x] Placer les mots de passe de serveurs dans le coffre sécurisé de l'OS.
 - [x] Ajouter des règles Firestore limitées au compte propriétaire.
 - [x] Définir la détection des écritures concurrentes par fichier.
+- [x] Ajouter les écrans d'inscription, connexion, saisie/confirmation de
+  phrase de récupération, boîte de dialogue de confirmation, masquage/affichage
+  et modification de phrase secrète.
 - [ ] Connecter le projet Firebase de production et ses applications clientes.
-- [ ] Ajouter les écrans d'inscription, connexion, phrase de récupération et
-  résolution de conflit.
 - [ ] Ajouter la synchronisation déclenchée automatiquement (démarrage,
   modification et retour réseau).
 

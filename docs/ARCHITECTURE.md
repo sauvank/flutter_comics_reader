@@ -39,9 +39,11 @@ graph TD
 ```
 
 `SyncService` ne transmet que des enveloppes AES-256-GCM. `VaultService`
-conserve la clé locale dans le stockage sécurisé de l'OS et permet sa
-restauration par phrase de récupération. Les règles Firestore limitent chaque
-chemin `users/{uid}` au compte authentifié correspondant.
+conserve la clé locale dans le stockage sécurisé de l'OS, permet sa
+restauration par phrase de récupération, et permet la mise à jour de la phrase
+secrète (`updateRecoveryPhrase`) en régénérant un nouveau sel PBKDF2 sans perte
+des données déverrouillées. Les règles Firestore limitent chaque chemin
+`users/{uid}` au compte authentifié correspondant.
 
 ---
 
