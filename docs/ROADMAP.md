@@ -103,3 +103,24 @@ gantt
 ### 4.2 Sauvegarde & Restauration de la Progression
 * Export/Import des statistiques et progressions de lecture (JSON / Serveur).
 * Thèmes visuels avancés (Sombre BD, Manga Minimaliste, Vintage Comics).
+# Roadmap — comptes et synchronisation
+
+## En cours — fondation Firebase sécurisée
+
+- [x] Définir Firebase Auth + Firestore comme backend de comptes.
+- [x] Chiffrer côté client les profils serveur, progression et réglages.
+- [x] Placer les mots de passe de serveurs dans le coffre sécurisé de l'OS.
+- [x] Ajouter des règles Firestore limitées au compte propriétaire.
+- [x] Définir la détection des écritures concurrentes par fichier.
+- [ ] Connecter le projet Firebase de production et ses applications clientes.
+- [ ] Ajouter les écrans d'inscription, connexion, phrase de récupération et
+  résolution de conflit.
+- [ ] Ajouter la synchronisation déclenchée automatiquement (démarrage,
+  modification et retour réseau).
+
+## Prochaine étape — qualité de production
+
+- [ ] Tests unitaires du chiffrement, du coffre et des cas de conflit.
+- [ ] Tests des règles Firestore avec l'émulateur Firebase.
+- [ ] Activer App Check et tester la restauration sur plusieurs appareils.
+- [ ] Audit des flux OAuth Google et Apple sur les plateformes publiées.

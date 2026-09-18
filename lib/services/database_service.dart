@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
@@ -5,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book_item.dart';
 import '../models/server_profile.dart';
+import 'secure_server_credentials_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -16,6 +18,9 @@ class DatabaseService {
   static const String _keyActiveServerId = 'active_server_id';
 
   SharedPreferences? _prefs;
+  final SecureServerCredentialsService _credentials = SecureServerCredentialsService();
+  final _syncChanges = StreamController<String>.broadcast();
+  Stream<String> get syncChanges => _syncChanges.stream;
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -100,6 +105,7 @@ class DatabaseService {
         lastReadDate: DateTime.now(),
       );
       await saveBooks(books);
+      _syncChanges.add('progress');
     }
   }
 
@@ -117,6 +123,7 @@ class DatabaseService {
       }
       books[index] = current.copyWith(bookmarks: bookmarks);
       await saveBooks(books);
+      _syncChanges.add('progress');
     }
   }
 
@@ -127,6 +134,7 @@ class DatabaseService {
       final current = books[index];
       books[index] = current.copyWith(isFavorite: !current.isFavorite);
       await saveBooks(books);
+      _syncChanges.add('progress');
     }
   }
 
@@ -182,7 +190,21 @@ class DatabaseService {
 
     try {
       final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
-      return list.map((e) => ServerProfile.fromMap(e as Map<String, dynamic>)).toList();
+      final servers = <ServerProfile>[];
+      for (final item in list) {
+        final map = Map<String, dynamic>.from(item as Map);
+        // One-time migration from legacy unprotected preferences.
+        final legacyPassword = map['password'] as String?;
+        final id = map['id'] as String;
+        if (legacyPassword != null && legacyPassword.isNotEmpty) {
+          await _credentials.save(id, legacyPassword);
+        }
+        map['password'] = await _credentials.read(id);
+        servers.add(ServerProfile.fromMap(map));
+      }
+      // Re-save migrated profiles without their password in SharedPreferences.
+      await saveServers(servers);
+      return servers;
     } catch (e) {
       return [];
     }
@@ -190,7 +212,14 @@ class DatabaseService {
 
   Future<void> saveServers(List<ServerProfile> servers) async {
     await init();
-    final list = servers.map((s) => s.toMap()).toList();
+    for (final server in servers) {
+      await _credentials.save(server.id, server.password);
+    }
+    final list = servers.map((s) {
+      final map = s.toMap();
+      map['password'] = null;
+      return map;
+    }).toList();
     await _prefs?.setString(_keyServers, jsonEncode(list));
   }
 
@@ -203,12 +232,17 @@ class DatabaseService {
       servers.add(server);
     }
     await saveServers(servers);
+    await touchSyncDomain('servers');
+    _syncChanges.add('servers');
   }
 
   Future<void> deleteServer(String serverId) async {
     final servers = await getServers();
     servers.removeWhere((s) => s.id == serverId);
     await saveServers(servers);
+    await _credentials.delete(serverId);
+    await touchSyncDomain('servers');
+    _syncChanges.add('servers');
   }
 
   Future<String?> getActiveServerId() async {
@@ -219,6 +253,34 @@ class DatabaseService {
   Future<void> setActiveServerId(String id) async {
     await init();
     await _prefs?.setString(_keyActiveServerId, id);
+  }
+
+  // --- Synchronization metadata (never sent to the backend) ---
+
+  String _syncTimestampKey(String documentId) => 'sync.last_seen.$documentId';
+
+  Future<DateTime?> getLastSyncedAt(String documentId) async {
+    await init();
+    final value = _prefs?.getString(_syncTimestampKey(documentId));
+    return value == null ? null : DateTime.tryParse(value);
+  }
+
+  Future<void> setLastSyncedAt(String documentId, DateTime timestamp) async {
+    await init();
+    await _prefs?.setString(_syncTimestampKey(documentId), timestamp.toUtc().toIso8601String());
+  }
+
+  static const _syncDomainPrefix = 'sync.domain.updated.';
+
+  Future<DateTime> getSyncDomainUpdatedAt(String domain) async {
+    await init();
+    final value = _prefs?.getString('$_syncDomainPrefix$domain');
+    return value == null ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true) : DateTime.parse(value);
+  }
+
+  Future<void> touchSyncDomain(String domain) async {
+    await init();
+    await _prefs?.setString('$_syncDomainPrefix$domain', DateTime.now().toUtc().toIso8601String());
   }
 
   // --- Storage calculation ---

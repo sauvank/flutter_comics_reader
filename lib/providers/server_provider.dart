@@ -122,7 +122,13 @@ class ServerProvider extends ChangeNotifier {
 
   /// Exports all configured servers into a formatted JSON string
   String exportServersJson() {
-    final list = _servers.map((s) => s.toMap()).toList();
+    // Exports are intentionally connection-only: passwords remain in the OS
+    // secure store and are never written to a shareable file.
+    final list = _servers.map((s) {
+      final map = s.toMap();
+      map['password'] = null;
+      return map;
+    }).toList();
     return const JsonEncoder.withIndent('  ').convert(list);
   }
 

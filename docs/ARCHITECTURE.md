@@ -29,12 +29,19 @@ graph TD
         CBZ[CbzService]
         COV[RemoteCoverService]
         SET[ReaderSettingsService]
+        SYNC[SyncService / VaultService]
     end
 
     Providers --> Services
     Services --> LocalStorage[(💾 Stockage Local Tablette)]
     Services --> RemoteServer[(🌐 Serveur FTP Serveur NAS)]
+    SYNC --> Firebase[(🔒 Firebase : enveloppes chiffrées)]
 ```
+
+`SyncService` ne transmet que des enveloppes AES-256-GCM. `VaultService`
+conserve la clé locale dans le stockage sécurisé de l'OS et permet sa
+restauration par phrase de récupération. Les règles Firestore limitent chaque
+chemin `users/{uid}` au compte authentifié correspondant.
 
 ---
 

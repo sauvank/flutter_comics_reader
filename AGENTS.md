@@ -1,4 +1,7 @@
-# ComicStream — Directives pour Agents Autonomes (AGY, Codex, etc.)
+# ComicStream — Directives génériques pour assistants et agents
+
+Ce fichier est la source unique de consignes pour tout outil d'assistance
+(agents autonomes, assistants IA et outils de revue).
 
 ## 🛡️ RÈGLE ABSOLUE : SÉCURITÉ & ZÉRO DONNÉE PRIVÉE
 Ce projet est un logiciel open-source public.
@@ -18,9 +21,10 @@ flutter test
 
 ## 🚀 Workflow de Release
 - Incrémentation automatique de version & tag Git : `./scripts/bump_and_push.sh`
+- Utiliser la convention Conventional Commits (`feat:`, `fix:`, `perf:`,
+  `chore:`, `docs:`, etc.) lorsque des commits sont demandés.
 
 ## 🔄 Synchronisation du Contexte & Documentation
 À chaque évolution, ajout de fonctionnalité ou refonte technique :
 - **Mettre à jour systématiquement** les fichiers de documentation associés (`docs/CONTEXT.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `README.md`).
 - Maintenir une cohérence parfaite entre le code réel et les spécifications documentées.
-

@@ -9,6 +9,7 @@ import '../services/update_service.dart';
 import '../utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import '../widgets/reader_controls.dart';
+import 'account/account_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -267,6 +268,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
+          _buildSectionHeader('Compte & synchronisation', theme),
+          Container(
+            decoration: BoxDecoration(color: theme.colorScheme.surfaceContainer, borderRadius: BorderRadius.circular(14)),
+            child: ListTile(
+              leading: const Icon(Icons.cloud_sync_outlined),
+              title: const Text('Compte et synchronisation'),
+              subtitle: const Text('Serveurs, progression et réglages chiffrés', style: TextStyle(fontSize: 12)),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+            ),
+          ),
+          const SizedBox(height: 18),
           // Theme Section
           _buildSectionHeader('Apparence & Thème', theme),
           Container(

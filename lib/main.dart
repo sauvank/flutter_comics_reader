@@ -4,9 +4,11 @@ import 'providers/download_provider.dart';
 import 'providers/library_provider.dart';
 import 'providers/server_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/sync_provider.dart';
 import 'screens/home_screen.dart';
 import 'services/database_service.dart';
 import 'services/reader_settings_service.dart';
+import 'services/sync/firebase_bootstrap.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,7 @@ void main() async {
   // Initialize persistent services
   await DatabaseService().init();
   await ReaderSettingsService().init();
+  await FirebaseBootstrap.initialize();
 
   // Set system UI overlay style
   // SystemChrome.setSystemUIOverlayStyle(
@@ -40,6 +43,7 @@ class ComicStreamApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
+        ChangeNotifierProvider(create: (_) => SyncProvider()..start()),
         ChangeNotifierProvider(create: (_) => ReaderSettingsService()),
         ChangeNotifierProvider(create: (_) => LibraryProvider()..loadLibrary()),
         ChangeNotifierProxyProvider<LibraryProvider, DownloadProvider>(

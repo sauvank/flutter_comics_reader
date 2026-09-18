@@ -271,6 +271,51 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The explicit allow-list prevents unrelated local state from being synced.
+  static const _syncKeys = {
+    'app_theme_mode',
+    'reader_reading_mode',
+    'reader_fit_mode',
+    'reader_bg_color',
+    'reader_keep_screen_on',
+    'reader_show_page_numbers',
+    'reader_volume_nav',
+    'auto_convert_pdf_to_cbz',
+    'pdf_render_quality',
+    'epub_theme',
+    'epub_font_size',
+    'epub_font_family',
+    'epub_line_height',
+    'epub_margin',
+    'epub_text_align',
+  };
+
+  Future<Map<String, dynamic>> exportForSync() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      for (final key in _syncKeys)
+        if (prefs.containsKey(key)) key: prefs.get(key),
+    };
+  }
+
+  Future<void> applyFromSync(Map<String, dynamic> settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final entry in settings.entries) {
+      if (!_syncKeys.contains(entry.key)) continue;
+      final value = entry.value;
+      if (value is bool) {
+        await prefs.setBool(entry.key, value);
+      } else if (value is int) {
+        await prefs.setInt(entry.key, value);
+      } else if (value is double) {
+        await prefs.setDouble(entry.key, value);
+      } else if (value is String) {
+        await prefs.setString(entry.key, value);
+      }
+    }
+    await init();
+  }
+
   Future<void> setReadingMode(ReadingMode mode) async {
     _readingMode = mode;
     notifyListeners();

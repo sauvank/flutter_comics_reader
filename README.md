@@ -6,6 +6,12 @@ Le [kit de présentation en français](marketing/play-store/README.md) contient 
 
 Application mobile et desktop Flutter permettant de se connecter à un serveur local (WebDAV ou HTTP), d'explorer ses dossiers de bandes dessinées et mangas, de les télécharger en local sur l'appareil et de les lire hors-ligne avec un lecteur complet et optimisé.
 
+La préparation de la synchronisation de compte Firebase est disponible : elle
+prévoit le chiffrement côté client des profils serveur, de la progression et
+des réglages. Les fichiers et chemins locaux ne sont pas envoyés. La connexion
+nécessite encore de rattacher un projet Firebase de production ; voir
+[la configuration Firebase](docs/FIREBASE_SETUP.md).
+
 ---
 
 ## ✨ Fonctionnalités Principales
