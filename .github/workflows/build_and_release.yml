@@ -24,6 +24,8 @@ jobs:
   build-apk:
     name: 📱 Build Android APK
     runs-on: ubuntu-latest
+    # Les secrets de signature sont volontairement limités à cet environnement.
+    environment: production
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
