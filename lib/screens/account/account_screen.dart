@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
+import '../../services/android_signing_certificate_service.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -32,7 +33,14 @@ class _AccountScreenState extends State<AccountScreen> {
       await action();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opération terminée.')));
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Impossible de continuer : $error')));
+      var message = 'Impossible de continuer : $error';
+      if (error.toString().contains('invalid-cert-hash')) {
+        final hashes = await AndroidSigningCertificateService.currentSha1();
+        if (hashes.isNotEmpty) {
+          message = 'Certificat Android non autorisé : ${hashes.join(', ')}';
+        }
+      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
