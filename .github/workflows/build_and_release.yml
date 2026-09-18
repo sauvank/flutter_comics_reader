@@ -47,6 +47,17 @@ jobs:
       - name: 📦 Install dependencies
         run: flutter pub get
 
+      # Configuration Firebase restaurée uniquement dans le runner CI.
+      - name: 🔥 Restore Firebase Android configuration
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: |
+          if [ -z "$FIREBASE_ANDROID_CONFIG" ]; then
+            echo "::error::Secret FIREBASE_ANDROID_CONFIG absent."
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_ANDROID_CONFIG" > android/app/google-services.json
+
       - name: 🔍 Analyze code
         run: flutter analyze || true
 

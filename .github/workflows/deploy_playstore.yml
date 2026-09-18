@@ -70,6 +70,17 @@ jobs:
             -alias "$KEY_ALIAS" > /dev/null
           echo "Keystore et alias validés."
 
+      # La configuration Firebase contient une clé API restreinte : elle reste hors du dépôt.
+      - name: Restore Firebase Android configuration
+        env:
+          FIREBASE_ANDROID_CONFIG: ${{ secrets.FIREBASE_ANDROID_CONFIG }}
+        run: |
+          if [ -z "$FIREBASE_ANDROID_CONFIG" ]; then
+            echo "::error::Secret FIREBASE_ANDROID_CONFIG absent."
+            exit 1
+          fi
+          printf '%s' "$FIREBASE_ANDROID_CONFIG" > android/app/google-services.json
+
       - name: Build Android App Bundle (AAB)
         env:
           KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -99,4 +110,4 @@ jobs:
 
       - name: Cleanup Credentials
         if: always()
-        run: rm -f service_account.json android/app/upload-keystore.jks android/key.properties
+        run: rm -f service_account.json android/app/upload-keystore.jks android/app/google-services.json android/key.properties

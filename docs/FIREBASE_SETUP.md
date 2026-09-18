@@ -18,6 +18,15 @@ dépôt.
 5. Activer App Check avant publication. Il réduit l'usage abusif par des
    applications non officielles ; il ne remplace pas les règles Firestore.
 
+## Intégration continue Android
+
+`android/app/google-services.json` est ignoré par Git. La CI le restaure depuis
+le secret de dépôt GitHub `FIREBASE_ANDROID_CONFIG` juste avant la compilation,
+puis le supprime à la fin du job. Pour créer ou renouveler ce secret depuis un
+poste configuré, exécuter `gh secret set FIREBASE_ANDROID_CONFIG <
+android/app/google-services.json`. Ne jamais afficher le contenu du fichier
+dans un journal de CI.
+
 ## Protection des données
 
 Les données de lecture, réglages et profils de serveurs sont chiffrés avec
