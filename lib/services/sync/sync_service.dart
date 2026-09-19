@@ -290,6 +290,16 @@ class SyncService {
       await _database.setLastSyncedAt(localId, remoteUpdated);
       return;
     }
+    // Downloading a book creates a local record dated "now", even when it
+    // has never been read. That timestamp must not overwrite its existing
+    // cloud progress on the first sync of the new device.
+    if (lastSynced == null &&
+        localId.startsWith('progress:') &&
+        _isUntouchedProgress(local)) {
+      await _applyRemote(localId, remote);
+      await _database.setLastSyncedAt(localId, remoteUpdated);
+      return;
+    }
     // A newly connected device has an epoch timestamp for domains it has never
     // changed. It must adopt existing cloud data rather than treating the
     // empty local state as a concurrent edit.
@@ -335,6 +345,14 @@ class SyncService {
         ...payload,
         'updatedAt': timestamp.toUtc().toIso8601String(),
       };
+
+  bool _isUntouchedProgress(Map<String, dynamic> payload) {
+    final bookmarks = payload['bookmarks'];
+    return (payload['currentPage'] as int? ?? 0) == 0 &&
+        payload['isCompleted'] != true &&
+        payload['isFavorite'] != true &&
+        (bookmarks is! List || bookmarks.isEmpty);
+  }
 
   Future<void> _write(
     DocumentReference<Map<String, dynamic>> reference,

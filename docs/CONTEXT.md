@@ -30,6 +30,9 @@ liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sa
 redémarrage de l’application.
 Pendant une synchronisation manuelle, le bouton indique l’opération en cours et
 une barre de progression est affichée afin d’éviter les doubles appuis.
+Lorsqu’une BD déjà connue est téléchargée sur un nouvel appareil, son état
+initial non lu n’écrase pas la progression chiffrée : celle-ci est restaurée
+automatiquement à la première synchronisation.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
