@@ -32,6 +32,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTabSelected(int index) {
+    // IndexedStack keeps the Server tab alive, so refresh its cached profiles
+    // when it becomes visible after a background or manual sync.
+    if (index == 1) {
+      context.read<ServerProvider>().loadServers();
+    }
     setState(() {
       _currentIndex = index;
     });
@@ -74,7 +79,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
         // 3. If we are on Library tab, require a second back press within 2s to exit
         final now = DateTime.now();
-        if (_lastBackPressTime == null || now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
           _lastBackPressTime = now;
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -99,37 +105,37 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabSelected,
           destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.auto_stories_outlined),
-            selectedIcon: Icon(Icons.auto_stories),
-            label: 'Bibliothèque',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.dns_outlined),
-            selectedIcon: Icon(Icons.dns),
-            label: 'Serveur',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: activeDownloadsCount > 0,
-              label: Text('$activeDownloadsCount'),
-              child: const Icon(Icons.download_outlined),
+            const NavigationDestination(
+              icon: Icon(Icons.auto_stories_outlined),
+              selectedIcon: Icon(Icons.auto_stories),
+              label: 'Bibliothèque',
             ),
-            selectedIcon: Badge(
-              isLabelVisible: activeDownloadsCount > 0,
-              label: Text('$activeDownloadsCount'),
-              child: const Icon(Icons.download),
+            const NavigationDestination(
+              icon: Icon(Icons.dns_outlined),
+              selectedIcon: Icon(Icons.dns),
+              label: 'Serveur',
             ),
-            label: 'Télécharg.',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Paramètres',
-          ),
-        ],
+            NavigationDestination(
+              icon: Badge(
+                isLabelVisible: activeDownloadsCount > 0,
+                label: Text('$activeDownloadsCount'),
+                child: const Icon(Icons.download_outlined),
+              ),
+              selectedIcon: Badge(
+                isLabelVisible: activeDownloadsCount > 0,
+                label: Text('$activeDownloadsCount'),
+                child: const Icon(Icons.download),
+              ),
+              label: 'Télécharg.',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings),
+              label: 'Paramètres',
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 }

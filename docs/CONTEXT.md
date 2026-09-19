@@ -25,6 +25,9 @@ dernière synchronisation, l’écran Compte demande explicitement quelle versio
 conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
 écrasement n’est effectué sans ce choix. La version sélectionnée devient la
 référence partagée afin que les autres appareils puissent l’appliquer.
+Après une synchronisation, les profils de serveurs importés rechargent aussi la
+liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sans
+redémarrage de l’application.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

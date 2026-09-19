@@ -1,7 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/server_provider.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
 import '../../services/sync/sync_models.dart';
@@ -621,14 +623,26 @@ class _AccountScreenState extends State<AccountScreen> {
                                 child: FilledButton.icon(
                                   onPressed: _busy
                                       ? null
-                                      : () => _run(() async {
+                                      : () {
+                                          final serverProvider =
+                                              context.read<ServerProvider>();
+                                          _run(() async {
                                             final conflicts =
                                                 await _sync.syncNow();
                                             if (conflicts.isNotEmpty) {
                                               await _resolveConflicts(
                                                   conflicts);
                                             }
-                                          }),
+                                            // Profiles imported by the sync
+                                            // service are persisted directly.
+                                            // Refresh the in-memory list used by
+                                            // the Server tab before returning.
+                                            if (mounted) {
+                                              await serverProvider
+                                                  .loadServers();
+                                            }
+                                          });
+                                        },
                                   icon: const Icon(Icons.sync),
                                   label: const Text('Synchroniser'),
                                 ),
