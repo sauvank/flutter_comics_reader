@@ -146,6 +146,8 @@ class BookItem {
   }
 
   factory BookItem.fromMap(Map<String, dynamic> map) {
+    final totalPages = map['totalPages'] as int? ?? 0;
+    final currentPage = map['currentPage'] as int? ?? 0;
     return BookItem(
       id: map['id'] as String,
       title: map['title'] as String,
@@ -157,9 +159,14 @@ class BookItem {
         (e) => e.name == map['format'],
         orElse: () => BookFormat.unknown,
       ),
-      totalPages: map['totalPages'] as int? ?? 0,
-      currentPage: map['currentPage'] as int? ?? 0,
-      progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
+      totalPages: totalPages,
+      currentPage: currentPage,
+      // Progress is a derived value. Recomputing it repairs historical
+      // records where the page was synchronized but the stored percentage
+      // had not yet been updated.
+      progress: totalPages > 0
+          ? (currentPage / totalPages).clamp(0.0, 1.0)
+          : (map['progress'] as num?)?.toDouble() ?? 0.0,
       isCompleted: (map['isCompleted'] == 1 || map['isCompleted'] == true),
       addedDate: DateTime.tryParse(map['addedDate'] as String? ?? '') ??
           DateTime.now(),
