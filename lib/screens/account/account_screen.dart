@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
+import '../../services/sync/sync_models.dart';
 import '../../services/android_signing_certificate_service.dart';
 
 class AccountScreen extends StatefulWidget {
@@ -86,8 +87,12 @@ class _AccountScreenState extends State<AccountScreen> {
           'Les données protégées de vos autres appareils devront être synchronisées à nouveau.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Réinitialiser')),
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Annuler')),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Réinitialiser')),
         ],
       ),
     );
@@ -98,55 +103,59 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<bool> _showConfirmCreationDialog(String phrase) async {
     return await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.amber),
-            SizedBox(width: 8),
-            Expanded(child: Text('Confirmer la phrase secrète')),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Avez-vous bien noté votre phrase secrète dans un endroit sûr ?\n\n'
-              'Elle est indispensable pour restaurer vos données ou synchroniser un nouvel appareil. '
-              'ComicStream ne la conserve pas et ne pourra jamais la récupérer pour vous.',
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded, color: Colors.amber),
+                SizedBox(width: 8),
+                Expanded(child: Text('Confirmer la phrase secrète')),
+              ],
             ),
-            const SizedBox(height: 12),
-            const Text('Votre phrase secrète :', style: TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant),
-              ),
-              child: SelectableText(
-                phrase,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
-              ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Avez-vous bien noté votre phrase secrète dans un endroit sûr ?\n\n'
+                  'Elle est indispensable pour restaurer vos données ou synchroniser un nouvel appareil. '
+                  'ComicStream ne la conserve pas et ne pourra jamais la récupérer pour vous.',
+                ),
+                const SizedBox(height: 12),
+                const Text('Votre phrase secrète :',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: Theme.of(ctx).colorScheme.outlineVariant),
+                  ),
+                  child: SelectableText(
+                    phrase,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Modifier'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Modifier'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('J’ai bien noté, continuer'),
+              ),
+            ],
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('J’ai bien noté, continuer'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
   }
 
   Future<void> _showEditRecoveryPhraseDialog() async {
@@ -179,9 +188,13 @@ class _AccountScreenState extends State<AccountScreen> {
                     helperText: '16 caractères minimum',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(obscureNew ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
-                      tooltip: obscureNew ? 'Afficher la phrase' : 'Masquer la phrase',
+                      icon: Icon(
+                          obscureNew ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () =>
+                          setDialogState(() => obscureNew = !obscureNew),
+                      tooltip: obscureNew
+                          ? 'Afficher la phrase'
+                          : 'Masquer la phrase',
                     ),
                   ),
                 ),
@@ -193,9 +206,14 @@ class _AccountScreenState extends State<AccountScreen> {
                     labelText: 'Confirmer la nouvelle phrase',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(obscureConfirm ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
-                      tooltip: obscureConfirm ? 'Afficher la phrase' : 'Masquer la phrase',
+                      icon: Icon(obscureConfirm
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () => setDialogState(
+                          () => obscureConfirm = !obscureConfirm),
+                      tooltip: obscureConfirm
+                          ? 'Afficher la phrase'
+                          : 'Masquer la phrase',
                     ),
                   ),
                 ),
@@ -203,7 +221,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   const SizedBox(height: 8),
                   Text(
                     errorText!,
-                    style: TextStyle(color: Theme.of(ctx).colorScheme.error, fontSize: 13),
+                    style: TextStyle(
+                        color: Theme.of(ctx).colorScheme.error, fontSize: 13),
                   ),
                 ],
               ],
@@ -219,11 +238,13 @@ class _AccountScreenState extends State<AccountScreen> {
                 final phrase = newPhraseController.text.trim();
                 final confirm = confirmPhraseController.text.trim();
                 if (phrase.length < 16) {
-                  setDialogState(() => errorText = 'La phrase doit comporter au moins 16 caractères.');
+                  setDialogState(() => errorText =
+                      'La phrase doit comporter au moins 16 caractères.');
                   return;
                 }
                 if (phrase != confirm) {
-                  setDialogState(() => errorText = 'Les deux phrases ne correspondent pas.');
+                  setDialogState(() =>
+                      errorText = 'Les deux phrases ne correspondent pas.');
                   return;
                 }
                 Navigator.of(ctx).pop(phrase);
@@ -259,11 +280,13 @@ class _AccountScreenState extends State<AccountScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant),
+                  border: Border.all(
+                      color: Theme.of(ctx).colorScheme.outlineVariant),
                 ),
                 child: SelectableText(
                   result,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontFamily: 'monospace'),
                 ),
               ),
             ],
@@ -286,7 +309,8 @@ class _AccountScreenState extends State<AccountScreen> {
           await _sync.updateRecoveryPhrase(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Phrase secrète mise à jour avec succès.')),
+              const SnackBar(
+                  content: Text('Phrase secrète mise à jour avec succès.')),
             );
           }
         });
@@ -298,12 +322,17 @@ class _AccountScreenState extends State<AccountScreen> {
     setState(() => _busy = true);
     try {
       await action();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Opération terminée.')));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Opération terminée.')));
+      }
     } catch (error) {
-      if (error is GoogleSignInException && error.code == GoogleSignInExceptionCode.canceled) {
+      if (error is GoogleSignInException &&
+          error.code == GoogleSignInExceptionCode.canceled) {
         return;
       }
-      if (error is FirebaseAuthException && error.code == 'web-context-canceled') {
+      if (error is FirebaseAuthException &&
+          error.code == 'web-context-canceled') {
         return;
       }
       var message = 'Impossible de continuer : $error';
@@ -313,9 +342,67 @@ class _AccountScreenState extends State<AccountScreen> {
           message = 'Certificat Android non autorisé : ${hashes.join(', ')}';
         }
       }
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _formatConflictDate(DateTime value) {
+    final local = value.toLocal();
+    final date = MaterialLocalizations.of(context).formatMediumDate(local);
+    final time = MaterialLocalizations.of(context)
+        .formatTimeOfDay(TimeOfDay.fromDateTime(local));
+    return '$date à $time';
+  }
+
+  Future<void> _resolveConflicts(List<SyncConflict> conflicts) async {
+    for (final conflict in conflicts) {
+      if (!mounted) return;
+      final choice = await showDialog<SyncConflictResolution>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Conflit de synchronisation'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Deux versions de « ${conflict.label} » ont été modifiées.'),
+              const SizedBox(height: 12),
+              Text(
+                  'Cet appareil : ${_formatConflictDate(conflict.localUpdatedAt)}'),
+              const SizedBox(height: 4),
+              Text(
+                  'Données Google : ${_formatConflictDate(conflict.remoteUpdatedAt)}'),
+              const SizedBox(height: 12),
+              const Text(
+                  'Choisissez la version à conserver. L’autre sera remplacée.'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Plus tard'),
+            ),
+            OutlinedButton(
+              onPressed: () =>
+                  Navigator.of(ctx).pop(SyncConflictResolution.keepRemote),
+              child: const Text('Garder Google'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(ctx).pop(SyncConflictResolution.keepLocal),
+              child: const Text('Garder cet appareil'),
+            ),
+          ],
+        ),
+      );
+      if (choice == null) return;
+      await _sync.resolveConflict(conflict, choice);
     }
   }
 
@@ -326,7 +413,8 @@ class _AccountScreenState extends State<AccountScreen> {
         appBar: AppBar(title: const Text('Compte et synchronisation')),
         body: const Padding(
           padding: EdgeInsets.all(24),
-          child: Text('La synchronisation sera disponible après la configuration du projet Firebase. Le lecteur et vos données locales continuent de fonctionner normalement.'),
+          child: Text(
+              'La synchronisation sera disponible après la configuration du projet Firebase. Le lecteur et vos données locales continuent de fonctionner normalement.'),
         ),
       );
     }
@@ -345,7 +433,9 @@ class _AccountScreenState extends State<AccountScreen> {
               if (user != null) ...[
                 ListTile(
                   leading: Icon(
-                    _hasLocalVault == true ? Icons.verified_user_outlined : Icons.lock_outline,
+                    _hasLocalVault == true
+                        ? Icons.verified_user_outlined
+                        : Icons.lock_outline,
                     color: _hasLocalVault == true ? Colors.green : Colors.amber,
                   ),
                   title: Text(user.email ?? 'Compte connecté'),
@@ -357,10 +447,16 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (_loadingVault) ...[
-                  const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator())),
+                  const Center(
+                      child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: CircularProgressIndicator())),
                 ] else if (_hasLocalVault == false) ...[
                   Card(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withAlpha(120),
+                    color: Theme.of(context)
+                        .colorScheme
+                        .surfaceContainerHighest
+                        .withAlpha(120),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -369,7 +465,9 @@ class _AccountScreenState extends State<AccountScreen> {
                           Row(
                             children: [
                               Icon(
-                                _hasRemoteVault == true ? Icons.lock_reset : Icons.shield_outlined,
+                                _hasRemoteVault == true
+                                    ? Icons.lock_reset
+                                    : Icons.shield_outlined,
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                               const SizedBox(width: 8),
@@ -378,7 +476,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                   _hasRemoteVault == true
                                       ? 'Déverrouiller le coffre'
                                       : 'Initialiser votre coffre chiffré',
-                                  style: Theme.of(context).textTheme.titleMedium,
+                                  style:
+                                      Theme.of(context).textTheme.titleMedium,
                                 ),
                               ),
                             ],
@@ -400,9 +499,14 @@ class _AccountScreenState extends State<AccountScreen> {
                                   : 'Phrase secrète (16 caractères minimum)',
                               border: const OutlineInputBorder(),
                               suffixIcon: IconButton(
-                                icon: Icon(_obscurePhrase ? Icons.visibility : Icons.visibility_off),
-                                onPressed: () => setState(() => _obscurePhrase = !_obscurePhrase),
-                                tooltip: _obscurePhrase ? 'Afficher la phrase' : 'Masquer la phrase',
+                                icon: Icon(_obscurePhrase
+                                    ? Icons.visibility
+                                    : Icons.visibility_off),
+                                onPressed: () => setState(
+                                    () => _obscurePhrase = !_obscurePhrase),
+                                tooltip: _obscurePhrase
+                                    ? 'Afficher la phrase'
+                                    : 'Masquer la phrase',
                               ),
                             ),
                           ),
@@ -415,9 +519,15 @@ class _AccountScreenState extends State<AccountScreen> {
                                 labelText: 'Confirmer la phrase secrète',
                                 border: const OutlineInputBorder(),
                                 suffixIcon: IconButton(
-                                  icon: Icon(_obscureConfirmPhrase ? Icons.visibility : Icons.visibility_off),
-                                  onPressed: () => setState(() => _obscureConfirmPhrase = !_obscureConfirmPhrase),
-                                  tooltip: _obscureConfirmPhrase ? 'Afficher la phrase' : 'Masquer la phrase',
+                                  icon: Icon(_obscureConfirmPhrase
+                                      ? Icons.visibility
+                                      : Icons.visibility_off),
+                                  onPressed: () => setState(() =>
+                                      _obscureConfirmPhrase =
+                                          !_obscureConfirmPhrase),
+                                  tooltip: _obscureConfirmPhrase
+                                      ? 'Afficher la phrase'
+                                      : 'Masquer la phrase',
                                 ),
                               ),
                             ),
@@ -432,18 +542,24 @@ class _AccountScreenState extends State<AccountScreen> {
                                         final phrase = _phrase.text.trim();
                                         if (_hasRemoteVault == true) {
                                           if (phrase.isEmpty) {
-                                            throw ArgumentError('Veuillez saisir votre phrase de récupération.');
+                                            throw ArgumentError(
+                                                'Veuillez saisir votre phrase de récupération.');
                                           }
                                           await _sync.restoreVault(phrase);
                                         } else {
-                                          final confirm = _confirmPhrase.text.trim();
+                                          final confirm =
+                                              _confirmPhrase.text.trim();
                                           if (phrase.length < 16) {
-                                            throw ArgumentError('La phrase secrète doit comporter au moins 16 caractères.');
+                                            throw ArgumentError(
+                                                'La phrase secrète doit comporter au moins 16 caractères.');
                                           }
                                           if (phrase != confirm) {
-                                            throw ArgumentError('Les phrases secrètes ne correspondent pas.');
+                                            throw ArgumentError(
+                                                'Les phrases secrètes ne correspondent pas.');
                                           }
-                                          final confirmed = await _showConfirmCreationDialog(phrase);
+                                          final confirmed =
+                                              await _showConfirmCreationDialog(
+                                                  phrase);
                                           if (!confirmed) return;
                                           await _sync.createVault(phrase);
                                         }
@@ -451,9 +567,13 @@ class _AccountScreenState extends State<AccountScreen> {
                                         _confirmPhrase.clear();
                                         await _checkVault();
                                       }),
-                              icon: Icon(_hasRemoteVault == true ? Icons.lock_open : Icons.vpn_key),
+                              icon: Icon(_hasRemoteVault == true
+                                  ? Icons.lock_open
+                                  : Icons.vpn_key),
                               label: Text(
-                                _hasRemoteVault == true ? 'Déverrouiller la synchronisation' : 'Créer et activer le coffre',
+                                _hasRemoteVault == true
+                                    ? 'Déverrouiller la synchronisation'
+                                    : 'Créer et activer le coffre',
                               ),
                             ),
                           ),
@@ -462,7 +582,8 @@ class _AccountScreenState extends State<AccountScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: _busy ? null : _showResetVaultDialog,
-                                child: const Text('Phrase oubliée ? Réinitialiser le coffre'),
+                                child: const Text(
+                                    'Phrase oubliée ? Réinitialiser le coffre'),
                               ),
                             ),
                           ],
@@ -480,7 +601,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.verified_user, color: Colors.green),
+                              const Icon(Icons.verified_user,
+                                  color: Colors.green),
                               const SizedBox(width: 8),
                               Text(
                                 'Coffre déverrouillé',
@@ -500,8 +622,12 @@ class _AccountScreenState extends State<AccountScreen> {
                                   onPressed: _busy
                                       ? null
                                       : () => _run(() async {
-                                            final conflicts = await _sync.syncNow();
-                                            if (conflicts.isNotEmpty) throw StateError('${conflicts.length} conflit(s) à résoudre');
+                                            final conflicts =
+                                                await _sync.syncNow();
+                                            if (conflicts.isNotEmpty) {
+                                              await _resolveConflicts(
+                                                  conflicts);
+                                            }
                                           }),
                                   icon: const Icon(Icons.sync),
                                   label: const Text('Synchroniser'),
@@ -509,7 +635,9 @@ class _AccountScreenState extends State<AccountScreen> {
                               ),
                               const SizedBox(width: 8),
                               OutlinedButton.icon(
-                                onPressed: _busy ? null : _showEditRecoveryPhraseDialog,
+                                onPressed: _busy
+                                    ? null
+                                    : _showEditRecoveryPhraseDialog,
                                 icon: const Icon(Icons.key),
                                 label: const Text('Modifier la phrase'),
                               ),
@@ -534,9 +662,14 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: const Text('Se déconnecter'),
                 ),
               ] else ...[
-                Text(_createMode ? 'Créer un compte' : 'Se connecter', style: Theme.of(context).textTheme.headlineSmall),
+                Text(_createMode ? 'Créer un compte' : 'Se connecter',
+                    style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
-                TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail', border: OutlineInputBorder())),
+                TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                        labelText: 'E-mail', border: OutlineInputBorder())),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _password,
@@ -545,9 +678,14 @@ class _AccountScreenState extends State<AccountScreen> {
                     labelText: 'Mot de passe (12 caractères minimum)',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      tooltip: _obscurePassword ? 'Afficher le mot de passe' : 'Masquer le mot de passe',
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                      tooltip: _obscurePassword
+                          ? 'Afficher le mot de passe'
+                          : 'Masquer le mot de passe',
                     ),
                   ),
                 ),
@@ -560,9 +698,14 @@ class _AccountScreenState extends State<AccountScreen> {
                       labelText: 'Phrase secrète (16 caractères minimum)',
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureRecovery ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _obscureRecovery = !_obscureRecovery),
-                        tooltip: _obscureRecovery ? 'Afficher la phrase' : 'Masquer la phrase',
+                        icon: Icon(_obscureRecovery
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () => setState(
+                            () => _obscureRecovery = !_obscureRecovery),
+                        tooltip: _obscureRecovery
+                            ? 'Afficher la phrase'
+                            : 'Masquer la phrase',
                       ),
                     ),
                   ),
@@ -574,9 +717,14 @@ class _AccountScreenState extends State<AccountScreen> {
                       labelText: 'Confirmer la phrase secrète',
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmRecovery ? Icons.visibility : Icons.visibility_off),
-                        onPressed: () => setState(() => _obscureConfirmRecovery = !_obscureConfirmRecovery),
-                        tooltip: _obscureConfirmRecovery ? 'Afficher la phrase' : 'Masquer la phrase',
+                        icon: Icon(_obscureConfirmRecovery
+                            ? Icons.visibility
+                            : Icons.visibility_off),
+                        onPressed: () => setState(() =>
+                            _obscureConfirmRecovery = !_obscureConfirmRecovery),
+                        tooltip: _obscureConfirmRecovery
+                            ? 'Afficher la phrase'
+                            : 'Masquer la phrase',
                       ),
                     ),
                   ),
@@ -590,25 +738,33 @@ class _AccountScreenState extends State<AccountScreen> {
                               final phrase = _recovery.text.trim();
                               final confirm = _confirmRecovery.text.trim();
                               if (phrase.length < 16) {
-                                throw ArgumentError('La phrase secrète doit comporter au moins 16 caractères.');
+                                throw ArgumentError(
+                                    'La phrase secrète doit comporter au moins 16 caractères.');
                               }
                               if (phrase != confirm) {
-                                throw ArgumentError('Les phrases secrètes ne correspondent pas.');
+                                throw ArgumentError(
+                                    'Les phrases secrètes ne correspondent pas.');
                               }
-                              final confirmed = await _showConfirmCreationDialog(phrase);
+                              final confirmed =
+                                  await _showConfirmCreationDialog(phrase);
                               if (!confirmed) return;
-                              await _sync.createAccount(email: _email.text, password: _password.text);
+                              await _sync.createAccount(
+                                  email: _email.text, password: _password.text);
                               await _sync.createVault(phrase);
                             } else {
-                              await _sync.signIn(email: _email.text, password: _password.text);
+                              await _sync.signIn(
+                                  email: _email.text, password: _password.text);
                             }
                             await _checkVault();
                           }),
                   child: Text(_createMode ? 'Créer le compte' : 'Se connecter'),
                 ),
                 TextButton(
-                  onPressed: _busy ? null : () => setState(() => _createMode = !_createMode),
-                  child: Text(_createMode ? 'J’ai déjà un compte' : 'Créer un compte'),
+                  onPressed: _busy
+                      ? null
+                      : () => setState(() => _createMode = !_createMode),
+                  child: Text(
+                      _createMode ? 'J’ai déjà un compte' : 'Créer un compte'),
                 ),
                 const Divider(height: 32),
                 OutlinedButton.icon(
@@ -623,7 +779,8 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
               ],
               const SizedBox(height: 24),
-              const Text('La phrase de récupération est indispensable pour restaurer les mots de passe de serveurs sur un nouvel appareil. Elle n’est jamais sauvegardée par ComicStream.'),
+              const Text(
+                  'La phrase de récupération est indispensable pour restaurer les mots de passe de serveurs sur un nouvel appareil. Elle n’est jamais sauvegardée par ComicStream.'),
             ],
           ),
         );

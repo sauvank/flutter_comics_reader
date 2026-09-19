@@ -1,5 +1,9 @@
 enum SyncStatus { offline, signedOut, idle, syncing, conflict, error }
 
+/// The version selected by the user when the same data was changed locally and
+/// remotely since the last successful synchronisation.
+enum SyncConflictResolution { keepLocal, keepRemote }
+
 class SyncConflict {
   const SyncConflict({
     required this.documentId,

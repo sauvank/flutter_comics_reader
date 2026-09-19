@@ -112,6 +112,8 @@ gantt
 - [x] Placer les mots de passe de serveurs dans le coffre sécurisé de l'OS.
 - [x] Ajouter des règles Firestore limitées au compte propriétaire.
 - [x] Définir la détection des écritures concurrentes par fichier.
+- [x] Permettre de résoudre les conflits en choisissant la version locale ou
+  Google, avec les dates de modification.
 - [x] Ajouter les écrans d'inscription, connexion, saisie/confirmation de
   phrase de récupération, boîte de dialogue de confirmation, masquage/affichage
   et modification de phrase secrète.

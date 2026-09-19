@@ -34,7 +34,8 @@ class SyncService {
   final FirebaseAuth? _authOverride;
   final FirebaseFirestore? _firestoreOverride;
   FirebaseAuth get _auth => _authOverride ?? FirebaseAuth.instance;
-  FirebaseFirestore get _firestore => _firestoreOverride ?? FirebaseFirestore.instance;
+  FirebaseFirestore get _firestore =>
+      _firestoreOverride ?? FirebaseFirestore.instance;
   final DatabaseService _database;
   final VaultService _vault;
   final CryptoService _crypto;
@@ -43,10 +44,13 @@ class SyncService {
   User? get user => _auth.currentUser;
   Stream<User?> get authChanges => _auth.authStateChanges();
 
-  Future<UserCredential> createAccount({required String email, required String password}) =>
-      _auth.createUserWithEmailAndPassword(email: email.trim(), password: password);
+  Future<UserCredential> createAccount(
+          {required String email, required String password}) =>
+      _auth.createUserWithEmailAndPassword(
+          email: email.trim(), password: password);
 
-  Future<UserCredential> signIn({required String email, required String password}) =>
+  Future<UserCredential> signIn(
+          {required String email, required String password}) =>
       _auth.signInWithEmailAndPassword(email: email.trim(), password: password);
 
   Future<void> signOut() async {
@@ -80,7 +84,8 @@ class SyncService {
     return _auth.signInWithProvider(GoogleAuthProvider());
   }
 
-  Future<void> sendPasswordReset(String email) => _auth.sendPasswordResetEmail(email: email.trim());
+  Future<void> sendPasswordReset(String email) =>
+      _auth.sendPasswordResetEmail(email: email.trim());
 
   /// Checks whether this device has unlocked its local encryption key.
   Future<bool> hasLocalKey() => _vault.hasLocalVault();
@@ -90,7 +95,8 @@ class SyncService {
     final currentUser = user;
     if (currentUser == null) return false;
     try {
-      final snapshot = await _firestore.doc('users/${currentUser.uid}/private/vault').get();
+      final snapshot =
+          await _firestore.doc('users/${currentUser.uid}/private/vault').get();
       return snapshot.exists;
     } catch (_) {
       return false;
@@ -101,7 +107,8 @@ class SyncService {
   /// recovery phrase; the phrase is not persisted on this device.
   Future<void> createVault(String recoveryPhrase) async {
     if (recoveryPhrase.trim().length < 16) {
-      throw ArgumentError('La phrase de récupération doit comporter au moins 16 caractères.');
+      throw ArgumentError(
+          'La phrase de récupération doit comporter au moins 16 caractères.');
     }
     final currentUser = user;
     if (currentUser == null) throw StateError('Connexion requise');
@@ -123,13 +130,19 @@ class SyncService {
   Future<void> restoreVault(String recoveryPhrase) async {
     final currentUser = user;
     if (currentUser == null) throw StateError('Connexion requise');
-    final snapshot = await _firestore.doc('users/${currentUser.uid}/private/vault').get();
+    final snapshot =
+        await _firestore.doc('users/${currentUser.uid}/private/vault').get();
     final data = snapshot.data();
-    if (data == null) throw StateError('Aucun coffre de synchronisation trouvé.');
+    if (data == null) {
+      throw StateError('Aucun coffre de synchronisation trouvé.');
+    }
     final salt = data['salt'] as String;
     final recovery = await _vault.recoveryKey(recoveryPhrase, salt: salt);
-    final value = await _crypto.decryptJson(key: recovery, envelope: Map<String, dynamic>.from(data['envelope'] as Map));
-    await _vault.saveLocalKey(await _crypto.keyFromBytes(base64Url.decode(value['masterKey'] as String)));
+    final value = await _crypto.decryptJson(
+        key: recovery,
+        envelope: Map<String, dynamic>.from(data['envelope'] as Map));
+    await _vault.saveLocalKey(await _crypto
+        .keyFromBytes(base64Url.decode(value['masterKey'] as String)));
     await _vault.saveRecoverySalt(salt);
   }
 
@@ -137,13 +150,15 @@ class SyncService {
   /// The vault must already be unlocked on this device.
   Future<void> updateRecoveryPhrase(String newRecoveryPhrase) async {
     if (newRecoveryPhrase.trim().length < 16) {
-      throw ArgumentError('La phrase de récupération doit comporter au moins 16 caractères.');
+      throw ArgumentError(
+          'La phrase de récupération doit comporter au moins 16 caractères.');
     }
     final currentUser = user;
     if (currentUser == null) throw StateError('Connexion requise');
     final master = await _vault.readLocalKey();
     if (master == null) {
-      throw StateError('Le coffre doit être déverrouillé pour modifier la phrase secrète.');
+      throw StateError(
+          'Le coffre doit être déverrouillé pour modifier la phrase secrète.');
     }
     final salt = await _vault.generateNewRecoverySalt();
     final recovery = await _vault.recoveryKey(newRecoveryPhrase, salt: salt);
@@ -163,18 +178,85 @@ class SyncService {
     final currentUser = user;
     final key = await _vault.readLocalKey();
     if (currentUser == null) throw StateError('Connexion requise');
-    if (key == null) throw StateError('Phrase de récupération requise sur cet appareil.');
+    if (key == null) {
+      throw StateError('Phrase de récupération requise sur cet appareil.');
+    }
     final conflicts = <SyncConflict>[];
-    final root = _firestore.collection('users').doc(currentUser.uid).collection('private');
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
 
-    await _syncDocument(root.doc('servers'), 'servers', await _serversPayload(), key, conflicts, 'Configurations de serveurs');
-    await _syncDocument(root.doc('settings'), 'settings', await _settingsPayload(), key, conflicts, 'Paramètres de lecture');
+    await _syncDocument(root.doc('servers'), 'servers', await _serversPayload(),
+        key, conflicts, 'Configurations de serveurs');
+    await _syncDocument(root.doc('settings'), 'settings',
+        await _settingsPayload(), key, conflicts, 'Paramètres de lecture');
     for (final book in await _database.getBooks()) {
       if (book.serverId == null || book.serverRelativePath == null) continue;
       final id = _progressId(book);
-      await _syncDocument(root.doc('progress').collection('files').doc(id), 'progress:$id', _progressPayload(book), key, conflicts, book.title);
+      await _syncDocument(root.doc('progress').collection('files').doc(id),
+          'progress:$id', _progressPayload(book), key, conflicts, book.title);
     }
     return conflicts;
+  }
+
+  /// Applies an explicit user choice for a detected conflict. No automatic
+  /// overwrite is performed: the selected version becomes the new sync base.
+  Future<void> resolveConflict(
+    SyncConflict conflict,
+    SyncConflictResolution resolution,
+  ) async {
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null) throw StateError('Connexion requise');
+    if (key == null) {
+      throw StateError('Phrase de récupération requise sur cet appareil.');
+    }
+
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    final reference = conflict.documentId.startsWith('progress:')
+        ? root
+            .doc('progress')
+            .collection('files')
+            .doc(conflict.documentId.substring('progress:'.length))
+        : root.doc(conflict.documentId);
+
+    if (resolution == SyncConflictResolution.keepLocal) {
+      final local = await _payloadForDocument(conflict.documentId);
+      final localUpdated = DateTime.parse(local['updatedAt'] as String);
+      await _write(reference, key, local);
+      await _database.setLastSyncedAt(conflict.documentId, localUpdated);
+      return;
+    }
+
+    final snapshot = await reference.get();
+    if (!snapshot.exists) {
+      throw StateError('Les données Google à résoudre sont introuvables.');
+    }
+    final remote = await _crypto.decryptJson(
+      key: key,
+      envelope: Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map),
+    );
+    final remoteUpdated = DateTime.parse(remote['updatedAt'] as String);
+    await _applyRemote(conflict.documentId, remote);
+    await _database.setLastSyncedAt(conflict.documentId, remoteUpdated);
+  }
+
+  Future<Map<String, dynamic>> _payloadForDocument(String documentId) async {
+    if (documentId == 'servers') return _serversPayload();
+    if (documentId == 'settings') return _settingsPayload();
+    if (documentId.startsWith('progress:')) {
+      final progressId = documentId.substring('progress:'.length);
+      for (final book in await _database.getBooks()) {
+        if (_progressId(book) == progressId) return _progressPayload(book);
+      }
+      throw StateError('La progression locale correspondante n’existe plus.');
+    }
+    throw ArgumentError.value(
+        documentId, 'documentId', 'Document de synchronisation inconnu');
   }
 
   Future<void> _syncDocument(
@@ -192,13 +274,21 @@ class SyncService {
       await _database.setLastSyncedAt(localId, localUpdated);
       return;
     }
-    final remote = await _crypto.decryptJson(key: key, envelope: Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map));
+    final remote = await _crypto.decryptJson(
+        key: key,
+        envelope:
+            Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map));
     final remoteUpdated = DateTime.parse(remote['updatedAt'] as String);
     final lastSynced = await _database.getLastSyncedAt(localId);
     final localChanged = lastSynced == null || localUpdated.isAfter(lastSynced);
-    final remoteChanged = lastSynced == null || remoteUpdated.isAfter(lastSynced);
+    final remoteChanged =
+        lastSynced == null || remoteUpdated.isAfter(lastSynced);
     if (localChanged && remoteChanged && localUpdated != remoteUpdated) {
-      conflicts.add(SyncConflict(documentId: localId, label: label, localUpdatedAt: localUpdated, remoteUpdatedAt: remoteUpdated));
+      conflicts.add(SyncConflict(
+          documentId: localId,
+          label: label,
+          localUpdatedAt: localUpdated,
+          remoteUpdatedAt: remoteUpdated));
       return;
     }
     if (remoteUpdated.isAfter(localUpdated)) {
@@ -210,7 +300,8 @@ class SyncService {
     }
   }
 
-  Future<void> _write(DocumentReference<Map<String, dynamic>> reference, SecretKey key, Map<String, dynamic> payload) async {
+  Future<void> _write(DocumentReference<Map<String, dynamic>> reference,
+      SecretKey key, Map<String, dynamic> payload) async {
     await reference.set({
       'v': 1,
       'envelope': await _crypto.encryptJson(key: key, value: payload),
@@ -219,8 +310,12 @@ class SyncService {
   }
 
   Future<Map<String, dynamic>> _serversPayload() async => {
-        'updatedAt': (await _database.getSyncDomainUpdatedAt('servers')).toUtc().toIso8601String(),
-        'servers': (await _database.getServers()).map((server) => server.toMap()).toList(),
+        'updatedAt': (await _database.getSyncDomainUpdatedAt('servers'))
+            .toUtc()
+            .toIso8601String(),
+        'servers': (await _database.getServers())
+            .map((server) => server.toMap())
+            .toList(),
       };
 
   Future<Map<String, dynamic>> _settingsPayload() async => {
@@ -229,7 +324,8 @@ class SyncService {
       };
 
   Map<String, dynamic> _progressPayload(BookItem book) => {
-        'updatedAt': (book.lastReadDate ?? book.addedDate).toUtc().toIso8601String(),
+        'updatedAt':
+            (book.lastReadDate ?? book.addedDate).toUtc().toIso8601String(),
         'serverId': book.serverId,
         'serverRelativePath': book.serverRelativePath,
         'currentPage': book.currentPage,
@@ -239,18 +335,25 @@ class SyncService {
         'isFavorite': book.isFavorite,
       };
 
-  String _progressId(BookItem book) => base64UrlEncode(utf8.encode('${book.serverId}|${book.serverRelativePath}')).replaceAll('=', '');
+  String _progressId(BookItem book) => base64UrlEncode(
+          utf8.encode('${book.serverId}|${book.serverRelativePath}'))
+      .replaceAll('=', '');
 
   Future<void> _applyRemote(String localId, Map<String, dynamic> remote) async {
     if (localId == 'servers') {
-      await _database.saveServers((remote['servers'] as List).map((value) => ServerProfile.fromMap(Map<String, dynamic>.from(value as Map))).toList());
+      await _database.saveServers((remote['servers'] as List)
+          .map((value) =>
+              ServerProfile.fromMap(Map<String, dynamic>.from(value as Map)))
+          .toList());
     } else if (localId == 'settings') {
-      await ReaderSettingsService().applyFromSync(Map<String, dynamic>.from(remote['settings'] as Map));
+      await ReaderSettingsService()
+          .applyFromSync(Map<String, dynamic>.from(remote['settings'] as Map));
     } else if (localId.startsWith('progress:')) {
       final path = remote['serverRelativePath'] as String;
       final server = remote['serverId'] as String;
       final books = await _database.getBooks();
-      for (final book in books.where((b) => b.serverId == server && b.serverRelativePath == path)) {
+      for (final book in books
+          .where((b) => b.serverId == server && b.serverRelativePath == path)) {
         await _database.updateBook(book.copyWith(
           currentPage: remote['currentPage'] as int,
           totalPages: remote['totalPages'] as int,

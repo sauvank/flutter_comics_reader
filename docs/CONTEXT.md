@@ -20,6 +20,11 @@ et chemins locaux ne sont pas synchronisés. La configuration de projet reste
 décrite dans `docs/FIREBASE_SETUP.md` et ne doit inclure aucun secret dans ce
 dépôt.
 
+Lorsqu’une même donnée a été modifiée localement et sur Google depuis la
+dernière synchronisation, l’écran Compte demande explicitement quelle version
+conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
+écrasement n’est effectué sans ce choix.
+
 > [!CAUTION]
 > **RÈGLE ABSOLUE DE SÉCURITÉ & ANONYMAT : ZÉRO DONNÉE PRIVÉE DANS LE DÉPÔT**
 > Le dépôt étant public, il est **strictement interdit** de commiter la moindre information personnelle ou sensible :
