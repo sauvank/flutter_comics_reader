@@ -290,6 +290,23 @@ class SyncService {
       await _database.setLastSyncedAt(localId, remoteUpdated);
       return;
     }
+    // A newly connected device has an epoch timestamp for domains it has never
+    // changed. It must adopt existing cloud data rather than treating the
+    // empty local state as a concurrent edit.
+    if (lastSynced == null) {
+      final localIsPristine = localUpdated.millisecondsSinceEpoch == 0;
+      final remoteIsPristine = remoteUpdated.millisecondsSinceEpoch == 0;
+      if (localIsPristine && !remoteIsPristine) {
+        await _applyRemote(localId, remote);
+        await _database.setLastSyncedAt(localId, remoteUpdated);
+        return;
+      }
+      if (remoteIsPristine && !localIsPristine) {
+        await _write(reference, key, local);
+        await _database.setLastSyncedAt(localId, localUpdated);
+        return;
+      }
+    }
     final localChanged = lastSynced == null || localUpdated.isAfter(lastSynced);
     final remoteChanged =
         lastSynced == null || remoteUpdated.isAfter(lastSynced);
