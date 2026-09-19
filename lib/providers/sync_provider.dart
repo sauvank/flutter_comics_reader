@@ -43,6 +43,16 @@ class SyncProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears conflicts already resolved from the manual account screen. The
+  /// automatic and manual paths share the same data, but not the same service
+  /// instance, so the automatic status must not keep showing a stale prompt.
+  void clearResolvedConflicts() {
+    if (conflicts.isEmpty && status != SyncStatus.conflict) return;
+    conflicts = [];
+    if (status == SyncStatus.conflict) status = SyncStatus.idle;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _authSub?.cancel();

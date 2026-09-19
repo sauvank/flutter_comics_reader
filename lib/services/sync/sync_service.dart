@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../models/book_item.dart';
 import '../../models/server_profile.dart';
@@ -20,6 +22,7 @@ import 'vault_service.dart';
 /// Synchronises encrypted user state. It intentionally never uploads comic
 /// files, local paths, covers, or server passwords outside an AES-GCM envelope.
 class SyncService {
+  static const _deviceIdKey = 'sync.device.id';
   SyncService({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
@@ -201,7 +204,126 @@ class SyncService {
           conflicts,
           fingerprintedBook.title);
     }
+    // Keep an encrypted restore point for this installation as well as the
+    // shared state. It lets the user explicitly choose another device later.
+    await _saveDeviceBackup(root, key);
     return conflicts;
+  }
+
+  /// Lists the current installation and the encrypted restore points uploaded
+  /// by the other installations of the same account.
+  Future<List<SyncDeviceBackup>> listDeviceBackups() async {
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null) throw StateError('Connexion requise');
+    if (key == null) {
+      throw StateError('Phrase de récupération requise sur cet appareil.');
+    }
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    final currentId = await _deviceId();
+    final backups = <SyncDeviceBackup>[
+      SyncDeviceBackup(
+        id: currentId,
+        label: 'Cet appareil',
+        isCurrentDevice: true,
+      ),
+    ];
+    final snapshots =
+        await root.doc('deviceBackups').collection('devices').get();
+    for (final snapshot in snapshots.docs) {
+      // Do not expose an unreadable/stale record in the chooser.
+      try {
+        await _crypto.decryptJson(
+          key: key,
+          envelope:
+              Map<String, dynamic>.from(snapshot.data()['envelope'] as Map),
+        );
+      } catch (_) {
+        continue;
+      }
+      final savedAt = snapshot.data()['updatedAt'];
+      final updatedAt = savedAt is Timestamp ? savedAt.toDate() : null;
+      if (snapshot.id == currentId) {
+        backups[0] = SyncDeviceBackup(
+          id: currentId,
+          label: 'Cet appareil',
+          isCurrentDevice: true,
+          updatedAt: updatedAt,
+        );
+        continue;
+      }
+      backups.add(SyncDeviceBackup(
+        id: snapshot.id,
+        label: snapshot.data()['label'] as String? ?? 'Autre appareil',
+        isCurrentDevice: false,
+        updatedAt: updatedAt,
+      ));
+    }
+    if (backups.length > 1) {
+      final current = backups.removeAt(0);
+      backups.sort((a, b) {
+        final aTime = a.updatedAt?.millisecondsSinceEpoch ?? 0;
+        final bTime = b.updatedAt?.millisecondsSinceEpoch ?? 0;
+        return bTime.compareTo(aTime);
+      });
+      backups.insert(0, current);
+    }
+    return backups;
+  }
+
+  /// Makes an explicitly selected device backup the new shared reference and
+  /// applies it locally. This is never used by automatic synchronization.
+  Future<void> restoreDeviceBackup(String deviceId) async {
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null) throw StateError('Connexion requise');
+    if (key == null) {
+      throw StateError('Phrase de récupération requise sur cet appareil.');
+    }
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    final reference =
+        root.doc('deviceBackups').collection('devices').doc(deviceId);
+    final snapshot = await reference.get();
+    if (!snapshot.exists) {
+      throw StateError('La sauvegarde de cet appareil est introuvable.');
+    }
+    final backup = await _crypto.decryptJson(
+      key: key,
+      envelope: Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map),
+    );
+    final resolvedAt = DateTime.now().toUtc();
+    await _restoreBackupDocument(
+      root.doc('servers'),
+      'servers',
+      Map<String, dynamic>.from(backup['servers'] as Map),
+      key,
+      resolvedAt,
+    );
+    await _restoreBackupDocument(
+      root.doc('settings'),
+      'settings',
+      Map<String, dynamic>.from(backup['settings'] as Map),
+      key,
+      resolvedAt,
+    );
+    for (final value in backup['progress'] as List) {
+      final progress = Map<String, dynamic>.from(value as Map);
+      final id = _progressIdFromPayload(progress);
+      await _restoreBackupDocument(
+        root.doc('progress').collection('files').doc(id),
+        'progress:$id',
+        progress,
+        key,
+        resolvedAt,
+      );
+    }
+    await _saveDeviceBackup(root, key);
   }
 
   /// Applies an explicit user choice for a detected conflict. The selected
@@ -401,6 +523,56 @@ class SyncService {
     await reference.set(value);
   }
 
+  Future<void> _restoreBackupDocument(
+    DocumentReference<Map<String, dynamic>> reference,
+    String documentId,
+    Map<String, dynamic> payload,
+    SecretKey key,
+    DateTime resolvedAt,
+  ) async {
+    final restored = _withUpdatedAt(payload, resolvedAt);
+    await _write(reference, key, restored, resolvedAt: resolvedAt);
+    await _applyRemote(documentId, restored);
+    await _database.setLastSyncedAt(documentId, resolvedAt);
+  }
+
+  Future<void> _saveDeviceBackup(
+    CollectionReference<Map<String, dynamic>> root,
+    SecretKey key,
+  ) async {
+    final deviceId = await _deviceId();
+    final progress = <Map<String, dynamic>>[];
+    for (final book in await _database.getBooks()) {
+      if (book.serverId == null || book.serverRelativePath == null) continue;
+      progress.add(await _progressPayload(await _ensureFingerprint(book)));
+    }
+    await root.doc('deviceBackups').collection('devices').doc(deviceId).set({
+      'v': 1,
+      'label': _deviceLabel(deviceId),
+      'envelope': await _crypto.encryptJson(
+        key: key,
+        value: {
+          'servers': await _serversPayload(),
+          'settings': await _settingsPayload(),
+          'progress': progress,
+        },
+      ),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<String> _deviceId() async {
+    final preferences = await SharedPreferences.getInstance();
+    final stored = preferences.getString(_deviceIdKey);
+    if (stored != null && stored.isNotEmpty) return stored;
+    final id = const Uuid().v4();
+    await preferences.setString(_deviceIdKey, id);
+    return id;
+  }
+
+  String _deviceLabel(String deviceId) =>
+      'Appareil ${deviceId.substring(0, 4).toUpperCase()}';
+
   Future<Map<String, dynamic>> _serversPayload() async => {
         'updatedAt': (await _database.getSyncDomainUpdatedAt('servers'))
             .toUtc()
@@ -433,6 +605,14 @@ class SyncService {
     if (hash != null && hash.isNotEmpty) return 'sha256_$hash';
     return base64UrlEncode(
             utf8.encode('${book.serverId}|${book.serverRelativePath}'))
+        .replaceAll('=', '');
+  }
+
+  String _progressIdFromPayload(Map<String, dynamic> progress) {
+    final hash = progress['contentHash'] as String?;
+    if (hash != null && hash.isNotEmpty) return 'sha256_$hash';
+    return base64UrlEncode(utf8.encode(
+            '${progress['serverId']}|${progress['serverRelativePath']}'))
         .replaceAll('=', '');
   }
 

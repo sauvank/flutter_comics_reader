@@ -12,6 +12,8 @@ modification de lecture, de favori, de marque-page ou de bibliothèque. Les
 fichiers et chemins locaux ne sont pas envoyés. La connexion nécessite encore
 de rattacher un projet Firebase de production ; voir
 [la configuration Firebase](docs/FIREBASE_SETUP.md).
+Lors d’une synchronisation manuelle, l’utilisateur peut aussi choisir une
+sauvegarde chiffrée d’un appareil et la définir comme référence partagée.
 
 ---
 

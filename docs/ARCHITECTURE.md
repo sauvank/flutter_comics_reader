@@ -46,12 +46,18 @@ des données déverrouillées. Les règles Firestore limitent chaque chemin
 `users/{uid}` au compte authentifié correspondant.
 
 `DatabaseService` publie les changements qui doivent être synchronisés.
-`SyncProvider` les regroupe pendant deux secondes puis déclenche une
+`SyncProvider` les regroupe pendant cinq secondes puis déclenche une
 synchronisation lorsque le compte et le coffre local sont disponibles. Les
 applications distantes n'émettent pas à nouveau cet évènement : une réception
 de données ne crée donc pas de boucle de synchronisation. La progression est
 adressée par l'empreinte SHA-256 de l'archive ; le profil serveur et le chemin
 restent un repli pour les anciennes données sans empreinte.
+
+Chaque synchronisation conserve également un point de restauration chiffré par
+installation dans Firestore. Son alias est généré aléatoirement, sans nom ou
+modèle d’appareil. Une synchronisation manuelle peut restaurer l’un de ces
+points de restauration et le publier comme nouvelle référence commune ; ce
+choix n’est jamais appliqué automatiquement.
 
 ---
 

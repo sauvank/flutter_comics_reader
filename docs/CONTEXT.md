@@ -35,6 +35,14 @@ référence partagée afin que les autres appareils puissent l’appliquer.
 Un conflit détecté pendant une synchronisation automatique est signalé dans
 l’écran Compte avec un bouton permettant de le résoudre ; il ne reste plus
 silencieusement bloqué.
+Après un choix de résolution, ce même conflit est retiré des flux automatique
+et manuel afin de ne jamais demander deux fois la même décision.
+Chaque appareil conserve aussi une sauvegarde chiffrée distincte, repérée par
+un alias aléatoire qui ne contient ni modèle ni nom de l’appareil. Le bouton de
+synchronisation manuelle demande quelle sauvegarde utiliser ; choisir un autre
+appareil restaure ses données localement et en fait la nouvelle référence
+partagée. La synchronisation automatique ne remplace jamais les données selon
+ce choix.
 Une petite icône de nuage dans la barre de la bibliothèque indique uniquement
 qu’une synchronisation est en cours.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la

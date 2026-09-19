@@ -130,4 +130,18 @@ void main() {
     expect(conflict.localSummary, contains('Page 4/20'));
     expect(conflict.remoteSummary, contains('Page 12/20'));
   });
+
+  test('SyncDeviceBackup keeps an anonymous device restore point', () {
+    final backup = SyncDeviceBackup(
+      id: 'random-installation-id',
+      label: 'Appareil 1A2B',
+      isCurrentDevice: false,
+      updatedAt: DateTime.utc(2026, 1, 2),
+    );
+
+    expect(backup.id, 'random-installation-id');
+    expect(backup.label, 'Appareil 1A2B');
+    expect(backup.isCurrentDevice, isFalse);
+    expect(backup.updatedAt, DateTime.utc(2026, 1, 2));
+  });
 }

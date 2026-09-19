@@ -366,9 +366,9 @@ class _AccountScreenState extends State<AccountScreen> {
     return '$date à $time';
   }
 
-  Future<void> _resolveConflicts(List<SyncConflict> conflicts) async {
+  Future<bool> _resolveConflicts(List<SyncConflict> conflicts) async {
     for (final conflict in conflicts) {
-      if (!mounted) return;
+      if (!mounted) return false;
       final choice = await showDialog<SyncConflictResolution>(
         context: context,
         barrierDismissible: false,
@@ -412,9 +412,10 @@ class _AccountScreenState extends State<AccountScreen> {
           ],
         ),
       );
-      if (choice == null) return;
+      if (choice == null) return false;
       await _sync.resolveConflict(conflict, choice);
     }
+    return true;
   }
 
   Future<void> _resolveAutomaticConflicts(SyncProvider syncProvider) async {
@@ -422,12 +423,89 @@ class _AccountScreenState extends State<AccountScreen> {
     final libraryProvider = context.read<LibraryProvider>();
     setState(() => _syncing = true);
     try {
-      await _resolveConflicts(syncProvider.conflicts);
-      if (!mounted) return;
+      final resolved = await _resolveConflicts(syncProvider.conflicts);
+      if (!resolved || !mounted) return;
       await syncProvider.syncNow();
       if (!mounted) return;
       await serverProvider.loadServers();
       await libraryProvider.loadLibrary();
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _startManualSync() async {
+    final automaticSyncProvider = context.read<SyncProvider>();
+    final serverProvider = context.read<ServerProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
+    List<SyncDeviceBackup> backups;
+    try {
+      backups = await _sync.listDeviceBackups();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content:
+                  Text('Impossible de préparer la synchronisation : $error')),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    final choice = await showModalBottomSheet<SyncDeviceBackup>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text('Quelle sauvegarde utiliser ?'),
+                subtitle: Text(
+                  'Le choix devient la référence partagée. Les autres appareils la recevront à leur prochaine synchronisation.',
+                ),
+              ),
+              for (final backup in backups)
+                ListTile(
+                  leading: Icon(backup.isCurrentDevice
+                      ? Icons.phone_android
+                      : Icons.devices_other),
+                  title: Text(backup.label),
+                  subtitle: Text(backup.updatedAt == null
+                      ? 'Pas encore sauvegardé'
+                      : 'Sauvegardé ${_formatConflictDate(backup.updatedAt!)}'),
+                  trailing: backup.isCurrentDevice
+                      ? const Text('ACTUEL')
+                      : const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(sheetContext).pop(backup),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == null || !mounted) return;
+    setState(() => _syncing = true);
+    var completed = true;
+    try {
+      await _run(() async {
+        if (choice.isCurrentDevice) {
+          final conflicts = await _sync.syncNow();
+          if (conflicts.isNotEmpty) {
+            completed = await _resolveConflicts(conflicts);
+          }
+        } else {
+          await _sync.restoreDeviceBackup(choice.id);
+        }
+        if (!completed) return;
+        automaticSyncProvider.clearResolvedConflicts();
+        if (!mounted) return;
+        await serverProvider.loadServers();
+        await libraryProvider.loadLibrary();
+      });
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
@@ -672,39 +750,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             children: [
                               Expanded(
                                 child: FilledButton.icon(
-                                  onPressed: _busy
-                                      ? null
-                                      : () async {
-                                          final serverProvider =
-                                              context.read<ServerProvider>();
-                                          final libraryProvider =
-                                              context.read<LibraryProvider>();
-                                          setState(() => _syncing = true);
-                                          try {
-                                            await _run(() async {
-                                              final conflicts =
-                                                  await _sync.syncNow();
-                                              if (conflicts.isNotEmpty) {
-                                                await _resolveConflicts(
-                                                    conflicts);
-                                              }
-                                              // Profiles imported by the sync
-                                              // service are persisted directly.
-                                              // Refresh the in-memory list used by
-                                              // the Server tab before returning.
-                                              if (mounted) {
-                                                await serverProvider
-                                                    .loadServers();
-                                                await libraryProvider
-                                                    .loadLibrary();
-                                              }
-                                            });
-                                          } finally {
-                                            if (mounted) {
-                                              setState(() => _syncing = false);
-                                            }
-                                          }
-                                        },
+                                  onPressed: _busy ? null : _startManualSync,
                                   icon: _syncing
                                       ? const SizedBox(
                                           width: 20,
