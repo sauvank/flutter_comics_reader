@@ -23,15 +23,10 @@ class FirebaseBootstrap {
   static Future<void> ensureGoogleSignInInitialized() async {
     if (_googleSignInInitialized) return;
     try {
-      bool canAuth = false;
-      try {
-        canAuth = GoogleSignIn.instance.supportsAuthenticate();
-      } catch (_) {
-        canAuth = false;
-      }
-      if (canAuth) {
-        await GoogleSignIn.instance.initialize();
-      }
+      // Version 7 of google_sign_in requires initialization before invoking
+      // its native authentication flow. Checking support first can otherwise
+      // select the incompatible Firebase OAuth-provider fallback on Android.
+      await GoogleSignIn.instance.initialize();
       _googleSignInInitialized = true;
     } catch (_) {
       // Ignored if Google Sign-In is unavailable or not supported on this platform.

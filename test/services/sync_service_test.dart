@@ -38,7 +38,8 @@ class _FakeSecureStorage implements FlutterSecureStorage {
     WebOptions? webOptions,
     AppleOptions? mOptions,
     WindowsOptions? wOptions,
-  }) async => _data[key];
+  }) async =>
+      _data[key];
 
   @override
   Future<void> write({
@@ -63,19 +64,21 @@ class _FakeSecureStorage implements FlutterSecureStorage {
 }
 
 void main() {
-  test('signInWithGoogle falls back safely when native GoogleSignIn is not available', () async {
+  test('signInWithGoogle reports unsupported native Google authentication',
+      () async {
     final fakeAuth = _FakeFirebaseAuth();
     final service = SyncService(
       auth: fakeAuth,
       googleSignIn: GoogleSignIn.instance,
     );
 
-    await service.signInWithGoogle();
-
-    expect(fakeAuth.lastProvider, isA<GoogleAuthProvider>());
+    await expectLater(
+        service.signInWithGoogle(), throwsA(isA<UnsupportedError>()));
+    expect(fakeAuth.lastProvider, isNull);
   });
 
-  test('updateRecoveryPhrase rejects phrase shorter than 16 characters', () async {
+  test('updateRecoveryPhrase rejects phrase shorter than 16 characters',
+      () async {
     final service = SyncService(
       auth: _FakeFirebaseAuth(),
     );
@@ -86,7 +89,8 @@ void main() {
     );
   });
 
-  test('updateRecoveryPhrase requires authenticated user and unlocked vault', () async {
+  test('updateRecoveryPhrase requires authenticated user and unlocked vault',
+      () async {
     final service = SyncService(
       auth: _FakeFirebaseAuth(),
     );

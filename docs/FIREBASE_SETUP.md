@@ -32,8 +32,9 @@ Pour les installations via le Google Play Store, Google ré-applique la signatur
 App Signing : son empreinte SHA-1 (disponible dans la console Google Play sous
 Gestion des versions > Signature de l'application) doit également être enregistrée
 dans le projet Firebase aux côtés de la clé d'importation et de la clé de débogage.
-La connexion Google utilise le SDK natif `google_sign_in` (Credential Manager / Google Play Services)
-avec repli web si la plateforme ne supporte pas l'authentification native.
+La connexion Google initialise le SDK natif `google_sign_in` (Credential
+Manager / Google Play Services) avant d’ouvrir le sélecteur de compte Android ;
+elle utilise le flux web uniquement sur le Web.
 
 ## Protection des données
 

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -61,15 +63,8 @@ class SyncService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    bool canAuthenticateNatively = false;
-    try {
-      canAuthenticateNatively = _googleSignIn.supportsAuthenticate();
-    } catch (_) {
-      canAuthenticateNatively = false;
-    }
-
-    if (canAuthenticateNatively) {
-      await FirebaseBootstrap.ensureGoogleSignInInitialized();
+    await FirebaseBootstrap.ensureGoogleSignInInitialized();
+    if (_googleSignIn.supportsAuthenticate()) {
       final account = await _googleSignIn.authenticate();
       final auth = account.authentication;
       if (auth.idToken == null) {
@@ -81,7 +76,9 @@ class SyncService {
       return _auth.signInWithCredential(credential);
     }
 
-    return _auth.signInWithProvider(GoogleAuthProvider());
+    if (kIsWeb) return _auth.signInWithPopup(GoogleAuthProvider());
+    throw UnsupportedError(
+        'La connexion Google n’est pas disponible sur cet appareil.');
   }
 
   Future<void> sendPasswordReset(String email) =>
