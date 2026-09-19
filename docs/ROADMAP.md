@@ -122,6 +122,7 @@ gantt
 - [ ] Connecter le projet Firebase de production et ses applications clientes.
 - [x] Ajouter la synchronisation déclenchée automatiquement après connexion et
   après une modification de bibliothèque ou de lecture.
+- [x] Importer et lire des fichiers déjà présents sur l’appareil, sans serveur.
 - [x] Conserver une sauvegarde chiffrée par appareil et permettre de choisir
   explicitement celle qui devient la référence lors d’une synchronisation
   manuelle.

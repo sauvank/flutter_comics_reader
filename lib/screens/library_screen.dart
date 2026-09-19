@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
@@ -42,6 +43,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   ServerProfile? _seriesServer;
   List<RemoteFile> _remoteSeriesFiles = [];
   bool _isLoadingRemoteSeries = false;
+  bool _isImportingLocalFiles = false;
 
   bool get _isSearching => _searchController.text.trim().isNotEmpty;
 
@@ -150,6 +152,39 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  Future<void> _scanDeviceFiles() async {
+    final selection = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['cbz', 'cbr', 'zip', 'pdf', 'epub'],
+      allowMultiple: true,
+      withData: false,
+    );
+    final paths = selection?.paths.whereType<String>().toList() ?? const [];
+    if (paths.isEmpty || !mounted) return;
+
+    setState(() => _isImportingLocalFiles = true);
+    try {
+      final result =
+          await context.read<LibraryProvider>().importLocalFiles(paths);
+      if (!mounted) return;
+      final skipped = result.skipped == 0
+          ? ''
+          : ' · ${result.skipped} déjà présent(s) ou ignoré(s)';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('${result.imported} livre(s) ajouté(s)$skipped')),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import impossible : $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isImportingLocalFiles = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -228,6 +263,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 child: Icon(Icons.cloud_sync_outlined, size: 18),
               ),
             ),
+          IconButton(
+            onPressed: _isImportingLocalFiles ? null : _scanDeviceFiles,
+            tooltip: 'Scanner les fichiers de l’appareil',
+            icon: _isImportingLocalFiles
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.folder_open_rounded),
+          ),
           PopupMenuButton<LibrarySort>(
             icon: const Icon(Icons.sort_rounded),
             tooltip: 'Trier par',

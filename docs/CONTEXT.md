@@ -67,6 +67,13 @@ synchronisation automatique ; leur date de modification est transmise avec la
 progression. Les modifications rapprochées sont regroupées pendant cinq
 secondes avant l’envoi.
 
+Depuis la bibliothèque, le bouton de scan ouvre le sélecteur de documents du
+système. Les fichiers CBZ/CBR/ZIP, PDF et EPUB choisis sont copiés dans le
+stockage de ComicStream, indexés avec leur couverture quand elle est disponible
+et peuvent être lus hors ligne sans provenance serveur. Android ne reçoit aucun
+accès global au stockage : seuls les documents explicitement sélectionnés sont
+importés.
+
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
 navigation basse sont également maintenus sur une ligne.

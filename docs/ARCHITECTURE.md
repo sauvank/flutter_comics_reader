@@ -59,6 +59,12 @@ modèle d’appareil. Une synchronisation manuelle peut restaurer l’un de ces
 points de restauration et le publier comme nouvelle référence commune ; ce
 choix n’est jamais appliqué automatiquement.
 
+L’import local passe par le sélecteur de documents de l’OS, puis
+`LocalBookImportService` copie le fichier choisi dans le stockage privé de
+l’application avant d’en extraire les métadonnées et la couverture. Cette copie
+évite de dépendre d’une permission de stockage large ou d’un fichier temporaire
+fourni par Android.
+
 ---
 
 ## 🔄 2. Pipeline de Téléchargement & Conversion PDF ➔ CBZ

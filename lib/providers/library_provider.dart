@@ -7,6 +7,7 @@ import '../models/book_item.dart';
 import '../services/cbz_service.dart';
 import '../services/epub_service.dart';
 import '../services/database_service.dart';
+import '../services/local_book_import_service.dart';
 import '../utils/format_utils.dart';
 
 enum LibraryFilter {
@@ -66,7 +67,10 @@ class LibraryProvider extends ChangeNotifier {
         list = list.where((b) => b.isCompleted).toList();
         break;
       case LibraryFilter.cbz:
-        list = list.where((b) => b.format == BookFormat.cbz || b.format == BookFormat.cbr).toList();
+        list = list
+            .where(
+                (b) => b.format == BookFormat.cbz || b.format == BookFormat.cbr)
+            .toList();
         break;
       case LibraryFilter.pdf:
         list = list.where((b) => b.format == BookFormat.pdf).toList();
@@ -79,7 +83,11 @@ class LibraryProvider extends ChangeNotifier {
     // Apply search filter
     if (_searchQuery.trim().isNotEmpty) {
       final q = _searchQuery.toLowerCase();
-      list = list.where((b) => b.title.toLowerCase().contains(q) || b.originalFilename.toLowerCase().contains(q)).toList();
+      list = list
+          .where((b) =>
+              b.title.toLowerCase().contains(q) ||
+              b.originalFilename.toLowerCase().contains(q))
+          .toList();
     }
 
     // Apply sort
@@ -95,7 +103,8 @@ class LibraryProvider extends ChangeNotifier {
         });
         break;
       case LibrarySort.title:
-        list.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        list.sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
         break;
       case LibrarySort.dateAdded:
         list.sort((a, b) => b.addedDate.compareTo(a.addedDate));
@@ -175,15 +184,18 @@ class LibraryProvider extends ChangeNotifier {
             final doc = await PdfDocument.openFile(book.localPath);
             if (doc.pages.isNotEmpty) {
               final page = doc.pages.first;
-              final pdfImage = await page.render(fullWidth: 600, fullHeight: 900);
+              final pdfImage =
+                  await page.render(fullWidth: 600, fullHeight: 900);
               if (pdfImage != null) {
                 final uiImage = await pdfImage.createImage();
-                final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
+                final byteData =
+                    await uiImage.toByteData(format: ui.ImageByteFormat.png);
                 pdfImage.dispose();
                 uiImage.dispose();
                 if (byteData != null) {
                   final f = File(targetCover);
-                  await f.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+                  await f.writeAsBytes(byteData.buffer.asUint8List(),
+                      flush: true);
                   newCover = targetCover;
                 }
               }
@@ -261,7 +273,8 @@ class LibraryProvider extends ChangeNotifier {
     await _db.toggleFavoriteBook(bookId);
     final index = _books.indexWhere((b) => b.id == bookId);
     if (index >= 0) {
-      _books[index] = _books[index].copyWith(isFavorite: !_books[index].isFavorite);
+      _books[index] =
+          _books[index].copyWith(isFavorite: !_books[index].isFavorite);
       notifyListeners();
     }
   }
@@ -282,7 +295,8 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleBookmark({required String bookId, required int pageNumber}) async {
+  Future<void> toggleBookmark(
+      {required String bookId, required int pageNumber}) async {
     await _db.toggleBookmark(bookId: bookId, pageNumber: pageNumber);
     await loadLibrary();
   }
@@ -290,6 +304,14 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> deleteBook(String bookId) async {
     await _db.deleteBook(bookId);
     await loadLibrary();
+  }
+
+  /// Adds user-selected files that were already present on this device.
+  Future<LocalBookImportResult> importLocalFiles(Iterable<String> paths) async {
+    final result =
+        await LocalBookImportService(database: _db).importFiles(paths);
+    await loadLibrary();
+    return result;
   }
 
   BookItem? getBookById(String bookId) {
@@ -302,7 +324,8 @@ class LibraryProvider extends ChangeNotifier {
 
   BookItem? getBookByServerPath(String serverId, String relativePath) {
     try {
-      return _books.firstWhere((b) => b.serverId == serverId && b.serverRelativePath == relativePath);
+      return _books.firstWhere((b) =>
+          b.serverId == serverId && b.serverRelativePath == relativePath);
     } catch (_) {
       return null;
     }
