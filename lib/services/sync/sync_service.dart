@@ -413,12 +413,17 @@ class SyncService {
     } else if (localId.startsWith('progress:')) {
       final path = remote['serverRelativePath'] as String;
       final server = remote['serverId'] as String;
+      final currentPage = remote['currentPage'] as int;
+      final totalPages = remote['totalPages'] as int;
+      final progress =
+          totalPages > 0 ? (currentPage / totalPages).clamp(0.0, 1.0) : 0.0;
       final books = await _database.getBooks();
       for (final book in books
           .where((b) => b.serverId == server && b.serverRelativePath == path)) {
         await _database.updateBook(book.copyWith(
-          currentPage: remote['currentPage'] as int,
-          totalPages: remote['totalPages'] as int,
+          currentPage: currentPage,
+          totalPages: totalPages,
+          progress: progress,
           isCompleted: remote['isCompleted'] as bool,
           bookmarks: List<int>.from(remote['bookmarks'] as List),
           isFavorite: remote['isFavorite'] as bool,

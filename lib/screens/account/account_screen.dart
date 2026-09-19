@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
+import '../../providers/library_provider.dart';
 import '../../providers/server_provider.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
@@ -631,6 +632,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                       : () async {
                                           final serverProvider =
                                               context.read<ServerProvider>();
+                                          final libraryProvider =
+                                              context.read<LibraryProvider>();
                                           setState(() => _syncing = true);
                                           try {
                                             await _run(() async {
@@ -647,6 +650,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                               if (mounted) {
                                                 await serverProvider
                                                     .loadServers();
+                                                await libraryProvider
+                                                    .loadLibrary();
                                               }
                                             });
                                           } finally {

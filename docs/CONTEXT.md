@@ -33,6 +33,8 @@ une barre de progression est affichée afin d’éviter les doubles appuis.
 Lorsqu’une BD déjà connue est téléchargée sur un nouvel appareil, son état
 initial non lu n’écrase pas la progression chiffrée : celle-ci est restaurée
 automatiquement à la première synchronisation.
+La réception d’une progression recalcule aussi le pourcentage affiché à partir
+de la page et du nombre total de pages, puis recharge la bibliothèque locale.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
