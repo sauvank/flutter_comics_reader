@@ -9,6 +9,8 @@ import '../models/server_profile.dart';
 import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
 import '../providers/server_provider.dart';
+import '../providers/sync_provider.dart';
+import '../services/sync/sync_models.dart';
 import '../utils/format_utils.dart';
 import '../widgets/book_card.dart';
 import '../widgets/instant_read_modal.dart';
@@ -69,7 +71,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
 
     if (serverBook != null) {
-      final srv = serverProvider.servers.where((s) => s.id == serverBook!.serverId).firstOrNull;
+      final srv = serverProvider.servers
+          .where((s) => s.id == serverBook!.serverId)
+          .firstOrNull;
       if (srv != null) {
         final parentDir = p.posix.dirname(serverBook.serverRelativePath!);
         setState(() {
@@ -126,7 +130,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Supprimer ce livre ?'),
-        content: Text('Voulez-vous supprimer "${book.title}" de votre stockage local ?'),
+        content: Text(
+            'Voulez-vous supprimer "${book.title}" de votre stockage local ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -165,9 +170,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildMainLibraryView(BuildContext context, LibraryProvider library, ThemeData theme) {
+  Widget _buildMainLibraryView(
+      BuildContext context, LibraryProvider library, ThemeData theme) {
     final books = library.filteredBooks;
     final allSeries = SeriesItem.groupFromBooks(books);
+    final sync = context.watch<SyncProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -213,6 +220,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ],
         ),
         actions: [
+          if (sync.status == SyncStatus.syncing)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Tooltip(
+                message: 'Synchronisation en cours',
+                child: Icon(Icons.cloud_sync_outlined, size: 18),
+              ),
+            ),
           PopupMenuButton<LibrarySort>(
             icon: const Icon(Icons.sort_rounded),
             tooltip: 'Trier par',
@@ -253,12 +268,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       segments: [
                         ButtonSegment(
                           value: LibraryViewMode.series,
-                          icon: const Icon(Icons.folder_special_rounded, size: 16),
+                          icon: const Icon(Icons.folder_special_rounded,
+                              size: 16),
                           label: Text('Par Séries (${allSeries.length})'),
                         ),
                         ButtonSegment(
                           value: LibraryViewMode.allBooks,
-                          icon: const Icon(Icons.auto_stories_rounded, size: 16),
+                          icon:
+                              const Icon(Icons.auto_stories_rounded, size: 16),
                           label: Text('Tous les tomes (${books.length})'),
                         ),
                       ],
@@ -275,7 +292,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: Container(
                     height: 46,
                     decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+                      color: theme.colorScheme.surfaceContainerHighest
+                          .withAlpha(90),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: theme.colorScheme.outlineVariant.withAlpha(50),
@@ -288,7 +306,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         hintText: 'Rechercher une série, un tome, un auteur...',
                         hintStyle: TextStyle(
                           fontSize: 13,
-                          color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
+                          color:
+                              theme.colorScheme.onSurfaceVariant.withAlpha(150),
                         ),
                         prefixIcon: Icon(
                           Icons.search_rounded,
@@ -307,7 +326,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
                       onChanged: (val) {
                         setState(() {
@@ -330,7 +350,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildSeriesListView(BuildContext context, LibraryProvider library, List<SeriesItem> allSeries, ThemeData theme) {
+  Widget _buildSeriesListView(BuildContext context, LibraryProvider library,
+      List<SeriesItem> allSeries, ThemeData theme) {
     final recentBooks = library.recentBooks;
 
     if (library.books.isEmpty) {
@@ -348,21 +369,27 @@ class _LibraryScreenState extends State<LibraryScreen> {
           SliverToBoxAdapter(
             child: _buildFilterChipsRow(library),
           ),
-          if (recentBooks.isNotEmpty && !_isSearching && library.filter == LibraryFilter.all)
+          if (recentBooks.isNotEmpty &&
+              !_isSearching &&
+              library.filter == LibraryFilter.all)
             SliverToBoxAdapter(
               child: _buildResumeReadingHero(recentBooks.first, theme),
             ),
-          if (recentBooks.length > 1 && !_isSearching && library.filter == LibraryFilter.all) ...[
+          if (recentBooks.length > 1 &&
+              !_isSearching &&
+              library.filter == LibraryFilter.all) ...[
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
                 child: Row(
                   children: [
-                    Icon(Icons.history_rounded, size: 18, color: theme.colorScheme.primary),
+                    Icon(Icons.history_rounded,
+                        size: 18, color: theme.colorScheme.primary),
                     const SizedBox(width: 6),
                     const Text(
                       'Récemment ouverts',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -379,7 +406,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     final book = recentBooks.skip(1).toList()[index];
                     return Container(
                       width: 130,
-                      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 4, vertical: 4),
                       child: BookCard(
                         book: book,
                         onTap: () => _openReader(book),
@@ -408,11 +436,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
               child: Row(
                 children: [
-                  Icon(Icons.collections_bookmark_rounded, size: 18, color: theme.colorScheme.primary),
+                  Icon(Icons.collections_bookmark_rounded,
+                      size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Mes Collections & Séries (${allSeries.length})',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -446,7 +476,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildFlatBooksListView(BuildContext context, LibraryProvider library, List<BookItem> books, ThemeData theme) {
+  Widget _buildFlatBooksListView(BuildContext context, LibraryProvider library,
+      List<BookItem> books, ThemeData theme) {
     if (library.books.isEmpty) {
       return _buildEmptyLibraryState(theme);
     }
@@ -498,7 +529,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildSeriesDetailView(BuildContext context, LibraryProvider library, ThemeData theme) {
+  Widget _buildSeriesDetailView(
+      BuildContext context, LibraryProvider library, ThemeData theme) {
     final series = _selectedSeries!;
     final nextLocalBook = series.nextToReadBook;
     final progressPercent = (series.overallProgress * 100).toInt();
@@ -508,10 +540,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (_seriesServer != null && _remoteSeriesFiles.isNotEmpty) {
       undownloadedRemote = _remoteSeriesFiles.where((rf) {
         if (rf.isDirectory || !rf.isSupportedBook) return false;
-        if (library.getBookByServerPath(_seriesServer!.id, rf.path) != null) return false;
+        if (library.getBookByServerPath(_seriesServer!.id, rf.path) != null) {
+          return false;
+        }
         final cleanRfName = p.basenameWithoutExtension(rf.name).toLowerCase();
         if (series.books.any((b) =>
-            p.basenameWithoutExtension(b.originalFilename).toLowerCase() == cleanRfName ||
+            p.basenameWithoutExtension(b.originalFilename).toLowerCase() ==
+                cleanRfName ||
             b.title.toLowerCase() == cleanRfName)) {
           return false;
         }
@@ -520,7 +555,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
       undownloadedRemote.sort((a, b) => NaturalSort.compare(a.name, b.name));
     }
 
-    final nextRemoteToDownload = undownloadedRemote.isNotEmpty ? undownloadedRemote.first : null;
+    final nextRemoteToDownload =
+        undownloadedRemote.isNotEmpty ? undownloadedRemote.first : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -543,7 +579,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
             Text(
               '${series.completedBooks}/${series.totalBooks} tomes lus • $progressPercent%',
-              style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+              style: TextStyle(
+                  fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),
@@ -567,13 +604,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     gradient: LinearGradient(
                       colors: [
                         theme.colorScheme.primaryContainer.withAlpha(140),
-                        theme.colorScheme.surfaceContainerHighest.withAlpha(100),
+                        theme.colorScheme.surfaceContainerHighest
+                            .withAlpha(100),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: theme.colorScheme.primary.withAlpha(60)),
+                    border: Border.all(
+                        color: theme.colorScheme.primary.withAlpha(60)),
                   ),
                   child: Material(
                     color: Colors.transparent,
@@ -589,11 +628,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               child: SizedBox(
                                 width: 50,
                                 height: 75,
-                                child: nextLocalBook.coverPath != null && File(nextLocalBook.coverPath!).existsSync()
-                                    ? Image.file(File(nextLocalBook.coverPath!), fit: BoxFit.cover, cacheWidth: 200)
+                                child: nextLocalBook.coverPath != null &&
+                                        File(nextLocalBook.coverPath!)
+                                            .existsSync()
+                                    ? Image.file(File(nextLocalBook.coverPath!),
+                                        fit: BoxFit.cover, cacheWidth: 200)
                                     : Container(
-                                        color: theme.colorScheme.primary.withAlpha(30),
-                                        child: Icon(Icons.menu_book, color: theme.colorScheme.primary),
+                                        color: theme.colorScheme.primary
+                                            .withAlpha(30),
+                                        child: Icon(Icons.menu_book,
+                                            color: theme.colorScheme.primary),
                                       ),
                               ),
                             ),
@@ -604,13 +648,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: theme.colorScheme.primary,
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
-                                      nextLocalBook.progress > 0 ? 'REPRENDRE' : 'TOME SUIVANT À LIRE',
+                                      nextLocalBook.progress > 0
+                                          ? 'REPRENDRE'
+                                          : 'TOME SUIVANT À LIRE',
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -621,7 +668,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     nextLocalBook.title,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -630,7 +679,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     nextLocalBook.totalPages > 0
                                         ? 'Page ${nextLocalBook.currentPage + 1}/${nextLocalBook.totalPages} (${(nextLocalBook.progress * 100).toInt()}%)'
                                         : nextLocalBook.formatString,
-                                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant),
                                   ),
                                 ],
                               ),
@@ -638,11 +690,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                             const SizedBox(width: 8),
                             FilledButton.icon(
                               onPressed: () => _openReader(nextLocalBook),
-                              icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                              icon: const Icon(Icons.play_arrow_rounded,
+                                  size: 18),
                               label: const Text('Lire'),
                               style: FilledButton.styleFrom(
                                 visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 8),
                               ),
                             ),
                           ],
@@ -662,13 +716,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     gradient: LinearGradient(
                       colors: [
                         const Color(0xFFF59E0B).withAlpha(40),
-                        theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+                        theme.colorScheme.surfaceContainerHighest
+                            .withAlpha(120),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFF59E0B).withAlpha(100)),
+                    border: Border.all(
+                        color: const Color(0xFFF59E0B).withAlpha(100)),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(12),
@@ -680,10 +736,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           decoration: BoxDecoration(
                             color: const Color(0xFFF59E0B).withAlpha(30),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFF59E0B).withAlpha(80)),
+                            border: Border.all(
+                                color: const Color(0xFFF59E0B).withAlpha(80)),
                           ),
                           child: const Center(
-                            child: Icon(Icons.download_for_offline_rounded, color: Color(0xFFF59E0B), size: 28),
+                            child: Icon(Icons.download_for_offline_rounded,
+                                color: Color(0xFFF59E0B), size: 28),
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -695,7 +753,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFF59E0B),
                                       borderRadius: BorderRadius.circular(6),
@@ -711,15 +770,20 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    FormatUtils.formatBytes(nextRemoteToDownload.size),
-                                    style: TextStyle(fontSize: 10, color: theme.colorScheme.onSurfaceVariant),
+                                    FormatUtils.formatBytes(
+                                        nextRemoteToDownload.size),
+                                    style: TextStyle(
+                                        fontSize: 10,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant),
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 nextRemoteToDownload.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 13),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -731,18 +795,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       backgroundColor: const Color(0xFFF59E0B),
                                       foregroundColor: Colors.black,
                                       visualDensity: VisualDensity.compact,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
                                     ),
-                                    icon: const Icon(Icons.download_rounded, size: 16),
-                                    label: const Text('Télécharger', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                    icon: const Icon(Icons.download_rounded,
+                                        size: 16),
+                                    label: const Text('Télécharger',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
                                     onPressed: () {
                                       downloadProvider.enqueueDownload(
                                         server: _seriesServer!,
                                         remoteFile: nextRemoteToDownload,
                                       );
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
                                         SnackBar(
-                                          content: Text('📥 Téléchargement lancé : ${nextRemoteToDownload.name}'),
+                                          content: Text(
+                                              '📥 Téléchargement lancé : ${nextRemoteToDownload.name}'),
                                           duration: const Duration(seconds: 2),
                                         ),
                                       );
@@ -752,10 +823,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   OutlinedButton.icon(
                                     style: OutlinedButton.styleFrom(
                                       visualDensity: VisualDensity.compact,
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
                                     ),
-                                    icon: const Icon(Icons.visibility_rounded, size: 15),
-                                    label: const Text('Lire direct', style: TextStyle(fontSize: 11)),
+                                    icon: const Icon(Icons.visibility_rounded,
+                                        size: 15),
+                                    label: const Text('Lire direct',
+                                        style: TextStyle(fontSize: 11)),
                                     onPressed: () {
                                       InstantReadModal.show(
                                         context,
@@ -778,7 +852,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           if (_isLoadingRemoteSeries)
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
                     const SizedBox(
@@ -789,7 +864,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     const SizedBox(width: 10),
                     Text(
                       'Recherche des tomes suivants sur le serveur distant...',
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -800,11 +877,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
               child: Row(
                 children: [
-                  Icon(Icons.folder_open_rounded, size: 18, color: theme.colorScheme.primary),
+                  Icon(Icons.folder_open_rounded,
+                      size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
                     'Tomes téléchargés (${series.totalBooks})',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -847,18 +926,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.cloud_download_rounded, size: 18, color: Color(0xFFF59E0B)),
+                    const Icon(Icons.cloud_download_rounded,
+                        size: 18, color: Color(0xFFF59E0B)),
                     const SizedBox(width: 8),
                     Text(
                       'Tomes disponibles sur le serveur (${undownloadedRemote.length})',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     if (undownloadedRemote.length > 1)
                       TextButton.icon(
-                        style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                        icon: const Icon(Icons.download_for_offline_outlined, size: 16),
-                        label: Text('Tout télécharger (${undownloadedRemote.length})', style: const TextStyle(fontSize: 11)),
+                        style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact),
+                        icon: const Icon(Icons.download_for_offline_outlined,
+                            size: 16),
+                        label: Text(
+                            'Tout télécharger (${undownloadedRemote.length})',
+                            style: const TextStyle(fontSize: 11)),
                         onPressed: () {
                           for (final f in undownloadedRemote) {
                             downloadProvider.enqueueDownload(
@@ -868,7 +953,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           }
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('📥 ${undownloadedRemote.length} tomes ajoutés à la file de téléchargement'),
+                              content: Text(
+                                  '📥 ${undownloadedRemote.length} tomes ajoutés à la file de téléchargement'),
                             ),
                           );
                         },
@@ -889,7 +975,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final remoteFile = undownloadedRemote[index];
-                    final task = downloadProvider.getTaskForRemotePath(remoteFile.path);
+                    final task =
+                        downloadProvider.getTaskForRemotePath(remoteFile.path);
 
                     return RemoteBookCard(
                       server: _seriesServer!,
@@ -910,7 +997,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('📥 Téléchargement : ${remoteFile.name}'),
+                            content:
+                                Text('📥 Téléchargement : ${remoteFile.name}'),
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -934,7 +1022,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         spacing: 8,
         runSpacing: 8,
         children: [
-          _buildFilterChip('Tous (${library.books.length})', LibraryFilter.all, library),
+          _buildFilterChip(
+              'Tous (${library.books.length})', LibraryFilter.all, library),
           _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
           _buildFilterChip('En cours', LibraryFilter.inProgress, library),
           _buildFilterChip('Non lus', LibraryFilter.unread, library),
@@ -947,10 +1036,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, LibraryFilter filter, LibraryProvider library) {
+  Widget _buildFilterChip(
+      String label, LibraryFilter filter, LibraryProvider library) {
     final isSelected = library.filter == filter;
     return FilterChip(
-      label: Text(label, style: TextStyle(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      label: Text(label,
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       selected: isSelected,
       onSelected: (_) => library.setFilter(filter),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -973,7 +1066,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(60)),
+          border:
+              Border.all(color: theme.colorScheme.outlineVariant.withAlpha(60)),
         ),
         child: Material(
           color: Colors.transparent,
@@ -990,10 +1084,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       width: 56,
                       height: 80,
                       child: File(book.coverPath ?? '').existsSync()
-                          ? Image.file(File(book.coverPath!), fit: BoxFit.cover, cacheWidth: 200)
+                          ? Image.file(File(book.coverPath!),
+                              fit: BoxFit.cover, cacheWidth: 200)
                           : Container(
                               color: theme.colorScheme.primary.withAlpha(30),
-                              child: Icon(Icons.auto_stories_rounded, color: theme.colorScheme.primary),
+                              child: Icon(Icons.auto_stories_rounded,
+                                  color: theme.colorScheme.primary),
                             ),
                     ),
                   ),
@@ -1006,7 +1102,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primary.withAlpha(40),
                                 borderRadius: BorderRadius.circular(6),
@@ -1034,7 +1131,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 4),
                         Text(
                           book.title,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1043,7 +1141,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           book.totalPages > 0
                               ? 'Page ${book.currentPage + 1} sur ${book.totalPages}'
                               : book.formatString,
-                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurfaceVariant),
                         ),
                         const SizedBox(height: 6),
                         ClipRRect(
@@ -1051,7 +1151,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           child: LinearProgressIndicator(
                             value: book.progress.clamp(0.0, 1.0),
                             minHeight: 4,
-                            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                            backgroundColor:
+                                theme.colorScheme.surfaceContainerHighest,
                           ),
                         ),
                       ],
@@ -1064,7 +1165,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       color: theme.colorScheme.primary,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
+                    child: const Icon(Icons.play_arrow_rounded,
+                        color: Colors.white, size: 22),
                   ),
                 ],
               ),
@@ -1096,7 +1198,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Text(
               'Explorez vos serveurs distants pour lire en streaming ou télécharger vos séries !',
               textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
             if (widget.onNavigateTab != null) ...[
               const SizedBox(height: 20),
@@ -1133,7 +1236,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
             Text(
               'Essayez un autre mot-clé ou réinitialisez les filtres.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ),

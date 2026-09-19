@@ -35,6 +35,8 @@ référence partagée afin que les autres appareils puissent l’appliquer.
 Un conflit détecté pendant une synchronisation automatique est signalé dans
 l’écran Compte avec un bouton permettant de le résoudre ; il ne reste plus
 silencieusement bloqué.
+Une petite icône de nuage dans la barre de la bibliothèque indique uniquement
+qu’une synchronisation est en cours.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la
 liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sans
 redémarrage de l’application.
