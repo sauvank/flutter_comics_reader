@@ -28,6 +28,8 @@ référence partagée afin que les autres appareils puissent l’appliquer.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la
 liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sans
 redémarrage de l’application.
+Pendant une synchronisation manuelle, le bouton indique l’opération en cours et
+une barre de progression est affichée afin d’éviter les doubles appuis.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

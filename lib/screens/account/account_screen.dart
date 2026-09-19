@@ -26,6 +26,7 @@ class _AccountScreenState extends State<AccountScreen> {
   final _confirmPhrase = TextEditingController();
   bool _createMode = false;
   bool _busy = false;
+  bool _syncing = false;
   bool? _hasLocalVault;
   bool? _hasRemoteVault;
   bool _loadingVault = false;
@@ -617,34 +618,56 @@ class _AccountScreenState extends State<AccountScreen> {
                             'La synchronisation est active et protégée par chiffrement de bout en bout.',
                           ),
                           const SizedBox(height: 16),
+                          if (_syncing) ...[
+                            const LinearProgressIndicator(),
+                            const SizedBox(height: 12),
+                          ],
                           Row(
                             children: [
                               Expanded(
                                 child: FilledButton.icon(
                                   onPressed: _busy
                                       ? null
-                                      : () {
+                                      : () async {
                                           final serverProvider =
                                               context.read<ServerProvider>();
-                                          _run(() async {
-                                            final conflicts =
-                                                await _sync.syncNow();
-                                            if (conflicts.isNotEmpty) {
-                                              await _resolveConflicts(
-                                                  conflicts);
-                                            }
-                                            // Profiles imported by the sync
-                                            // service are persisted directly.
-                                            // Refresh the in-memory list used by
-                                            // the Server tab before returning.
+                                          setState(() => _syncing = true);
+                                          try {
+                                            await _run(() async {
+                                              final conflicts =
+                                                  await _sync.syncNow();
+                                              if (conflicts.isNotEmpty) {
+                                                await _resolveConflicts(
+                                                    conflicts);
+                                              }
+                                              // Profiles imported by the sync
+                                              // service are persisted directly.
+                                              // Refresh the in-memory list used by
+                                              // the Server tab before returning.
+                                              if (mounted) {
+                                                await serverProvider
+                                                    .loadServers();
+                                              }
+                                            });
+                                          } finally {
                                             if (mounted) {
-                                              await serverProvider
-                                                  .loadServers();
+                                              setState(() => _syncing = false);
                                             }
-                                          });
+                                          }
                                         },
-                                  icon: const Icon(Icons.sync),
-                                  label: const Text('Synchroniser'),
+                                  icon: _syncing
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(Icons.sync),
+                                  label: Text(_syncing
+                                      ? 'Synchronisation…'
+                                      : 'Synchroniser'),
                                 ),
                               ),
                               const SizedBox(width: 8),
