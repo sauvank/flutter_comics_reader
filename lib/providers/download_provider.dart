@@ -12,6 +12,7 @@ import '../models/server_profile.dart';
 import '../services/cbz_service.dart';
 import '../services/epub_service.dart';
 import '../services/database_service.dart';
+import '../services/book_fingerprint_service.dart';
 import '../services/ftp_service.dart';
 import '../services/pdf_converter_service.dart';
 import '../services/reader_settings_service.dart';
@@ -25,9 +26,12 @@ class DownloadProvider extends ChangeNotifier {
   final FtpService _ftp = FtpService();
   final Map<String, CancelToken> _cancelTokens = {};
   final List<DownloadTask> _tasks = [];
-  final Map<String, ({ServerProfile server, RemoteFile file, DownloadTask task})> _pendingQueue = {};
+  final Map<String,
+          ({ServerProfile server, RemoteFile file, DownloadTask task})>
+      _pendingQueue = {};
 
-  static const int maxConcurrentDownloads = 2; // Optimal for mobile IO & network bandwidth
+  static const int maxConcurrentDownloads =
+      2; // Optimal for mobile IO & network bandwidth
 
   LibraryProvider? _libraryProvider;
 
@@ -81,7 +85,8 @@ class DownloadProvider extends ChangeNotifier {
   }) async {
     // Check if already downloaded and present in local library
     if (_libraryProvider != null) {
-      final existingBook = _libraryProvider!.getBookByServerPath(server.id, remoteFile.path);
+      final existingBook =
+          _libraryProvider!.getBookByServerPath(server.id, remoteFile.path);
       if (existingBook != null && File(existingBook.localPath).existsSync()) {
         return existingBook.id;
       }
@@ -92,7 +97,8 @@ class DownloadProvider extends ChangeNotifier {
     if (active != null) return active.id;
 
     final taskId = const Uuid().v4();
-    final bookId = 'book_${DateTime.now().millisecondsSinceEpoch}_${remoteFile.name.hashCode.abs()}';
+    final bookId =
+        'book_${DateTime.now().millisecondsSinceEpoch}_${remoteFile.name.hashCode.abs()}';
 
     final task = DownloadTask(
       id: taskId,
@@ -130,9 +136,11 @@ class DownloadProvider extends ChangeNotifier {
   }
 
   void _processQueue() {
-    final activeCount = _tasks.where((t) =>
-        t.status == DownloadStatus.downloading ||
-        t.status == DownloadStatus.converting).length;
+    final activeCount = _tasks
+        .where((t) =>
+            t.status == DownloadStatus.downloading ||
+            t.status == DownloadStatus.converting)
+        .length;
 
     if (activeCount >= maxConcurrentDownloads || _pendingQueue.isEmpty) {
       return;
@@ -151,11 +159,13 @@ class DownloadProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> _executeDownload(DownloadTask task, ServerProfile server, RemoteFile remoteFile) async {
+  Future<void> _executeDownload(
+      DownloadTask task, ServerProfile server, RemoteFile remoteFile) async {
     final cancelToken = CancelToken();
     _cancelTokens[task.id] = cancelToken;
 
-    _updateTaskStatus(task.id, DownloadStatus.downloading, statusDescription: 'Téléchargement...');
+    _updateTaskStatus(task.id, DownloadStatus.downloading,
+        statusDescription: 'Téléchargement...');
 
     final booksDir = await _db.getBooksDirectory();
     final extension = p.extension(task.fileName);
@@ -210,7 +220,8 @@ class DownloadProvider extends ChangeNotifier {
       }
 
       if (cancelToken.isCancelled) {
-        _updateTaskStatus(task.id, DownloadStatus.cancelled, statusDescription: 'Annulé');
+        _updateTaskStatus(task.id, DownloadStatus.cancelled,
+            statusDescription: 'Annulé');
         return;
       }
 
@@ -228,7 +239,8 @@ class DownloadProvider extends ChangeNotifier {
       String finalLocalPath = localBookPath;
       BookFormat finalFormat = format;
 
-      if (format == BookFormat.pdf && ReaderSettingsService().autoConvertPdfToCbz) {
+      if (format == BookFormat.pdf &&
+          ReaderSettingsService().autoConvertPdfToCbz) {
         _updateTaskStatus(
           task.id,
           DownloadStatus.converting,
@@ -254,7 +266,8 @@ class DownloadProvider extends ChangeNotifier {
             task.id,
             DownloadStatus.converting,
             progress: mappedProgress,
-            statusDescription: 'Conversion HD (${prog.currentPage}/${prog.totalPages} pages)$etaText',
+            statusDescription:
+                'Conversion HD (${prog.currentPage}/${prog.totalPages} pages)$etaText',
           );
         }
 
@@ -270,7 +283,9 @@ class DownloadProvider extends ChangeNotifier {
         finalFormat = BookFormat.cbz;
       }
 
-      if (finalFormat == BookFormat.cbz || finalFormat == BookFormat.zip || finalFormat == BookFormat.cbr) {
+      if (finalFormat == BookFormat.cbz ||
+          finalFormat == BookFormat.zip ||
+          finalFormat == BookFormat.cbr) {
         final coversDir = await _db.getCoversDirectory();
         final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
         try {
@@ -281,7 +296,8 @@ class DownloadProvider extends ChangeNotifier {
           coverPath = scanResult.coverPath;
           totalPages = scanResult.pageCount;
         } catch (eCbz) {
-          debugPrint('CBZ metadata extraction error for ${task.fileName}: $eCbz');
+          debugPrint(
+              'CBZ metadata extraction error for ${task.fileName}: $eCbz');
           totalPages = 1;
         }
       } else if (finalFormat == BookFormat.epub) {
@@ -295,7 +311,8 @@ class DownloadProvider extends ChangeNotifier {
           coverPath = scanResult.coverPath;
           totalPages = scanResult.pageCount;
         } catch (eEpub) {
-          debugPrint('EPUB metadata extraction error for ${task.fileName}: $eEpub');
+          debugPrint(
+              'EPUB metadata extraction error for ${task.fileName}: $eEpub');
           totalPages = 1;
         }
       } else if (finalFormat == BookFormat.pdf) {
@@ -304,29 +321,36 @@ class DownloadProvider extends ChangeNotifier {
           final targetCover = p.join(coversDir.path, '${task.bookId}.jpg');
 
           // Check if remote cover was already cached first
-          final cachedRemoteCover = await RemoteCoverService().getCachedCover(server.id, task.remotePath);
-          if (cachedRemoteCover != null && await File(cachedRemoteCover).exists()) {
+          final cachedRemoteCover = await RemoteCoverService()
+              .getCachedCover(server.id, task.remotePath);
+          if (cachedRemoteCover != null &&
+              await File(cachedRemoteCover).exists()) {
             try {
               await File(cachedRemoteCover).copy(targetCover);
               coverPath = targetCover;
             } catch (_) {}
           }
 
-          final doc = await PdfDocument.openFile(finalLocalPath).timeout(const Duration(seconds: 10));
+          final doc = await PdfDocument.openFile(finalLocalPath)
+              .timeout(const Duration(seconds: 10));
           try {
             totalPages = doc.pages.length;
 
             if (coverPath == null && doc.pages.isNotEmpty) {
               final page = doc.pages[0];
-              final img = await page.render(fullWidth: 600, fullHeight: 900).timeout(const Duration(seconds: 8));
+              final img = await page
+                  .render(fullWidth: 600, fullHeight: 900)
+                  .timeout(const Duration(seconds: 8));
               if (img != null) {
                 final uiImg = await img.createImage();
-                final byteData = await uiImg.toByteData(format: ui.ImageByteFormat.png);
+                final byteData =
+                    await uiImg.toByteData(format: ui.ImageByteFormat.png);
                 img.dispose();
                 uiImg.dispose();
                 if (byteData != null) {
                   final f = File(targetCover);
-                  await f.writeAsBytes(byteData.buffer.asUint8List(), flush: true);
+                  await f.writeAsBytes(byteData.buffer.asUint8List(),
+                      flush: true);
                   coverPath = targetCover;
                 }
               }
@@ -341,10 +365,15 @@ class DownloadProvider extends ChangeNotifier {
       }
 
       final downloadedFile = File(finalLocalPath);
-      final fileSize = await downloadedFile.exists() ? await downloadedFile.length() : task.totalBytes;
+      final fileSize = await downloadedFile.exists()
+          ? await downloadedFile.length()
+          : task.totalBytes;
+      final contentHash =
+          await BookFingerprintService.sha256ForFile(finalLocalPath);
 
       // Clean display title (remove extension and replace underscores)
-      var cleanTitle = p.basenameWithoutExtension(task.fileName).replaceAll('_', ' ');
+      var cleanTitle =
+          p.basenameWithoutExtension(task.fileName).replaceAll('_', ' ');
 
       final newBook = BookItem(
         id: task.bookId,
@@ -361,6 +390,7 @@ class DownloadProvider extends ChangeNotifier {
         fileSize: fileSize,
         serverId: server.id,
         serverRelativePath: task.remotePath,
+        contentHash: contentHash,
       );
 
       await _db.addBook(newBook);
@@ -374,11 +404,13 @@ class DownloadProvider extends ChangeNotifier {
       );
     } catch (e) {
       if (cancelToken.isCancelled) {
-        _updateTaskStatus(task.id, DownloadStatus.cancelled, statusDescription: 'Annulé');
+        _updateTaskStatus(task.id, DownloadStatus.cancelled,
+            statusDescription: 'Annulé');
       } else {
         debugPrint('Download failed for ${task.fileName}: $e');
         final cleanMsg = _formatDownloadError(e);
-        _updateTaskStatus(task.id, DownloadStatus.failed, errorMessage: cleanMsg, statusDescription: 'Échec');
+        _updateTaskStatus(task.id, DownloadStatus.failed,
+            errorMessage: cleanMsg, statusDescription: 'Échec');
       }
     } finally {
       _cancelTokens.remove(task.id);
@@ -398,7 +430,9 @@ class DownloadProvider extends ChangeNotifier {
         case DioExceptionType.badResponse:
           final code = error.response?.statusCode;
           if (code == 404) return 'Fichier introuvable sur le serveur (404)';
-          if (code == 401 || code == 403) return 'Accès refusé (identifiants incorrects)';
+          if (code == 401 || code == 403) {
+            return 'Accès refusé (identifiants incorrects)';
+          }
           return 'Erreur serveur${code != null ? ' ($code)' : ''}';
         case DioExceptionType.connectionError:
           return 'Impossible de joindre le serveur (connexion perdue)';
@@ -408,7 +442,10 @@ class DownloadProvider extends ChangeNotifier {
         default:
           if (error.error != null) {
             final inner = error.error.toString().toLowerCase();
-            if (inner.contains('socket') || inner.contains('network') || inner.contains('broken pipe') || inner.contains('connection reset')) {
+            if (inner.contains('socket') ||
+                inner.contains('network') ||
+                inner.contains('broken pipe') ||
+                inner.contains('connection reset')) {
               return 'Connexion réseau interrompue';
             }
             if (inner.contains('space') || inner.contains('enospc')) {
@@ -435,7 +472,8 @@ class DownloadProvider extends ChangeNotifier {
     _pendingQueue.remove(taskId);
     final token = _cancelTokens[taskId];
     token?.cancel();
-    _updateTaskStatus(taskId, DownloadStatus.cancelled, statusDescription: 'Annulé');
+    _updateTaskStatus(taskId, DownloadStatus.cancelled,
+        statusDescription: 'Annulé');
     _processQueue();
   }
 
@@ -465,7 +503,8 @@ class DownloadProvider extends ChangeNotifier {
       isDirectory: false,
     );
 
-    _updateTaskStatus(taskId, DownloadStatus.pending, progress: 0.0, statusDescription: 'En attente...');
+    _updateTaskStatus(taskId, DownloadStatus.pending,
+        progress: 0.0, statusDescription: 'En attente...');
     _pendingQueue[taskId] = (server: server, file: remoteFile, task: task);
     _processQueue();
   }

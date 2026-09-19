@@ -25,6 +25,10 @@ class BookItem {
   final int fileSize; // bytes
   final String? serverId;
   final String? serverRelativePath;
+
+  /// SHA-256 of the downloaded archive, used to match the same book after a
+  /// rename or move on another device.
+  final String? contentHash;
   final List<int> bookmarks;
   final bool isFavorite;
 
@@ -44,6 +48,7 @@ class BookItem {
     this.fileSize = 0,
     this.serverId,
     this.serverRelativePath,
+    this.contentHash,
     List<int>? bookmarks,
     this.isFavorite = false,
   }) : bookmarks = bookmarks ?? [];
@@ -91,6 +96,7 @@ class BookItem {
     int? fileSize,
     String? serverId,
     String? serverRelativePath,
+    String? contentHash,
     List<int>? bookmarks,
     bool? isFavorite,
   }) {
@@ -110,6 +116,7 @@ class BookItem {
       fileSize: fileSize ?? this.fileSize,
       serverId: serverId ?? this.serverId,
       serverRelativePath: serverRelativePath ?? this.serverRelativePath,
+      contentHash: contentHash ?? this.contentHash,
       bookmarks: bookmarks ?? List.from(this.bookmarks),
       isFavorite: isFavorite ?? this.isFavorite,
     );
@@ -132,6 +139,7 @@ class BookItem {
       'fileSize': fileSize,
       'serverId': serverId,
       'serverRelativePath': serverRelativePath,
+      'contentHash': contentHash,
       'bookmarks': jsonEncode(bookmarks),
       'isFavorite': isFavorite ? 1 : 0,
     };
@@ -141,7 +149,8 @@ class BookItem {
     return BookItem(
       id: map['id'] as String,
       title: map['title'] as String,
-      originalFilename: map['originalFilename'] as String? ?? map['title'] as String,
+      originalFilename:
+          map['originalFilename'] as String? ?? map['title'] as String,
       localPath: map['localPath'] as String,
       coverPath: map['coverPath'] as String?,
       format: BookFormat.values.firstWhere(
@@ -152,11 +161,15 @@ class BookItem {
       currentPage: map['currentPage'] as int? ?? 0,
       progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
       isCompleted: (map['isCompleted'] == 1 || map['isCompleted'] == true),
-      addedDate: DateTime.tryParse(map['addedDate'] as String? ?? '') ?? DateTime.now(),
-      lastReadDate: map['lastReadDate'] != null ? DateTime.tryParse(map['lastReadDate'] as String) : null,
+      addedDate: DateTime.tryParse(map['addedDate'] as String? ?? '') ??
+          DateTime.now(),
+      lastReadDate: map['lastReadDate'] != null
+          ? DateTime.tryParse(map['lastReadDate'] as String)
+          : null,
       fileSize: map['fileSize'] as int? ?? 0,
       serverId: map['serverId'] as String?,
       serverRelativePath: map['serverRelativePath'] as String?,
+      contentHash: map['contentHash'] as String?,
       bookmarks: map['bookmarks'] != null
           ? List<int>.from(jsonDecode(map['bookmarks'] as String) as List)
           : [],
@@ -165,5 +178,6 @@ class BookItem {
   }
 
   String toJson() => jsonEncode(toMap());
-  factory BookItem.fromJson(String source) => BookItem.fromMap(jsonDecode(source) as Map<String, dynamic>);
+  factory BookItem.fromJson(String source) =>
+      BookItem.fromMap(jsonDecode(source) as Map<String, dynamic>);
 }

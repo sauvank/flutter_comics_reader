@@ -35,6 +35,10 @@ initial non lu n’écrase pas la progression chiffrée : celle-ci est restauré
 automatiquement à la première synchronisation.
 La réception d’une progression recalcule aussi le pourcentage affiché à partir
 de la page et du nombre total de pages, puis recharge la bibliothèque locale.
+Chaque archive téléchargée reçoit une empreinte SHA-256 calculée en flux. Cette
+empreinte devient l’identifiant prioritaire de sa progression : un renommage ou
+un déplacement n’interrompt plus le suivi, tandis que deux éditions différentes
+portant un titre similaire ne sont jamais confondues.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

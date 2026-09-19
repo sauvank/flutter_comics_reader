@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../models/book_item.dart';
 import '../../models/server_profile.dart';
 import '../database_service.dart';
+import '../book_fingerprint_service.dart';
 import '../reader_settings_service.dart';
 import 'crypto_service.dart';
 import 'firebase_bootstrap.dart';
@@ -190,9 +191,15 @@ class SyncService {
         await _settingsPayload(), key, conflicts, 'Paramètres de lecture');
     for (final book in await _database.getBooks()) {
       if (book.serverId == null || book.serverRelativePath == null) continue;
-      final id = _progressId(book);
-      await _syncDocument(root.doc('progress').collection('files').doc(id),
-          'progress:$id', _progressPayload(book), key, conflicts, book.title);
+      final fingerprintedBook = await _ensureFingerprint(book);
+      final id = _progressId(fingerprintedBook);
+      await _syncDocument(
+          root.doc('progress').collection('files').doc(id),
+          'progress:$id',
+          await _progressPayload(fingerprintedBook),
+          key,
+          conflicts,
+          fingerprintedBook.title);
     }
     return conflicts;
   }
@@ -250,7 +257,10 @@ class SyncService {
     if (documentId.startsWith('progress:')) {
       final progressId = documentId.substring('progress:'.length);
       for (final book in await _database.getBooks()) {
-        if (_progressId(book) == progressId) return _progressPayload(book);
+        final fingerprintedBook = await _ensureFingerprint(book);
+        if (_progressId(fingerprintedBook) == progressId) {
+          return _progressPayload(fingerprintedBook);
+        }
       }
       throw StateError('La progression locale correspondante n’existe plus.');
     }
@@ -385,11 +395,12 @@ class SyncService {
         'settings': await ReaderSettingsService().exportForSync(),
       };
 
-  Map<String, dynamic> _progressPayload(BookItem book) => {
+  Future<Map<String, dynamic>> _progressPayload(BookItem book) async => {
         'updatedAt':
             (book.lastReadDate ?? book.addedDate).toUtc().toIso8601String(),
         'serverId': book.serverId,
         'serverRelativePath': book.serverRelativePath,
+        'contentHash': book.contentHash,
         'currentPage': book.currentPage,
         'totalPages': book.totalPages,
         'isCompleted': book.isCompleted,
@@ -397,9 +408,22 @@ class SyncService {
         'isFavorite': book.isFavorite,
       };
 
-  String _progressId(BookItem book) => base64UrlEncode(
-          utf8.encode('${book.serverId}|${book.serverRelativePath}'))
-      .replaceAll('=', '');
+  String _progressId(BookItem book) {
+    final hash = book.contentHash;
+    if (hash != null && hash.isNotEmpty) return 'sha256_$hash';
+    return base64UrlEncode(
+            utf8.encode('${book.serverId}|${book.serverRelativePath}'))
+        .replaceAll('=', '');
+  }
+
+  Future<BookItem> _ensureFingerprint(BookItem book) async {
+    if (book.contentHash != null && book.contentHash!.isNotEmpty) return book;
+    final hash = await BookFingerprintService.sha256ForFile(book.localPath);
+    if (hash == null) return book;
+    final fingerprinted = book.copyWith(contentHash: hash);
+    await _database.updateBook(fingerprinted);
+    return fingerprinted;
+  }
 
   Future<void> _applyRemote(String localId, Map<String, dynamic> remote) async {
     if (localId == 'servers') {
@@ -413,13 +437,27 @@ class SyncService {
     } else if (localId.startsWith('progress:')) {
       final path = remote['serverRelativePath'] as String;
       final server = remote['serverId'] as String;
+      final contentHash = remote['contentHash'] as String?;
       final currentPage = remote['currentPage'] as int;
       final totalPages = remote['totalPages'] as int;
       final progress =
           totalPages > 0 ? (currentPage / totalPages).clamp(0.0, 1.0) : 0.0;
       final books = await _database.getBooks();
-      for (final book in books
-          .where((b) => b.serverId == server && b.serverRelativePath == path)) {
+      final candidates = books.where((book) {
+        if (contentHash == null || contentHash.isEmpty) {
+          return book.serverId == server && book.serverRelativePath == path;
+        }
+        return book.serverId == server;
+      });
+      for (final originalBook in candidates) {
+        final book = contentHash == null || contentHash.isEmpty
+            ? originalBook
+            : await _ensureFingerprint(originalBook);
+        if (contentHash != null &&
+            contentHash.isNotEmpty &&
+            book.contentHash != contentHash) {
+          continue;
+        }
         await _database.updateBook(book.copyWith(
           currentPage: currentPage,
           totalPages: totalPages,
