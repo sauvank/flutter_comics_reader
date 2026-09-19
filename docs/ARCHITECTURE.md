@@ -45,6 +45,14 @@ secrète (`updateRecoveryPhrase`) en régénérant un nouveau sel PBKDF2 sans pe
 des données déverrouillées. Les règles Firestore limitent chaque chemin
 `users/{uid}` au compte authentifié correspondant.
 
+`DatabaseService` publie les changements qui doivent être synchronisés.
+`SyncProvider` les regroupe pendant deux secondes puis déclenche une
+synchronisation lorsque le compte et le coffre local sont disponibles. Les
+applications distantes n'émettent pas à nouveau cet évènement : une réception
+de données ne crée donc pas de boucle de synchronisation. La progression est
+adressée par l'empreinte SHA-256 de l'archive ; le profil serveur et le chemin
+restent un repli pour les anciennes données sans empreinte.
+
 ---
 
 ## 🔄 2. Pipeline de Téléchargement & Conversion PDF ➔ CBZ

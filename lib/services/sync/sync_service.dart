@@ -421,7 +421,7 @@ class SyncService {
     final hash = await BookFingerprintService.sha256ForFile(book.localPath);
     if (hash == null) return book;
     final fingerprinted = book.copyWith(contentHash: hash);
-    await _database.updateBook(fingerprinted);
+    await _database.updateBook(fingerprinted, notifySync: false);
     return fingerprinted;
   }
 
@@ -443,30 +443,29 @@ class SyncService {
       final progress =
           totalPages > 0 ? (currentPage / totalPages).clamp(0.0, 1.0) : 0.0;
       final books = await _database.getBooks();
+      // An archive fingerprint is independent from the server profile. A
+      // profile can legitimately have a different local id on another device
+      // (for example when it was added before the first account sync), while
+      // the downloaded archive is still the same book.
       final candidates = books.where((book) {
-        if (contentHash == null || contentHash.isEmpty) {
-          return book.serverId == server && book.serverRelativePath == path;
+        if (contentHash != null && contentHash.isNotEmpty) {
+          return book.contentHash == contentHash;
         }
-        return book.serverId == server;
+        return book.serverId == server && book.serverRelativePath == path;
       });
       for (final originalBook in candidates) {
-        final book = contentHash == null || contentHash.isEmpty
-            ? originalBook
-            : await _ensureFingerprint(originalBook);
-        if (contentHash != null &&
-            contentHash.isNotEmpty &&
-            book.contentHash != contentHash) {
-          continue;
-        }
-        await _database.updateBook(book.copyWith(
-          currentPage: currentPage,
-          totalPages: totalPages,
-          progress: progress,
-          isCompleted: remote['isCompleted'] as bool,
-          bookmarks: List<int>.from(remote['bookmarks'] as List),
-          isFavorite: remote['isFavorite'] as bool,
-          lastReadDate: DateTime.parse(remote['updatedAt'] as String).toLocal(),
-        ));
+        await _database.updateBook(
+            originalBook.copyWith(
+              currentPage: currentPage,
+              totalPages: totalPages,
+              progress: progress,
+              isCompleted: remote['isCompleted'] as bool,
+              bookmarks: List<int>.from(remote['bookmarks'] as List),
+              isFavorite: remote['isFavorite'] as bool,
+              lastReadDate:
+                  DateTime.parse(remote['updatedAt'] as String).toLocal(),
+            ),
+            notifySync: false);
       }
     }
   }

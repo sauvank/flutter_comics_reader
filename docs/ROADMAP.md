@@ -120,8 +120,9 @@ gantt
   phrase de récupération, boîte de dialogue de confirmation, masquage/affichage
   et modification de phrase secrète.
 - [ ] Connecter le projet Firebase de production et ses applications clientes.
-- [ ] Ajouter la synchronisation déclenchée automatiquement (démarrage,
-  modification et retour réseau).
+- [x] Ajouter la synchronisation déclenchée automatiquement après connexion et
+  après une modification de bibliothèque ou de lecture.
+- [ ] Déclencher une nouvelle tentative au retour réseau.
 
 ## Prochaine étape — qualité de production
 

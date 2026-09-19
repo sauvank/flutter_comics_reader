@@ -20,6 +20,11 @@ et chemins locaux ne sont pas synchronisés. La configuration de projet reste
 décrite dans `docs/FIREBASE_SETUP.md` et ne doit inclure aucun secret dans ce
 dépôt.
 
+Sans projet Firebase relié à l’application, l’écran Compte reste accessible et
+explique que la synchronisation sera disponible après la configuration. Il ne
+tente alors pas d’accéder aux services Firebase : le lecteur et les données
+locales restent utilisables.
+
 Lorsqu’une même donnée a été modifiée localement et sur Google depuis la
 dernière synchronisation, l’écran Compte demande explicitement quelle version
 conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
@@ -39,8 +44,12 @@ Au chargement de la bibliothèque, ce pourcentage est également toujours dériv
 de la page enregistrée afin de corriger les données issues d’anciennes versions.
 Chaque archive téléchargée reçoit une empreinte SHA-256 calculée en flux. Cette
 empreinte devient l’identifiant prioritaire de sa progression : un renommage ou
-un déplacement n’interrompt plus le suivi, tandis que deux éditions différentes
+un déplacement — y compris entre deux profils de serveur ayant des identifiants
+locaux différents — n’interrompt plus le suivi, tandis que deux éditions différentes
 portant un titre similaire ne sont jamais confondues.
+L’ajout d’un tome, d’un favori ou d’un marque-page déclenche également une
+synchronisation automatique ; leur date de modification est transmise avec la
+progression.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

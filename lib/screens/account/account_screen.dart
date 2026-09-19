@@ -41,7 +41,9 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   void initState() {
     super.initState();
-    if (_sync.user != null) {
+    // The local-only fallback must be able to render before FirebaseAuth is
+    // resolved: FirebaseAuth.instance throws without a default Firebase app.
+    if (FirebaseBootstrap.isAvailable && _sync.user != null) {
       _checkVault();
     }
   }

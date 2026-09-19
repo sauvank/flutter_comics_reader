@@ -18,7 +18,8 @@ class DatabaseService {
   static const String _keyActiveServerId = 'active_server_id';
 
   SharedPreferences? _prefs;
-  final SecureServerCredentialsService _credentials = SecureServerCredentialsService();
+  final SecureServerCredentialsService _credentials =
+      SecureServerCredentialsService();
   final _syncChanges = StreamController<String>.broadcast();
   Stream<String> get syncChanges => _syncChanges.stream;
 
@@ -40,7 +41,8 @@ class DatabaseService {
 
   Future<Directory> getCoversDirectory() async {
     final docsDir = await getApplicationDocumentsDirectory();
-    final coversDir = Directory(p.join(docsDir.path, 'comics_library', 'covers'));
+    final coversDir =
+        Directory(p.join(docsDir.path, 'comics_library', 'covers'));
     if (!await coversDir.exists()) {
       await coversDir.create(recursive: true);
     }
@@ -56,7 +58,9 @@ class DatabaseService {
 
     try {
       final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
-      return list.map((e) => BookItem.fromMap(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => BookItem.fromMap(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -68,7 +72,7 @@ class DatabaseService {
     await _prefs?.setString(_keyBooks, jsonEncode(list));
   }
 
-  Future<void> addBook(BookItem book) async {
+  Future<void> addBook(BookItem book, {bool notifySync = true}) async {
     final books = await getBooks();
     final existingIndex = books.indexWhere((b) => b.id == book.id);
     if (existingIndex >= 0) {
@@ -77,10 +81,11 @@ class DatabaseService {
       books.add(book);
     }
     await saveBooks(books);
+    if (notifySync) _syncChanges.add('books');
   }
 
-  Future<void> updateBook(BookItem book) async {
-    await addBook(book);
+  Future<void> updateBook(BookItem book, {bool notifySync = true}) async {
+    await addBook(book, notifySync: notifySync);
   }
 
   Future<void> updateBookProgress({
@@ -109,7 +114,8 @@ class DatabaseService {
     }
   }
 
-  Future<void> toggleBookmark({required String bookId, required int pageNumber}) async {
+  Future<void> toggleBookmark(
+      {required String bookId, required int pageNumber}) async {
     final books = await getBooks();
     final index = books.indexWhere((b) => b.id == bookId);
     if (index >= 0) {
@@ -121,7 +127,10 @@ class DatabaseService {
         bookmarks.add(pageNumber);
         bookmarks.sort();
       }
-      books[index] = current.copyWith(bookmarks: bookmarks);
+      books[index] = current.copyWith(
+        bookmarks: bookmarks,
+        lastReadDate: DateTime.now(),
+      );
       await saveBooks(books);
       _syncChanges.add('progress');
     }
@@ -132,7 +141,10 @@ class DatabaseService {
     final index = books.indexWhere((b) => b.id == bookId);
     if (index >= 0) {
       final current = books[index];
-      books[index] = current.copyWith(isFavorite: !current.isFavorite);
+      books[index] = current.copyWith(
+        isFavorite: !current.isFavorite,
+        lastReadDate: DateTime.now(),
+      );
       await saveBooks(books);
       _syncChanges.add('progress');
     }
@@ -159,7 +171,8 @@ class DatabaseService {
 
   Future<void> deleteBook(String bookId) async {
     final books = await getBooks();
-    final book = books.firstWhere((b) => b.id == bookId, orElse: () => throw Exception('Not found'));
+    final book = books.firstWhere((b) => b.id == bookId,
+        orElse: () => throw Exception('Not found'));
 
     // Delete local file
     final file = File(book.localPath);
@@ -267,7 +280,8 @@ class DatabaseService {
 
   Future<void> setLastSyncedAt(String documentId, DateTime timestamp) async {
     await init();
-    await _prefs?.setString(_syncTimestampKey(documentId), timestamp.toUtc().toIso8601String());
+    await _prefs?.setString(
+        _syncTimestampKey(documentId), timestamp.toUtc().toIso8601String());
   }
 
   static const _syncDomainPrefix = 'sync.domain.updated.';
@@ -275,12 +289,15 @@ class DatabaseService {
   Future<DateTime> getSyncDomainUpdatedAt(String domain) async {
     await init();
     final value = _prefs?.getString('$_syncDomainPrefix$domain');
-    return value == null ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true) : DateTime.parse(value);
+    return value == null
+        ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)
+        : DateTime.parse(value);
   }
 
   Future<void> touchSyncDomain(String domain) async {
     await init();
-    await _prefs?.setString('$_syncDomainPrefix$domain', DateTime.now().toUtc().toIso8601String());
+    await _prefs?.setString(
+        '$_syncDomainPrefix$domain', DateTime.now().toUtc().toIso8601String());
   }
 
   // --- Storage calculation ---
