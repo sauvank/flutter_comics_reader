@@ -434,6 +434,52 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
+  Future<void> _showDeviceNameDialog() async {
+    final controller =
+        TextEditingController(text: await _sync.currentDeviceName());
+    if (!mounted) {
+      controller.dispose();
+      return;
+    }
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Nom de cet appareil'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 40,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'Ex. Tablette ou Téléphone',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (name == null) return;
+    await _run(() async {
+      await _sync.renameCurrentDevice(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nom de l’appareil enregistré.')),
+        );
+      }
+    });
+  }
+
   Future<void> _startManualSync() async {
     final automaticSyncProvider = context.read<SyncProvider>();
     final serverProvider = context.read<ServerProvider>();
@@ -775,6 +821,18 @@ class _AccountScreenState extends State<AccountScreen> {
                                 label: const Text('Modifier la phrase'),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(Icons.devices_other_outlined),
+                            title: const Text('Nom de cet appareil'),
+                            subtitle: const Text(
+                                'Affiché lors du choix d’une sauvegarde'),
+                            trailing: OutlinedButton(
+                              onPressed: _busy ? null : _showDeviceNameDialog,
+                              child: const Text('Modifier'),
+                            ),
                           ),
                         ],
                       ),

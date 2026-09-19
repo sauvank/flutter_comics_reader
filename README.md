@@ -14,6 +14,8 @@ de rattacher un projet Firebase de production ; voir
 [la configuration Firebase](docs/FIREBASE_SETUP.md).
 Lors d’une synchronisation manuelle, l’utilisateur peut aussi choisir une
 sauvegarde chiffrée d’un appareil et la définir comme référence partagée.
+Chaque appareil peut être renommé depuis Compte afin d’être clairement reconnu
+dans ce choix.
 Les fichiers CBZ/CBR/ZIP, PDF et EPUB déjà présents sur l’appareil peuvent être
 sélectionnés depuis l’onglet **Fichiers**, importés localement et lus hors ligne
 sans serveur configuré.

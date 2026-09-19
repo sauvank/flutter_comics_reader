@@ -129,6 +129,7 @@ gantt
 - [x] Conserver une sauvegarde chiffrée par appareil et permettre de choisir
   explicitement celle qui devient la référence lors d’une synchronisation
   manuelle.
+- [x] Permettre de nommer chaque appareil pour distinguer ses sauvegardes.
 - [ ] Déclencher une nouvelle tentative au retour réseau.
 
 ## Prochaine étape — qualité de production

@@ -23,6 +23,7 @@ import 'vault_service.dart';
 /// files, local paths, covers, or server passwords outside an AES-GCM envelope.
 class SyncService {
   static const _deviceIdKey = 'sync.device.id';
+  static const _deviceNameKey = 'sync.device.name';
   SyncService({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
@@ -210,6 +211,34 @@ class SyncService {
     return conflicts;
   }
 
+  /// A user-chosen name used only to distinguish encrypted device backups.
+  Future<String> currentDeviceName() async {
+    final deviceId = await _deviceId();
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_deviceNameKey)?.trim().isNotEmpty == true
+        ? preferences.getString(_deviceNameKey)!.trim()
+        : _deviceLabel(deviceId);
+  }
+
+  /// Renames this installation and updates its encrypted backup immediately
+  /// when the vault is available.
+  Future<void> renameCurrentDevice(String name) async {
+    final normalized = name.trim();
+    if (normalized.isEmpty || normalized.length > 40) {
+      throw ArgumentError('Le nom doit contenir entre 1 et 40 caractères.');
+    }
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_deviceNameKey, normalized);
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null || key == null) return;
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    await _saveDeviceBackup(root, key);
+  }
+
   /// Lists the current installation and the encrypted restore points uploaded
   /// by the other installations of the same account.
   Future<List<SyncDeviceBackup>> listDeviceBackups() async {
@@ -224,10 +253,11 @@ class SyncService {
         .doc(currentUser.uid)
         .collection('private');
     final currentId = await _deviceId();
+    final currentName = await currentDeviceName();
     final backups = <SyncDeviceBackup>[
       SyncDeviceBackup(
         id: currentId,
-        label: 'Cet appareil',
+        label: 'Cet appareil — $currentName',
         isCurrentDevice: true,
       ),
     ];
@@ -235,8 +265,9 @@ class SyncService {
         await root.doc('deviceBackups').collection('devices').get();
     for (final snapshot in snapshots.docs) {
       // Do not expose an unreadable/stale record in the chooser.
+      late Map<String, dynamic> payload;
       try {
-        await _crypto.decryptJson(
+        payload = await _crypto.decryptJson(
           key: key,
           envelope:
               Map<String, dynamic>.from(snapshot.data()['envelope'] as Map),
@@ -249,7 +280,7 @@ class SyncService {
       if (snapshot.id == currentId) {
         backups[0] = SyncDeviceBackup(
           id: currentId,
-          label: 'Cet appareil',
+          label: 'Cet appareil — $currentName',
           isCurrentDevice: true,
           updatedAt: updatedAt,
         );
@@ -257,7 +288,9 @@ class SyncService {
       }
       backups.add(SyncDeviceBackup(
         id: snapshot.id,
-        label: snapshot.data()['label'] as String? ?? 'Autre appareil',
+        label: payload['deviceName'] as String? ??
+            snapshot.data()['label'] as String? ??
+            'Autre appareil',
         isCurrentDevice: false,
         updatedAt: updatedAt,
       ));
@@ -548,10 +581,10 @@ class SyncService {
     }
     await root.doc('deviceBackups').collection('devices').doc(deviceId).set({
       'v': 1,
-      'label': _deviceLabel(deviceId),
       'envelope': await _crypto.encryptJson(
         key: key,
         value: {
+          'deviceName': await currentDeviceName(),
           'servers': await _serversPayload(),
           'settings': await _settingsPayload(),
           'progress': progress,

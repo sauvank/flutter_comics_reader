@@ -38,7 +38,9 @@ silencieusement bloqué.
 Après un choix de résolution, ce même conflit est retiré des flux automatique
 et manuel afin de ne jamais demander deux fois la même décision.
 Chaque appareil conserve aussi une sauvegarde chiffrée distincte, repérée par
-un alias aléatoire qui ne contient ni modèle ni nom de l’appareil. Le bouton de
+un nom modifiable depuis Compte (ou un alias aléatoire par défaut). Ce nom est
+placé dans l’enveloppe chiffrée et ne contient ni modèle ni identifiant matériel.
+Le bouton de
 synchronisation manuelle demande quelle sauvegarde utiliser ; choisir un autre
 appareil restaure ses données localement et en fait la nouvelle référence
 partagée. La synchronisation automatique ne remplace jamais les données selon

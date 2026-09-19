@@ -54,8 +54,9 @@ adressée par l'empreinte SHA-256 de l'archive ; le profil serveur et le chemin
 restent un repli pour les anciennes données sans empreinte.
 
 Chaque synchronisation conserve également un point de restauration chiffré par
-installation dans Firestore. Son alias est généré aléatoirement, sans nom ou
-modèle d’appareil. Une synchronisation manuelle peut restaurer l’un de ces
+installation dans Firestore. Son nom est modifiable depuis Compte et inclus dans
+l’enveloppe chiffrée ; l’alias par défaut ne comporte aucun modèle ou identifiant
+matériel. Une synchronisation manuelle peut restaurer l’un de ces
 points de restauration et le publier comme nouvelle référence commune ; ce
 choix n’est jamais appliqué automatiquement.
 
