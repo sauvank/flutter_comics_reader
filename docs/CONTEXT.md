@@ -25,6 +25,10 @@ dernière synchronisation, l’écran Compte demande explicitement quelle versio
 conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
 écrasement n’est effectué sans ce choix.
 
+L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
+passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
+navigation basse sont également maintenus sur une ligne.
+
 > [!CAUTION]
 > **RÈGLE ABSOLUE DE SÉCURITÉ & ANONYMAT : ZÉRO DONNÉE PRIVÉE DANS LE DÉPÔT**
 > Le dépôt étant public, il est **strictement interdit** de commiter la moindre information personnelle ou sensible :

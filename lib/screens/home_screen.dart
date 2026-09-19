@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
               label: Text('$activeDownloadsCount'),
               child: const Icon(Icons.download),
             ),
-            label: 'Téléchargements',
+            label: 'Télécharg.',
           ),
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),

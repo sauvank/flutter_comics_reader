@@ -928,25 +928,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildFilterChipsRow(LibraryProvider library) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
           _buildFilterChip('Tous (${library.books.length})', LibraryFilter.all, library),
-          const SizedBox(width: 8),
           _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
-          const SizedBox(width: 8),
           _buildFilterChip('En cours', LibraryFilter.inProgress, library),
-          const SizedBox(width: 8),
           _buildFilterChip('Non lus', LibraryFilter.unread, library),
-          const SizedBox(width: 8),
           _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
-          const SizedBox(width: 8),
           _buildFilterChip('PDF', LibraryFilter.pdf, library),
-          const SizedBox(width: 8),
           _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
-          const SizedBox(width: 8),
           _buildFilterChip('Terminés', LibraryFilter.completed, library),
         ],
       ),
