@@ -10,10 +10,15 @@ class SyncConflict {
     required this.label,
     required this.localUpdatedAt,
     required this.remoteUpdatedAt,
+    required this.localSummary,
+    required this.remoteSummary,
   });
 
   final String documentId;
   final String label;
   final DateTime localUpdatedAt;
   final DateTime remoteUpdatedAt;
+  /// Human-readable, non-sensitive details shown before replacing a version.
+  final String localSummary;
+  final String remoteSummary;
 }

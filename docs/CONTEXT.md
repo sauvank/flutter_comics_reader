@@ -28,7 +28,9 @@ locales restent utilisables.
 Lorsqu’une même donnée a été modifiée localement et sur Google depuis la
 dernière synchronisation, l’écran Compte demande explicitement quelle version
 conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
-écrasement n’est effectué sans ce choix. La version sélectionnée devient la
+écrasement n’est effectué sans ce choix. Avant de choisir Google, l’écran
+indique aussi les valeurs locales et distantes qui seront remplacées (page,
+favori et nombre de marque-pages pour un livre). La version sélectionnée devient la
 référence partagée afin que les autres appareils puissent l’appliquer.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la
 liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sans
@@ -49,7 +51,8 @@ locaux différents — n’interrompt plus le suivi, tandis que deux éditions d
 portant un titre similaire ne sont jamais confondues.
 L’ajout d’un tome, d’un favori ou d’un marque-page déclenche également une
 synchronisation automatique ; leur date de modification est transmise avec la
-progression.
+progression. Les modifications rapprochées sont regroupées pendant cinq
+secondes avant l’envoi.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

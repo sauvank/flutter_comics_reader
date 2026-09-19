@@ -385,8 +385,12 @@ class _AccountScreenState extends State<AccountScreen> {
               Text(
                   'Données Google : ${_formatConflictDate(conflict.remoteUpdatedAt)}'),
               const SizedBox(height: 12),
+              Text('Cet appareil : ${conflict.localSummary}'),
+              const SizedBox(height: 4),
+              Text('Google : ${conflict.remoteSummary}'),
+              const SizedBox(height: 12),
               const Text(
-                  'Choisissez la version à conserver. L’autre sera remplacée.'),
+                  'En gardant Google, ces données remplaceront celles de cet appareil.'),
             ],
           ),
           actions: [

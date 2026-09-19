@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:comic_reader_app/services/sync/sync_service.dart';
+import 'package:comic_reader_app/services/sync/sync_models.dart';
 import 'package:comic_reader_app/services/sync/vault_service.dart';
 
 class _FakeFirebaseAuth implements FirebaseAuth {
@@ -114,5 +115,19 @@ void main() {
     final salt2 = await vault.generateNewRecoverySalt();
     expect(salt2, isNot('custom-salt-value'));
     expect(await vault.recoverySalt(), salt2);
+  });
+
+  test('SyncConflict keeps the details shown before replacing local data', () {
+    final conflict = SyncConflict(
+      documentId: 'progress:book',
+      label: 'Book',
+      localUpdatedAt: DateTime.utc(2026),
+      remoteUpdatedAt: DateTime.utc(2026, 1, 2),
+      localSummary: 'Page 4/20 · Favori : non · 0 marque-page',
+      remoteSummary: 'Page 12/20 · Favori : oui · 2 marque-pages',
+    );
+
+    expect(conflict.localSummary, contains('Page 4/20'));
+    expect(conflict.remoteSummary, contains('Page 12/20'));
   });
 }

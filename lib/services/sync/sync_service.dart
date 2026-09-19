@@ -335,7 +335,9 @@ class SyncService {
           documentId: localId,
           label: label,
           localUpdatedAt: localUpdated,
-          remoteUpdatedAt: remoteUpdated));
+          remoteUpdatedAt: remoteUpdated,
+          localSummary: _conflictSummary(localId, local),
+          remoteSummary: _conflictSummary(localId, remote)));
       return;
     }
     if (remoteUpdated.isAfter(localUpdated)) {
@@ -362,6 +364,24 @@ class SyncService {
         payload['isCompleted'] != true &&
         payload['isFavorite'] != true &&
         (bookmarks is! List || bookmarks.isEmpty);
+  }
+
+  String _conflictSummary(String documentId, Map<String, dynamic> payload) {
+    if (documentId.startsWith('progress:')) {
+      final page = payload['currentPage'] as int? ?? 0;
+      final total = payload['totalPages'] as int? ?? 0;
+      final bookmarks = payload['bookmarks'];
+      final bookmarkCount = bookmarks is List ? bookmarks.length : 0;
+      final favorite = payload['isFavorite'] == true ? 'oui' : 'non';
+      return 'Page $page/$total · Favori : $favorite · '
+          '$bookmarkCount marque-page${bookmarkCount > 1 ? 's' : ''}';
+    }
+    if (documentId == 'servers') {
+      final servers = payload['servers'];
+      final count = servers is List ? servers.length : 0;
+      return '$count profil${count > 1 ? 's' : ''} de serveur';
+    }
+    return 'Réglages de lecture';
   }
 
   Future<void> _write(

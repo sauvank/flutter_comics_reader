@@ -27,7 +27,7 @@ class SyncProvider extends ChangeNotifier {
   void schedule() {
     if (_service.user == null) return;
     _debounce?.cancel();
-    _debounce = Timer(const Duration(seconds: 2), syncNow);
+    _debounce = Timer(const Duration(seconds: 5), syncNow);
   }
 
   Future<void> syncNow() async {
