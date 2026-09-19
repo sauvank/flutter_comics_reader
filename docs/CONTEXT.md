@@ -67,8 +67,9 @@ synchronisation automatique ; leur date de modification est transmise avec la
 progression. Les modifications rapprochées sont regroupées pendant cinq
 secondes avant l’envoi.
 
-Depuis la bibliothèque, le bouton de scan ouvre le sélecteur de documents du
-système. Les fichiers CBZ/CBR/ZIP, PDF et EPUB choisis sont copiés dans le
+L’onglet **Fichiers**, placé au même niveau que l’onglet Serveur, ouvre le
+sélecteur de documents du système. Il ne présente que les formats lisibles :
+CBZ/CBR/ZIP, PDF et EPUB. Les fichiers choisis sont copiés dans le
 stockage de ComicStream, indexés avec leur couverture quand elle est disponible
 et peuvent être lus hors ligne sans provenance serveur. Android ne reçoit aucun
 accès global au stockage : seuls les documents explicitement sélectionnés sont

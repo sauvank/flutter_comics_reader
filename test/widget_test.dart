@@ -14,5 +14,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ma Bibliothèque'), findsOneWidget);
+
+    await tester.tap(find.text('Fichiers'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fichiers de l’appareil'), findsOneWidget);
+    expect(find.text('Scanner les fichiers'), findsOneWidget);
   });
 }

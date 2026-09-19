@@ -5,6 +5,7 @@ import '../providers/download_provider.dart';
 import '../providers/server_provider.dart';
 import '../services/update_service.dart';
 import 'downloads_screen.dart';
+import 'device_files_screen.dart';
 import 'library_screen.dart';
 import 'server_screen.dart';
 import 'settings_screen.dart';
@@ -50,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final List<Widget> screens = [
       LibraryScreen(onNavigateTab: _onTabSelected),
       ServerScreen(onNavigateTab: _onTabSelected),
+      const DeviceFilesScreen(),
       const DownloadsScreen(),
       const SettingsScreen(),
     ];
@@ -114,6 +116,11 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.dns_outlined),
               selectedIcon: Icon(Icons.dns),
               label: 'Serveur',
+            ),
+            const NavigationDestination(
+              icon: Icon(Icons.folder_open_outlined),
+              selectedIcon: Icon(Icons.folder_open),
+              label: 'Fichiers',
             ),
             NavigationDestination(
               icon: Badge(

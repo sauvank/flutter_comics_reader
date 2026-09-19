@@ -73,7 +73,9 @@ class _ServerScreenState extends State<ServerScreen> {
           content: Row(
             children: [
               Icon(
-                success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+                success
+                    ? Icons.check_circle_rounded
+                    : Icons.error_outline_rounded,
                 color: Colors.white,
                 size: 20,
               ),
@@ -99,7 +101,8 @@ class _ServerScreenState extends State<ServerScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Supprimer ce serveur ?'),
-        content: Text('Voulez-vous vraiment supprimer "${server.name}" de vos sources distantes ?'),
+        content: Text(
+            'Voulez-vous vraiment supprimer "${server.name}" de vos sources distantes ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -146,15 +149,23 @@ class _ServerScreenState extends State<ServerScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(ctx).colorScheme.surfaceContainerHighest.withAlpha(80),
+                  color: Theme.of(ctx)
+                      .colorScheme
+                      .surfaceContainerHighest
+                      .withAlpha(80),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(ctx).colorScheme.outlineVariant.withAlpha(50)),
+                  border: Border.all(
+                      color: Theme.of(ctx)
+                          .colorScheme
+                          .outlineVariant
+                          .withAlpha(50)),
                 ),
                 constraints: const BoxConstraints(maxHeight: 180),
                 child: SingleChildScrollView(
                   child: SelectableText(
                     jsonStr,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
+                    style:
+                        const TextStyle(fontFamily: 'monospace', fontSize: 11),
                   ),
                 ),
               ),
@@ -174,7 +185,8 @@ class _ServerScreenState extends State<ServerScreen> {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('✅ Configuration copiée dans le presse-papiers !'),
+                  content:
+                      Text('✅ Configuration copiée dans le presse-papiers !'),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -223,7 +235,9 @@ class _ServerScreenState extends State<ServerScreen> {
                     } catch (e) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Erreur lors de la lecture du fichier : $e')),
+                          SnackBar(
+                              content: Text(
+                                  'Erreur lors de la lecture du fichier : $e')),
                         );
                       }
                     }
@@ -231,7 +245,8 @@ class _ServerScreenState extends State<ServerScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              const Text('Ou collez le JSON ici :', style: TextStyle(fontSize: 12)),
+              const Text('Ou collez le JSON ici :',
+                  style: TextStyle(fontSize: 12)),
               const SizedBox(height: 6),
               TextField(
                 controller: textController,
@@ -239,7 +254,8 @@ class _ServerScreenState extends State<ServerScreen> {
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
                 decoration: InputDecoration(
                   hintText: '{\n  "servers": [...]\n}',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
                   contentPadding: const EdgeInsets.all(10),
                 ),
               ),
@@ -281,7 +297,8 @@ class _ServerScreenState extends State<ServerScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Emplacement de base défini sur : ${serverProvider.currentPath}'),
+          content: Text(
+              '✅ Emplacement de base défini sur : ${serverProvider.currentPath}'),
           backgroundColor: Colors.green,
         ),
       );
@@ -297,10 +314,12 @@ class _ServerScreenState extends State<ServerScreen> {
       return _buildServersList(context, serverProvider, theme);
     }
 
-    return _buildServerBrowser(context, serverProvider, serverProvider.activeServer!, theme);
+    return _buildServerBrowser(
+        context, serverProvider, serverProvider.activeServer!, theme);
   }
 
-  Widget _buildServersList(BuildContext context, ServerProvider serverProvider, ThemeData theme) {
+  Widget _buildServersList(
+      BuildContext context, ServerProvider serverProvider, ThemeData theme) {
     final servers = serverProvider.servers;
 
     return Scaffold(
@@ -313,7 +332,8 @@ class _ServerScreenState extends State<ServerScreen> {
                 color: theme.colorScheme.primary.withAlpha(40),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(Icons.dns_rounded, color: theme.colorScheme.primary, size: 20),
+              child: Icon(Icons.dns_rounded,
+                  color: theme.colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 10),
             const Text('Mes Serveurs'),
@@ -391,7 +411,8 @@ class _ServerScreenState extends State<ServerScreen> {
     );
   }
 
-  Widget _buildServerCard(BuildContext context, ServerProfile server, ServerProvider serverProvider, ThemeData theme) {
+  Widget _buildServerCard(BuildContext context, ServerProfile server,
+      ServerProvider serverProvider, ThemeData theme) {
     Color typeColor = const Color(0xFF8B5CF6);
     IconData typeIcon = Icons.cloud_queue_rounded;
     if (server.serverType == ServerType.webdav) {
@@ -410,7 +431,8 @@ class _ServerScreenState extends State<ServerScreen> {
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(50)),
+        border:
+            Border.all(color: theme.colorScheme.outlineVariant.withAlpha(50)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(20),
@@ -434,7 +456,8 @@ class _ServerScreenState extends State<ServerScreen> {
                   decoration: BoxDecoration(
                     color: typeColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: typeColor.withAlpha(80), width: 1.2),
+                    border:
+                        Border.all(color: typeColor.withAlpha(80), width: 1.2),
                   ),
                   child: Icon(typeIcon, color: typeColor, size: 24),
                 ),
@@ -451,13 +474,15 @@ class _ServerScreenState extends State<ServerScreen> {
                           Flexible(
                             child: Text(
                               server.name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: typeColor.withAlpha(25),
                               borderRadius: BorderRadius.circular(6),
@@ -527,16 +552,19 @@ class _ServerScreenState extends State<ServerScreen> {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
+                          Icon(Icons.delete_outline_rounded,
+                              size: 18, color: Colors.redAccent),
                           SizedBox(width: 8),
-                          Text('Supprimer', style: TextStyle(color: Colors.redAccent)),
+                          Text('Supprimer',
+                              style: TextStyle(color: Colors.redAccent)),
                         ],
                       ),
                     ),
                   ],
                 ),
 
-                const Icon(Icons.chevron_right_rounded, size: 24, color: Colors.grey),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 24, color: Colors.grey),
               ],
             ),
           ),
@@ -545,7 +573,11 @@ class _ServerScreenState extends State<ServerScreen> {
     );
   }
 
-  Widget _buildServerBrowser(BuildContext context, ServerProvider serverProvider, ServerProfile activeServer, ThemeData theme) {
+  Widget _buildServerBrowser(
+      BuildContext context,
+      ServerProvider serverProvider,
+      ServerProfile activeServer,
+      ThemeData theme) {
     final remoteFiles = serverProvider.remoteFiles;
     final breadcrumbs = serverProvider.breadcrumbs;
     final libraryProvider = context.watch<LibraryProvider>();
@@ -554,13 +586,22 @@ class _ServerScreenState extends State<ServerScreen> {
     final q = _searchQuery.trim().toLowerCase();
     final folders = q.isEmpty
         ? remoteFiles.where((f) => f.isDirectory).toList()
-        : remoteFiles.where((f) => f.isDirectory && f.name.toLowerCase().contains(q)).toList();
+        : remoteFiles
+            .where((f) => f.isDirectory && f.name.toLowerCase().contains(q))
+            .toList();
     final books = q.isEmpty
         ? remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook).toList()
-        : remoteFiles.where((f) => !f.isDirectory && f.isSupportedBook && f.name.toLowerCase().contains(q)).toList();
+        : remoteFiles
+            .where((f) =>
+                !f.isDirectory &&
+                f.isSupportedBook &&
+                f.name.toLowerCase().contains(q))
+            .toList();
 
     final undownloadedBooks = books
-        .where((f) => libraryProvider.getBookByServerPath(activeServer.id, f.path) == null)
+        .where((f) =>
+            libraryProvider.getBookByServerPath(activeServer.id, f.path) ==
+            null)
         .toList();
 
     return Scaffold(
@@ -584,7 +625,8 @@ class _ServerScreenState extends State<ServerScreen> {
                 decoration: InputDecoration(
                   hintText: 'Filtrer ce dossier...',
                   border: InputBorder.none,
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  hintStyle:
+                      TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
                 onChanged: (val) {
                   setState(() {
@@ -597,12 +639,15 @@ class _ServerScreenState extends State<ServerScreen> {
                 children: [
                   Text(
                     activeServer.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '${activeServer.serverType.name.toUpperCase()} • ${activeServer.host}',
-                    style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ],
               ),
@@ -670,7 +715,8 @@ class _ServerScreenState extends State<ServerScreen> {
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest.withAlpha(60),
               border: Border(
-                bottom: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(20)),
+                bottom: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withAlpha(20)),
               ),
             ),
             child: Row(
@@ -679,7 +725,8 @@ class _ServerScreenState extends State<ServerScreen> {
                   IconButton(
                     icon: const Icon(Icons.arrow_upward_rounded, size: 18),
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    constraints:
+                        const BoxConstraints(minWidth: 32, minHeight: 32),
                     onPressed: () => serverProvider.navigateUp(),
                     tooltip: 'Dossier parent',
                   ),
@@ -687,12 +734,16 @@ class _ServerScreenState extends State<ServerScreen> {
                   onTap: () => serverProvider.navigateToRoot(),
                   borderRadius: BorderRadius.circular(6),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                     child: Row(
                       children: [
-                        Icon(Icons.home_rounded, size: 16, color: theme.colorScheme.primary),
+                        Icon(Icons.home_rounded,
+                            size: 16, color: theme.colorScheme.primary),
                         const SizedBox(width: 4),
-                        const Text('Racine', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Text('Racine',
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -703,12 +754,15 @@ class _ServerScreenState extends State<ServerScreen> {
                     child: Row(
                       children: [
                         for (int i = 0; i < breadcrumbs.length; i++) ...[
-                          Icon(Icons.chevron_right_rounded, size: 16, color: theme.colorScheme.outline),
+                          Icon(Icons.chevron_right_rounded,
+                              size: 16, color: theme.colorScheme.outline),
                           InkWell(
-                            onTap: () => serverProvider.navigateToBreadcrumbIndex(i),
+                            onTap: () =>
+                                serverProvider.navigateToBreadcrumbIndex(i),
                             borderRadius: BorderRadius.circular(6),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
                               child: Text(
                                 breadcrumbs[i],
                                 style: TextStyle(
@@ -731,33 +785,43 @@ class _ServerScreenState extends State<ServerScreen> {
                 if (undownloadedBooks.isNotEmpty)
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       visualDensity: VisualDensity.compact,
                     ),
-                    icon: const Icon(Icons.download_for_offline_outlined, size: 16),
-                    label: Text('Tout (${undownloadedBooks.length})', style: const TextStyle(fontSize: 11)),
+                    icon: const Icon(Icons.download_for_offline_outlined,
+                        size: 16),
+                    label: Text('Tout (${undownloadedBooks.length})',
+                        style: const TextStyle(fontSize: 11)),
                     onPressed: () async {
                       if (undownloadedBooks.length > 3) {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Tout télécharger ?'),
-                            content: Text('${undownloadedBooks.length} tomes vont être téléchargés en arrière-plan.'),
+                            content: Text(
+                                '${undownloadedBooks.length} tomes vont être téléchargés en arrière-plan.'),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-                              FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Télécharger')),
+                              TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Annuler')),
+                              FilledButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text('Télécharger')),
                             ],
                           ),
                         );
                         if (confirm != true) return;
                       }
                       for (final f in undownloadedBooks) {
-                        downloadProvider.enqueueDownload(server: activeServer, remoteFile: f);
+                        downloadProvider.enqueueDownload(
+                            server: activeServer, remoteFile: f);
                       }
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('📥 ${undownloadedBooks.length} tome(s) ajouté(s) à la file de téléchargement'),
+                            content: Text(
+                                '📥 ${undownloadedBooks.length} tome(s) ajouté(s) à la file de téléchargement'),
                           ),
                         );
                       }
@@ -772,7 +836,8 @@ class _ServerScreenState extends State<ServerScreen> {
             child: serverProvider.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : serverProvider.errorMessage != null
-                    ? _buildErrorState(serverProvider.errorMessage!, activeServer, theme)
+                    ? _buildErrorState(
+                        serverProvider.errorMessage!, activeServer, theme)
                     : (folders.isEmpty && books.isEmpty)
                         ? _buildEmptyDirectoryState(theme)
                         : RefreshIndicator(
@@ -783,23 +848,30 @@ class _ServerScreenState extends State<ServerScreen> {
                                 if (folders.isNotEmpty) ...[
                                   SliverToBoxAdapter(
                                     child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 14, 16, 8),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.folder_copy_outlined, size: 18, color: theme.colorScheme.primary),
+                                          Icon(Icons.folder_copy_outlined,
+                                              size: 18,
+                                              color: theme.colorScheme.primary),
                                           const SizedBox(width: 6),
                                           Text(
                                             'Dossiers & Séries (${folders.length})',
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
                                   SliverPadding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     sliver: SliverGrid(
-                                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithMaxCrossAxisExtent(
                                         maxCrossAxisExtent: 380,
                                         mainAxisExtent: 68,
                                         crossAxisSpacing: 10,
@@ -808,12 +880,19 @@ class _ServerScreenState extends State<ServerScreen> {
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) {
                                           final folder = folders[index];
-                                          final isFav = libraryProvider.isRemoteFavorite(activeServer.id, folder.path);
+                                          final isFav =
+                                              libraryProvider.isRemoteFavorite(
+                                                  activeServer.id, folder.path);
                                           return FolderCard(
                                             name: folder.name,
                                             isFavorite: isFav,
-                                            onToggleFavorite: () => libraryProvider.toggleRemoteFavorite(activeServer.id, folder.path),
-                                            onTap: () => serverProvider.navigateTo(folder.path),
+                                            onToggleFavorite: () =>
+                                                libraryProvider
+                                                    .toggleRemoteFavorite(
+                                                        activeServer.id,
+                                                        folder.path),
+                                            onTap: () => serverProvider
+                                                .navigateTo(folder.path),
                                           );
                                         },
                                         childCount: folders.length,
@@ -826,23 +905,30 @@ class _ServerScreenState extends State<ServerScreen> {
                                 if (books.isNotEmpty) ...[
                                   SliverToBoxAdapter(
                                     child: Padding(
-                                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 8),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 18, 16, 8),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.menu_book_rounded, size: 18, color: theme.colorScheme.primary),
+                                          Icon(Icons.menu_book_rounded,
+                                              size: 18,
+                                              color: theme.colorScheme.primary),
                                           const SizedBox(width: 6),
                                           Text(
                                             'Livres & BD (${books.length})',
-                                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
                                   SliverPadding(
-                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                                    padding: const EdgeInsets.fromLTRB(
+                                        16, 0, 16, 24),
                                     sliver: SliverGrid(
-                                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      gridDelegate:
+                                          const SliverGridDelegateWithMaxCrossAxisExtent(
                                         maxCrossAxisExtent: 200,
                                         childAspectRatio: 0.65,
                                         crossAxisSpacing: 14,
@@ -851,9 +937,13 @@ class _ServerScreenState extends State<ServerScreen> {
                                       delegate: SliverChildBuilderDelegate(
                                         (context, index) {
                                           final file = books[index];
-                                          final isDownloaded =
-                                              libraryProvider.getBookByServerPath(activeServer.id, file.path) != null;
-                                          final task = downloadProvider.getTaskForRemotePath(file.path);
+                                          final isDownloaded = libraryProvider
+                                                  .getBookByServerPath(
+                                                      activeServer.id,
+                                                      file.path) !=
+                                              null;
+                                          final task = downloadProvider
+                                              .getTaskForRemotePath(file.path);
 
                                           return RemoteBookCard(
                                             server: activeServer,
@@ -872,30 +962,47 @@ class _ServerScreenState extends State<ServerScreen> {
                                                 server: activeServer,
                                                 remoteFile: file,
                                               );
-                                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                              ScaffoldMessenger.of(context)
+                                                  .hideCurrentSnackBar();
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
                                                 SnackBar(
-                                                  behavior: SnackBarBehavior.floating,
-                                                  duration: const Duration(seconds: 4),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  duration: const Duration(
+                                                      seconds: 4),
                                                   content: Row(
                                                     children: [
-                                                      const Icon(Icons.downloading_rounded, color: Colors.amber, size: 20),
+                                                      const Icon(
+                                                          Icons
+                                                              .downloading_rounded,
+                                                          color: Colors.amber,
+                                                          size: 20),
                                                       const SizedBox(width: 10),
                                                       Expanded(
                                                         child: Text(
                                                           'Téléchargement : ${file.name}',
                                                           maxLines: 1,
-                                                          overflow: TextOverflow.ellipsis,
-                                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600),
                                                         ),
                                                       ),
                                                     ],
                                                   ),
-                                                  action: widget.onNavigateTab != null
+                                                  action: widget
+                                                              .onNavigateTab !=
+                                                          null
                                                       ? SnackBarAction(
                                                           label: 'Voir',
-                                                          textColor: theme.colorScheme.primary,
-                                                          onPressed: () => widget.onNavigateTab!(2),
+                                                          textColor: theme
+                                                              .colorScheme
+                                                              .primary,
+                                                          onPressed: () => widget
+                                                              .onNavigateTab!(3),
                                                         )
                                                       : null,
                                                 ),
@@ -924,14 +1031,17 @@ class _ServerScreenState extends State<ServerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.dns_outlined, size: 64, color: theme.colorScheme.primary.withAlpha(150)),
+            Icon(Icons.dns_outlined,
+                size: 64, color: theme.colorScheme.primary.withAlpha(150)),
             const SizedBox(height: 16),
-            const Text('Aucun serveur configuré', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const Text('Aucun serveur configuré',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
               'Ajoutez votre serveur WebDAV, HTTP ou FTP pour explorer et lire vos BDs.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
@@ -952,14 +1062,17 @@ class _ServerScreenState extends State<ServerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.folder_open_outlined, size: 56, color: Colors.grey.shade600),
+            Icon(Icons.folder_open_outlined,
+                size: 56, color: Colors.grey.shade600),
             const SizedBox(height: 16),
-            const Text('Ce dossier est vide', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+            const Text('Ce dossier est vide',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
               'Aucun livre ou sous-dossier trouvé dans cet emplacement.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
           ],
         ),
@@ -974,7 +1087,8 @@ class _ServerScreenState extends State<ServerScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.wifi_off_rounded, size: 56, color: Colors.redAccent),
+            const Icon(Icons.wifi_off_rounded,
+                size: 56, color: Colors.redAccent),
             const SizedBox(height: 16),
             const Text('Connexion impossible au serveur',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -982,7 +1096,8 @@ class _ServerScreenState extends State<ServerScreen> {
             Text(
               'Vérifiez que le serveur est accessible sur ${server.baseUrl}.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+              style: TextStyle(
+                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
             ),
             const SizedBox(height: 16),
             Row(
@@ -995,7 +1110,8 @@ class _ServerScreenState extends State<ServerScreen> {
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
-                  onPressed: () => context.read<ServerProvider>().fetchRemoteFiles(),
+                  onPressed: () =>
+                      context.read<ServerProvider>().fetchRemoteFiles(),
                   icon: const Icon(Icons.refresh, size: 16),
                   label: const Text('Réessayer'),
                 ),
