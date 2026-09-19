@@ -23,7 +23,8 @@ dépôt.
 Lorsqu’une même donnée a été modifiée localement et sur Google depuis la
 dernière synchronisation, l’écran Compte demande explicitement quelle version
 conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
-écrasement n’est effectué sans ce choix.
+écrasement n’est effectué sans ce choix. La version sélectionnée devient la
+référence partagée afin que les autres appareils puissent l’appliquer.
 
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la

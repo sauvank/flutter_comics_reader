@@ -200,8 +200,9 @@ class SyncService {
     return conflicts;
   }
 
-  /// Applies an explicit user choice for a detected conflict. No automatic
-  /// overwrite is performed: the selected version becomes the new sync base.
+  /// Applies an explicit user choice for a detected conflict. The selected
+  /// version is marked as the new shared base so another device can apply it
+  /// without raising the same conflict again.
   Future<void> resolveConflict(
     SyncConflict conflict,
     SyncConflictResolution resolution,
@@ -224,25 +225,26 @@ class SyncService {
             .doc(conflict.documentId.substring('progress:'.length))
         : root.doc(conflict.documentId);
 
+    final resolvedAt = DateTime.now().toUtc();
+    Map<String, dynamic> chosen;
     if (resolution == SyncConflictResolution.keepLocal) {
-      final local = await _payloadForDocument(conflict.documentId);
-      final localUpdated = DateTime.parse(local['updatedAt'] as String);
-      await _write(reference, key, local);
-      await _database.setLastSyncedAt(conflict.documentId, localUpdated);
-      return;
+      chosen = await _payloadForDocument(conflict.documentId);
+    } else {
+      final snapshot = await reference.get();
+      if (!snapshot.exists) {
+        throw StateError('Les données Google à résoudre sont introuvables.');
+      }
+      chosen = await _crypto.decryptJson(
+        key: key,
+        envelope:
+            Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map),
+      );
     }
 
-    final snapshot = await reference.get();
-    if (!snapshot.exists) {
-      throw StateError('Les données Google à résoudre sont introuvables.');
-    }
-    final remote = await _crypto.decryptJson(
-      key: key,
-      envelope: Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map),
-    );
-    final remoteUpdated = DateTime.parse(remote['updatedAt'] as String);
-    await _applyRemote(conflict.documentId, remote);
-    await _database.setLastSyncedAt(conflict.documentId, remoteUpdated);
+    chosen = _withUpdatedAt(chosen, resolvedAt);
+    await _write(reference, key, chosen, resolvedAt: resolvedAt);
+    await _applyRemote(conflict.documentId, chosen);
+    await _database.setLastSyncedAt(conflict.documentId, resolvedAt);
   }
 
   Future<Map<String, dynamic>> _payloadForDocument(String documentId) async {
@@ -280,6 +282,17 @@ class SyncService {
             Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map));
     final remoteUpdated = DateTime.parse(remote['updatedAt'] as String);
     final lastSynced = await _database.getLastSyncedAt(localId);
+    final resolutionValue = snapshot.data()!['resolvedAt'];
+    final resolvedAt =
+        resolutionValue is Timestamp ? resolutionValue.toDate() : null;
+    final hasNewResolvedVersion = resolvedAt != null &&
+        (lastSynced == null || resolvedAt.isAfter(lastSynced)) &&
+        !localUpdated.isAfter(resolvedAt);
+    if (hasNewResolvedVersion) {
+      await _applyRemote(localId, remote);
+      await _database.setLastSyncedAt(localId, remoteUpdated);
+      return;
+    }
     final localChanged = lastSynced == null || localUpdated.isAfter(lastSynced);
     final remoteChanged =
         lastSynced == null || remoteUpdated.isAfter(lastSynced);
@@ -300,13 +313,30 @@ class SyncService {
     }
   }
 
-  Future<void> _write(DocumentReference<Map<String, dynamic>> reference,
-      SecretKey key, Map<String, dynamic> payload) async {
-    await reference.set({
+  Map<String, dynamic> _withUpdatedAt(
+    Map<String, dynamic> payload,
+    DateTime timestamp,
+  ) =>
+      {
+        ...payload,
+        'updatedAt': timestamp.toUtc().toIso8601String(),
+      };
+
+  Future<void> _write(
+    DocumentReference<Map<String, dynamic>> reference,
+    SecretKey key,
+    Map<String, dynamic> payload, {
+    DateTime? resolvedAt,
+  }) async {
+    final value = <String, dynamic>{
       'v': 1,
       'envelope': await _crypto.encryptJson(key: key, value: payload),
       'updatedAt': FieldValue.serverTimestamp(),
-    });
+    };
+    if (resolvedAt != null) {
+      value['resolvedAt'] = Timestamp.fromDate(resolvedAt);
+    }
+    await reference.set(value);
   }
 
   Future<Map<String, dynamic>> _serversPayload() async => {
