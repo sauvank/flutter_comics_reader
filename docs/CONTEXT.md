@@ -32,6 +32,9 @@ conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
 indique aussi les valeurs locales et distantes qui seront remplacées (page,
 favori et nombre de marque-pages pour un livre). La version sélectionnée devient la
 référence partagée afin que les autres appareils puissent l’appliquer.
+Un conflit détecté pendant une synchronisation automatique est signalé dans
+l’écran Compte avec un bouton permettant de le résoudre ; il ne reste plus
+silencieusement bloqué.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la
 liste en mémoire : ils sont visibles immédiatement dans l’onglet Serveur, sans
 redémarrage de l’application.

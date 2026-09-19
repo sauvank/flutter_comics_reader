@@ -44,5 +44,10 @@ class SyncProvider extends ChangeNotifier {
   }
 
   @override
-  void dispose() { _authSub?.cancel(); _changesSub?.cancel(); _debounce?.cancel(); super.dispose(); }
+  void dispose() {
+    _authSub?.cancel();
+    _changesSub?.cancel();
+    _debounce?.cancel();
+    super.dispose();
+  }
 }

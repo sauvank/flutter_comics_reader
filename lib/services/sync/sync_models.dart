@@ -18,6 +18,7 @@ class SyncConflict {
   final String label;
   final DateTime localUpdatedAt;
   final DateTime remoteUpdatedAt;
+
   /// Human-readable, non-sensitive details shown before replacing a version.
   final String localSummary;
   final String remoteSummary;

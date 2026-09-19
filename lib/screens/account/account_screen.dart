@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../providers/library_provider.dart';
 import '../../providers/server_provider.dart';
+import '../../providers/sync_provider.dart';
 import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
 import '../../services/sync/sync_models.dart';
@@ -416,6 +417,22 @@ class _AccountScreenState extends State<AccountScreen> {
     }
   }
 
+  Future<void> _resolveAutomaticConflicts(SyncProvider syncProvider) async {
+    final serverProvider = context.read<ServerProvider>();
+    final libraryProvider = context.read<LibraryProvider>();
+    setState(() => _syncing = true);
+    try {
+      await _resolveConflicts(syncProvider.conflicts);
+      if (!mounted) return;
+      await syncProvider.syncNow();
+      if (!mounted) return;
+      await serverProvider.loadServers();
+      await libraryProvider.loadLibrary();
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!FirebaseBootstrap.isAvailable) {
@@ -431,6 +448,7 @@ class _AccountScreenState extends State<AccountScreen> {
     return StreamBuilder(
       stream: _sync.authChanges,
       builder: (context, _) {
+        final automaticSync = context.watch<SyncProvider>();
         final user = _sync.user;
         if (user != null && _hasLocalVault == null && !_loadingVault) {
           WidgetsBinding.instance.addPostFrameCallback((_) => _checkVault());
@@ -603,6 +621,27 @@ class _AccountScreenState extends State<AccountScreen> {
                   ),
                   const SizedBox(height: 16),
                 ] else ...[
+                  if (automaticSync.status == SyncStatus.conflict) ...[
+                    Card(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      child: ListTile(
+                        leading: Icon(Icons.warning_amber_rounded,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer),
+                        title: const Text('Conflit de synchronisation'),
+                        subtitle: Text(
+                          '${automaticSync.conflicts.length} modification${automaticSync.conflicts.length > 1 ? 's' : ''} attend${automaticSync.conflicts.length > 1 ? 'ent' : ''} votre choix.',
+                        ),
+                        trailing: FilledButton(
+                          onPressed: _syncing
+                              ? null
+                              : () => _resolveAutomaticConflicts(automaticSync),
+                          child: const Text('Voir'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
                   Card(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
