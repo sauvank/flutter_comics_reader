@@ -65,6 +65,10 @@ l’application avant d’en extraire les métadonnées et la couverture. Cette 
 évite de dépendre d’une permission de stockage large ou d’un fichier temporaire
 fourni par Android.
 
+`DatabaseService` marque les tomes tout juste téléchargés. Si `SyncService`
+leur applique ensuite une progression distante, il émet un évènement local que
+`LibraryProvider` transforme en unique action de reprise dans la bibliothèque.
+
 ---
 
 ## 🔄 2. Pipeline de Téléchargement & Conversion PDF ➔ CBZ

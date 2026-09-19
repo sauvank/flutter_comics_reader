@@ -17,6 +17,8 @@ sauvegarde chiffrée d’un appareil et la définir comme référence partagée.
 Les fichiers CBZ/CBR/ZIP, PDF et EPUB déjà présents sur l’appareil peuvent être
 sélectionnés depuis la bibliothèque, importés localement et lus hors ligne sans
 serveur configuré.
+Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
+ComicStream propose de reprendre directement à la dernière page lue.
 
 ---
 

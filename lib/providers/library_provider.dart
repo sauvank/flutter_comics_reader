@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -30,6 +31,7 @@ enum LibrarySort {
 
 class LibraryProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
+  late final StreamSubscription<BookItem> _resumeRestoredSubscription;
 
   List<BookItem> _books = [];
   Set<String> _favoriteRemoteKeys = {};
@@ -38,6 +40,16 @@ class LibraryProvider extends ChangeNotifier {
   LibraryFilter _filter = LibraryFilter.all;
   LibrarySort _sort = LibrarySort.lastRead;
   int _totalStorageBytes = 0;
+  BookItem? _resumeSuggestion;
+
+  LibraryProvider() {
+    _resumeRestoredSubscription = _db.resumeRestored.listen((book) async {
+      await loadLibrary();
+      _resumeSuggestion =
+          _books.where((candidate) => candidate.id == book.id).firstOrNull;
+      notifyListeners();
+    });
+  }
 
   List<BookItem> get books => _books;
   Set<String> get favoriteRemoteKeys => _favoriteRemoteKeys;
@@ -46,6 +58,12 @@ class LibraryProvider extends ChangeNotifier {
   LibraryFilter get filter => _filter;
   LibrarySort get sort => _sort;
   int get totalStorageBytes => _totalStorageBytes;
+
+  BookItem? takeResumeSuggestion() {
+    final suggestion = _resumeSuggestion;
+    _resumeSuggestion = null;
+    return suggestion;
+  }
 
   List<BookItem> get filteredBooks {
     var list = List<BookItem>.from(_books);
@@ -329,5 +347,11 @@ class LibraryProvider extends ChangeNotifier {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  void dispose() {
+    _resumeRestoredSubscription.cancel();
+    super.dispose();
   }
 }

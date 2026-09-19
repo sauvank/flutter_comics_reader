@@ -152,6 +152,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  void _queueResumePrompt(LibraryProvider library) {
+    final book = library.takeResumeSuggestion();
+    if (book == null || book.currentPage <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '« ${book.title} » était déjà commencé. Reprendre à la page ${book.currentPage + 1} ?',
+          ),
+          duration: const Duration(seconds: 8),
+          action: SnackBarAction(
+            label: 'Reprendre',
+            onPressed: () => _openReader(book),
+          ),
+        ),
+      );
+    });
+  }
+
   Future<void> _scanDeviceFiles() async {
     final selection = await FilePicker.pickFiles(
       type: FileType.custom,
@@ -207,6 +229,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Widget _buildMainLibraryView(
       BuildContext context, LibraryProvider library, ThemeData theme) {
+    _queueResumePrompt(library);
     final books = library.filteredBooks;
     final allSeries = SeriesItem.groupFromBooks(books);
     final sync = context.watch<SyncProvider>();

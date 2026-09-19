@@ -22,6 +22,9 @@ class DatabaseService {
       SecureServerCredentialsService();
   final _syncChanges = StreamController<String>.broadcast();
   Stream<String> get syncChanges => _syncChanges.stream;
+  final _resumeRestored = StreamController<BookItem>.broadcast();
+  Stream<BookItem> get resumeRestored => _resumeRestored.stream;
+  final Set<String> _awaitingRestoredProgress = {};
 
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -86,6 +89,17 @@ class DatabaseService {
 
   Future<void> updateBook(BookItem book, {bool notifySync = true}) async {
     await addBook(book, notifySync: notifySync);
+  }
+
+  /// Marks a freshly downloaded book as eligible for one resume prompt when
+  /// its prior progress is restored by synchronization.
+  void awaitRestoredProgress(String bookId) =>
+      _awaitingRestoredProgress.add(bookId);
+
+  void notifyRestoredProgress(BookItem book) {
+    if (_awaitingRestoredProgress.remove(book.id)) {
+      _resumeRestored.add(book);
+    }
   }
 
   Future<void> updateBookProgress({

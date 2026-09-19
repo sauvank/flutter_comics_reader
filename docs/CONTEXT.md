@@ -74,6 +74,12 @@ et peuvent être lus hors ligne sans provenance serveur. Android ne reçoit aucu
 accès global au stockage : seuls les documents explicitement sélectionnés sont
 importés.
 
+Après le téléchargement d’un livre, si la synchronisation restaure une
+progression non nulle pour ce même fichier, la bibliothèque affiche une unique
+proposition « Reprendre à la page … ». Son action ouvre le lecteur directement
+à cette page ; aucune notification n’est affichée pour les autres restaurations
+de données.
+
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
 navigation basse sont également maintenus sur une ligne.

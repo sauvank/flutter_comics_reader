@@ -394,6 +394,7 @@ class DownloadProvider extends ChangeNotifier {
       );
 
       await _db.addBook(newBook);
+      _db.awaitRestoredProgress(newBook.id);
       _libraryProvider?.addOrUpdateBook(newBook);
 
       _updateTaskStatus(

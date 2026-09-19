@@ -654,18 +654,17 @@ class SyncService {
         return book.serverId == server && book.serverRelativePath == path;
       });
       for (final originalBook in candidates) {
-        await _database.updateBook(
-            originalBook.copyWith(
-              currentPage: currentPage,
-              totalPages: totalPages,
-              progress: progress,
-              isCompleted: remote['isCompleted'] as bool,
-              bookmarks: List<int>.from(remote['bookmarks'] as List),
-              isFavorite: remote['isFavorite'] as bool,
-              lastReadDate:
-                  DateTime.parse(remote['updatedAt'] as String).toLocal(),
-            ),
-            notifySync: false);
+        final restored = originalBook.copyWith(
+          currentPage: currentPage,
+          totalPages: totalPages,
+          progress: progress,
+          isCompleted: remote['isCompleted'] as bool,
+          bookmarks: List<int>.from(remote['bookmarks'] as List),
+          isFavorite: remote['isFavorite'] as bool,
+          lastReadDate: DateTime.parse(remote['updatedAt'] as String).toLocal(),
+        );
+        await _database.updateBook(restored, notifySync: false);
+        if (currentPage > 0) _database.notifyRestoredProgress(restored);
       }
     }
   }
