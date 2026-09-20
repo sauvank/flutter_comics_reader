@@ -6,6 +6,10 @@
 
 Ce document décrit l'architecture logicielle, les flux de données et les pipelines de traitement de l'application **ComicStream**.
 
+`AppTextScale`, appliqué par le `builder` de `MaterialApp`, borne le facteur de
+texte système à 115 % afin de préserver la mise en page des contrôles sur les
+téléphones étroits.
+
 ---
 
 ## 🧩 1. Architecture Globale des Modules

@@ -86,6 +86,8 @@ de données.
 L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
 passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
 navigation basse sont également maintenus sur une ligne.
+Pour préserver les boutons et sélecteurs horizontaux sur les téléphones étroits,
+l’interface plafonne le facteur de texte Android à 115 %.
 
 > [!CAUTION]
 > **RÈGLE ABSOLUE DE SÉCURITÉ & ANONYMAT : ZÉRO DONNÉE PRIVÉE DANS LE DÉPÔT**

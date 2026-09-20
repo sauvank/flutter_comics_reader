@@ -21,6 +21,9 @@ sélectionnés depuis l’onglet **Fichiers**, importés localement et lus hors 
 sans serveur configuré.
 Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
 ComicStream propose de reprendre directement à la dernière page lue.
+L’interface limite la taille de texte système à 115 % afin que les boutons et
+contrôles restent utilisables sur les téléphones étroits avec une police Android
+agrandie.
 
 ---
 

@@ -9,6 +9,7 @@ import 'screens/home_screen.dart';
 import 'services/database_service.dart';
 import 'services/reader_settings_service.dart';
 import 'services/sync/firebase_bootstrap.dart';
+import 'utils/text_scale.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,17 @@ class ComicStreamApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: themeProvider.currentTheme,
             home: const HomeScreen(),
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: AppTextScale.forInterface(
+                    mediaQuery.textScaler,
+                  ),
+                ),
+                child: child!,
+              );
+            },
           );
         },
       ),

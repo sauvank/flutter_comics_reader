@@ -10,6 +10,10 @@
 Bienvenue sur la feuille de route du lecteur de BD / Manga **ComicStream**.  
 Ce document détaille les phases de développement pour enrichir l'expérience sur tablette et serveur local.
 
+La compatibilité de l’interface avec les téléphones étroits et une police
+système agrandie est assurée : les contrôles plafonnent l’échelle de texte à
+115 % pour éviter les débordements.
+
 ---
 
 ```mermaid
