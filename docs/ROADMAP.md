@@ -121,7 +121,7 @@ gantt
 - [x] Ajouter des règles Firestore limitées au compte propriétaire.
 - [x] Définir la détection des écritures concurrentes par fichier.
 - [x] Permettre de résoudre les conflits en choisissant la version locale ou
-  Google, avec les dates de modification.
+  du serveur de synchronisation, avec les dates de modification.
 - [x] Identifier les BD synchronisées par empreinte SHA-256, avec repli sur le
   serveur et le chemin pour les archives historiques.
 - [x] Ajouter les écrans d'inscription, connexion, saisie/confirmation de

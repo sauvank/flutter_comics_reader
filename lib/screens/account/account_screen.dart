@@ -384,14 +384,15 @@ class _AccountScreenState extends State<AccountScreen> {
                   'Cet appareil : ${_formatConflictDate(conflict.localUpdatedAt)}'),
               const SizedBox(height: 4),
               Text(
-                  'Données Google : ${_formatConflictDate(conflict.remoteUpdatedAt)}'),
+                  'Serveur de synchronisation : ${_formatConflictDate(conflict.remoteUpdatedAt)}'),
               const SizedBox(height: 12),
               Text('Cet appareil : ${conflict.localSummary}'),
               const SizedBox(height: 4),
-              Text('Google : ${conflict.remoteSummary}'),
+              Text('Serveur : ${conflict.remoteSummary}'),
               const SizedBox(height: 12),
               const Text(
-                  'En gardant Google, ces données remplaceront celles de cet appareil.'),
+                'Récupérer remplacera les données de cet appareil par celles du serveur. Envoyer remplacera celles du serveur par cet appareil.',
+              ),
             ],
           ),
           actions: [
@@ -402,12 +403,12 @@ class _AccountScreenState extends State<AccountScreen> {
             OutlinedButton(
               onPressed: () =>
                   Navigator.of(ctx).pop(SyncConflictResolution.keepRemote),
-              child: const Text('Garder Google'),
+              child: const Text('Récupérer'),
             ),
             FilledButton(
               onPressed: () =>
                   Navigator.of(ctx).pop(SyncConflictResolution.keepLocal),
-              child: const Text('Garder cet appareil'),
+              child: const Text('Envoyer'),
             ),
           ],
         ),

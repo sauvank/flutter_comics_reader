@@ -25,13 +25,14 @@ explique que la synchronisation sera disponible après la configuration. Il ne
 tente alors pas d’accéder aux services Firebase : le lecteur et les données
 locales restent utilisables.
 
-Lorsqu’une même donnée a été modifiée localement et sur Google depuis la
-dernière synchronisation, l’écran Compte demande explicitement quelle version
-conserver (cet appareil ou les données Google) et affiche les deux dates. Aucun
-écrasement n’est effectué sans ce choix. Avant de choisir Google, l’écran
-indique aussi les valeurs locales et distantes qui seront remplacées (page,
-favori et nombre de marque-pages pour un livre). La version sélectionnée devient la
-référence partagée afin que les autres appareils puissent l’appliquer.
+Lorsqu’une même donnée a été modifiée localement et sur le serveur de
+synchronisation depuis la dernière synchronisation, l’écran Compte demande
+explicitement s’il faut la récupérer depuis le serveur ou envoyer la version de
+cet appareil, et affiche les deux dates. Aucun écrasement n’est effectué sans ce
+choix. L’écran indique aussi les valeurs locales et distantes qui seront
+remplacées (page, favori et nombre de marque-pages pour un livre). La version
+sélectionnée devient la référence partagée afin que les autres appareils puissent
+l’appliquer.
 Un conflit détecté pendant une synchronisation automatique est signalé dans
 l’écran Compte avec un bouton permettant de le résoudre ; il ne reste plus
 silencieusement bloqué.
