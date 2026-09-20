@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
       LibraryScreen(onNavigateTab: _onTabSelected),
       ServerScreen(onNavigateTab: _onTabSelected),
       const DeviceFilesScreen(),
-      const DownloadsScreen(),
+      DownloadsScreen(onNavigateToServers: () => _onTabSelected(1)),
       const SettingsScreen(),
     ];
 
@@ -110,7 +110,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const NavigationDestination(
               icon: Icon(Icons.auto_stories_outlined),
               selectedIcon: Icon(Icons.auto_stories),
-              label: 'Bibliothèque',
+              // Five destinations share the same limited horizontal space on
+              // phones.  A compact label prevents the selected destination
+              // from wrapping at enlarged system text sizes.
+              label: 'Biblio',
             ),
             const NavigationDestination(
               icon: Icon(Icons.dns_outlined),
@@ -138,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
-              label: 'Paramètres',
+              label: 'Réglages',
             ),
           ],
         ),

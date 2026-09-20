@@ -1,10 +1,10 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../models/book_item.dart';
 import '../providers/library_provider.dart';
+import '../services/device_storage_access_service.dart';
 import 'cbz_reader_screen.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
@@ -17,23 +17,65 @@ class DeviceFilesScreen extends StatefulWidget {
   State<DeviceFilesScreen> createState() => _DeviceFilesScreenState();
 }
 
-class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
+class _DeviceFilesScreenState extends State<DeviceFilesScreen>
+    with WidgetsBindingObserver {
   bool _importing = false;
+  bool _waitingForStorageAccess = false;
 
-  Future<void> _chooseDirectoryAndScan() async {
-    final directoryPath = await FilePicker.getDirectoryPath();
-    if (directoryPath == null || !mounted) return;
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _waitingForStorageAccess) {
+      _waitingForStorageAccess = false;
+      _completeStorageAccessRequest();
+    }
+  }
+
+  Future<void> _scanDeviceStorage() async {
+    if (!await DeviceStorageAccessService.hasAllFilesAccess()) {
+      final shouldRequest = await _showStorageAccessExplanation();
+      if (!shouldRequest || !mounted) return;
+      _waitingForStorageAccess = true;
+      final requested =
+          await DeviceStorageAccessService.requestAllFilesAccess();
+      if (!requested && mounted) {
+        _waitingForStorageAccess = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'L’accès à tous les fichiers est nécessaire pour analyser le téléphone.'),
+          ),
+        );
+      } else if (await DeviceStorageAccessService.hasAllFilesAccess()) {
+        _waitingForStorageAccess = false;
+        await _scanDeviceStorage();
+      }
+      return;
+    }
+
+    final storagePath = await DeviceStorageAccessService.sharedStoragePath();
+    if (storagePath == null || !mounted) return;
 
     setState(() => _importing = true);
     try {
-      final paths = await context
-          .read<LibraryProvider>()
-          .scanLocalDirectory(directoryPath);
+      final paths =
+          await context.read<LibraryProvider>().scanLocalDirectory(storagePath);
       if (!mounted) return;
       if (paths.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Aucun livre compatible dans ce dossier.')),
+              content: Text('Aucun livre compatible trouvé sur le téléphone.')),
         );
         return;
       }
@@ -60,6 +102,44 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
     } finally {
       if (mounted) setState(() => _importing = false);
     }
+  }
+
+  Future<void> _completeStorageAccessRequest() async {
+    if (!mounted) return;
+    if (await DeviceStorageAccessService.hasAllFilesAccess()) {
+      await _scanDeviceStorage();
+      return;
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Autorisation non accordée : aucun fichier n’a été analysé.'),
+        ),
+      );
+    }
+  }
+
+  Future<bool> _showStorageAccessExplanation() async {
+    final granted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Analyser les livres du téléphone ?'),
+        content: const Text(
+          'ComicStream demandera l’accès aux fichiers uniquement pour repérer les BD, PDF et EPUB. Vous choisirez ensuite les fichiers à importer ; rien n’est copié sans confirmation.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Pas maintenant'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Continuer'),
+          ),
+        ],
+      ),
+    );
+    return granted ?? false;
   }
 
   Future<List<String>?> _chooseBooksToImport(List<String> paths) async {
@@ -176,12 +256,12 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Choisissez un dossier : ses sous-dossiers sont analysés automatiquement. Vous choisissez ensuite les livres à garder.',
+                  'Analysez tous les fichiers compatibles du téléphone, puis choisissez les livres à garder.',
                   style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
-                  onPressed: _importing ? null : _chooseDirectoryAndScan,
+                  onPressed: _importing ? null : _scanDeviceStorage,
                   icon: _importing
                       ? const SizedBox(
                           width: 18,
@@ -191,7 +271,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
                       : const Icon(Icons.manage_search_rounded),
                   label: Text(_importing
                       ? 'Analyse des fichiers…'
-                      : 'Choisir un dossier'),
+                      : 'Scanner le téléphone'),
                 ),
               ],
             ),
@@ -207,7 +287,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
             const ListTile(
               leading: Icon(Icons.folder_open_outlined),
               title: Text('Aucun fichier ajouté'),
-              subtitle: Text('Choisissez un dossier pour analyser ses livres.'),
+              subtitle: Text('Analysez le téléphone pour trouver vos livres.'),
             )
           else
             for (final book in localBooks)

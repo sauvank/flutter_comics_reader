@@ -69,14 +69,15 @@ synchronisation automatique ; leur date de modification est transmise avec la
 progression. Les modifications rapprochées sont regroupées pendant cinq
 secondes avant l’envoi.
 
-L’onglet **Fichiers**, placé au même niveau que l’onglet Serveur, ouvre le
-sélecteur de dossier du système. Il analyse ce dossier et ses sous-dossiers,
-ne présente que les formats lisibles (CBZ/CBR/ZIP, PDF et EPUB), puis permet de
-décocher les livres à ne pas conserver avant l’import. Les fichiers choisis sont copiés dans le
-stockage de ComicStream, indexés avec leur couverture quand elle est disponible
-et peuvent être lus hors ligne sans provenance serveur. Android ne reçoit aucun
-accès global au stockage : seuls les documents explicitement sélectionnés sont
-importés depuis le dossier accordé par l’utilisateur.
+L’onglet **Fichiers**, placé au même niveau que l’onglet Serveur, analyse tout
+le stockage partagé du téléphone, sous-dossiers inclus. Il demande au préalable
+l’autorisation Android appropriée (accès spécial sur Android 11+, permission de
+lecture sur Android 8–10), uniquement après une action explicite « Scanner le
+téléphone ». Il ne présente que les formats lisibles (CBZ/CBR/ZIP, PDF et EPUB),
+puis permet de décocher les livres à ne pas conserver avant l’import. Les
+fichiers retenus sont copiés dans le stockage de ComicStream, indexés avec leur
+couverture quand elle est disponible et peuvent être lus hors ligne sans
+provenance serveur.
 
 Après le téléchargement d’un livre, si la synchronisation restaure une
 progression non nulle pour ce même fichier, la bibliothèque affiche une unique
@@ -84,9 +85,10 @@ proposition « Reprendre à la page … ». Son action ouvre le lecteur directem
 à cette page ; aucune notification n’est affichée pour les autres restaurations
 de données.
 
-L’interface de bibliothèque adapte ses filtres à la largeur disponible : ils
-passent à la ligne plutôt que d’être masqués hors écran. Les libellés de la
-navigation basse sont également maintenus sur une ligne.
+Les filtres de la bibliothèque restent sur une rangée horizontalement défilable,
+afin de conserver les livres et l’action de reprise visibles dès l’ouverture.
+Les libellés courts de la navigation basse sont également maintenus sur une
+ligne.
 Pour préserver les boutons et sélecteurs horizontaux sur les téléphones étroits,
 l’interface plafonne le facteur de texte Android à 115 %.
 

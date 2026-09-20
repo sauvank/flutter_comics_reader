@@ -11,7 +11,9 @@ import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
 
 class DownloadsScreen extends StatelessWidget {
-  const DownloadsScreen({super.key});
+  const DownloadsScreen({super.key, this.onNavigateToServers});
+
+  final VoidCallback? onNavigateToServers;
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +66,14 @@ class DownloadsScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
                     ),
+                    if (onNavigateToServers != null) ...[
+                      const SizedBox(height: 20),
+                      FilledButton.icon(
+                        onPressed: onNavigateToServers,
+                        icon: const Icon(Icons.dns_outlined),
+                        label: const Text('Explorer mes serveurs'),
+                      ),
+                    ],
                   ],
                 ),
               ),

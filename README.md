@@ -17,9 +17,10 @@ sauvegarde chiffrée d’un appareil et la définir comme référence partagée.
 Chaque appareil peut être renommé depuis Compte afin d’être clairement reconnu
 dans ce choix.
 Les fichiers CBZ/CBR/ZIP, PDF et EPUB déjà présents sur l’appareil peuvent être
-détectés dans le dossier choisi depuis l’onglet **Fichiers** (sous-dossiers
-inclus) ; l’utilisateur coche ceux à conserver avant leur import local et leur
-lecture hors ligne, sans serveur configuré.
+détectés dans tout le stockage partagé depuis l’onglet **Fichiers** ; après
+l’autorisation Android explicite appropriée à la version du système,
+l’utilisateur coche ceux à conserver avant leur import local et leur lecture
+hors ligne, sans serveur configuré.
 Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
 ComicStream propose de reprendre directement à la dernière page lue.
 L’interface limite la taille de texte système à 115 % afin que les boutons et

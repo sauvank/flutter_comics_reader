@@ -14,9 +14,9 @@ La compatibilité de l’interface avec les téléphones étroits et une police
 système agrandie est assurée : les contrôles plafonnent l’échelle de texte à
 115 % pour éviter les débordements.
 
-L’import depuis l’appareil analyse désormais récursivement le dossier accordé
-par l’utilisateur et présente les livres détectés avant import, afin de choisir
-ceux à conserver dans la bibliothèque.
+L’import depuis l’appareil analyse désormais récursivement tout le stockage
+partagé après autorisation explicite, et présente les livres détectés avant
+import afin de choisir ceux à conserver dans la bibliothèque.
 
 ---
 

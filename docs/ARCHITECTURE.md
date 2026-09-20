@@ -65,13 +65,16 @@ points de restauration et le publier comme nouvelle référence commune ; ce
 choix n’est jamais appliqué automatiquement.
 
 L’onglet de navigation `DeviceFilesScreen` rend l’import local visible au même
-niveau que les serveurs. Il passe par le sélecteur de dossier de l’OS :
-`LocalBookImportService.scanDirectory` y recherche récursivement les formats
-compatibles, puis l’utilisateur choisit les éléments à importer.
+niveau que les serveurs. Son action « Scanner le téléphone » utilise
+`DeviceStorageAccessService` et le canal Android `comicstream/device_files`
+pour demander et vérifier l’autorisation adaptée au système : accès spécial aux
+fichiers sous Android 11+, permission de lecture sous Android 8–10. Une fois
+accordé, `LocalBookImportService.scanDirectory` recherche récursivement les
+formats compatibles dans le stockage partagé ; l’utilisateur choisit ensuite
+les éléments à importer.
 `LocalBookImportService` copie ensuite chaque fichier retenu dans le stockage
 privé de l’application avant d’en extraire les métadonnées et la couverture.
-Cette copie évite de dépendre d’une permission de stockage large ou d’un fichier
-temporaire fourni par Android.
+Cette copie évite de dépendre durablement de la disponibilité du fichier source.
 
 `DatabaseService` marque les tomes tout juste téléchargés. Si `SyncService`
 leur applique ensuite une progression distante, il émet un évènement local que

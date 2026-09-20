@@ -1039,22 +1039,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildFilterChipsRow(LibraryProvider library) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          _buildFilterChip(
-              'Tous (${library.books.length})', LibraryFilter.all, library),
-          _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
-          _buildFilterChip('En cours', LibraryFilter.inProgress, library),
-          _buildFilterChip('Non lus', LibraryFilter.unread, library),
-          _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
-          _buildFilterChip('PDF', LibraryFilter.pdf, library),
-          _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
-          _buildFilterChip('Terminés', LibraryFilter.completed, library),
-        ],
+    // Keep the discovery controls in one predictable row on phones.  The
+    // previous Wrap could take four rows, pushing the resume action below the
+    // fold before the user reached any books.
+    return Semantics(
+      label: 'Filtres de la bibliothèque',
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        child: Row(
+          spacing: 8,
+          children: [
+            _buildFilterChip(
+                'Tous (${library.books.length})', LibraryFilter.all, library),
+            _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
+            _buildFilterChip('En cours', LibraryFilter.inProgress, library),
+            _buildFilterChip('Non lus', LibraryFilter.unread, library),
+            _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
+            _buildFilterChip('PDF', LibraryFilter.pdf, library),
+            _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
+            _buildFilterChip('Terminés', LibraryFilter.completed, library),
+          ],
+        ),
       ),
     );
   }
@@ -1219,7 +1225,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Explorez vos serveurs distants pour lire en streaming ou télécharger vos séries !',
+              'Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur votre téléphone.',
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
@@ -1230,6 +1236,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 onPressed: () => widget.onNavigateTab?.call(1),
                 icon: const Icon(Icons.dns_rounded, size: 18),
                 label: const Text('Explorer mes serveurs'),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => widget.onNavigateTab?.call(2),
+                icon: const Icon(Icons.folder_open_rounded, size: 18),
+                label: const Text('Importer depuis ce téléphone'),
               ),
             ],
           ],
