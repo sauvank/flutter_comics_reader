@@ -222,7 +222,7 @@ class SyncService {
 
   /// Renames this installation and updates its encrypted backup immediately
   /// when the vault is available.
-  Future<void> renameCurrentDevice(String name) async {
+  Future<DeviceRenameResult> renameCurrentDevice(String name) async {
     final normalized = name.trim();
     if (normalized.isEmpty || normalized.length > 40) {
       throw ArgumentError('Le nom doit contenir entre 1 et 40 caractères.');
@@ -231,12 +231,21 @@ class SyncService {
     await preferences.setString(_deviceNameKey, normalized);
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null || key == null) return;
+    if (currentUser == null || key == null) {
+      return DeviceRenameResult.savedLocally;
+    }
     final root = _firestore
         .collection('users')
         .doc(currentUser.uid)
         .collection('private');
-    await _saveDeviceBackup(root, key);
+    try {
+      await _saveDeviceBackup(root, key);
+      return DeviceRenameResult.synced;
+    } catch (_) {
+      // The local rename is still valid. A later manual or automatic sync
+      // retries writing this encrypted restore point.
+      return DeviceRenameResult.savedLocally;
+    }
   }
 
   /// Lists the current installation and the encrypted restore points uploaded

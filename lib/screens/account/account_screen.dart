@@ -391,7 +391,27 @@ class _AccountScreenState extends State<AccountScreen> {
               Text('Serveur : ${conflict.remoteSummary}'),
               const SizedBox(height: 12),
               const Text(
-                'Récupérer remplacera les données de cet appareil par celles du serveur. Envoyer remplacera celles du serveur par cet appareil.',
+                'Choisissez la version de référence. Elle sera ensuite synchronisée sur vos autres appareils.',
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(SyncConflictResolution.keepRemote),
+                  icon: const Icon(Icons.arrow_downward_rounded),
+                  label: const Text('Récupérer du serveur'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () =>
+                      Navigator.of(ctx).pop(SyncConflictResolution.keepLocal),
+                  icon: const Icon(Icons.arrow_upward_rounded),
+                  label: const Text('Envoyer vers le serveur'),
+                ),
               ),
             ],
           ),
@@ -399,16 +419,6 @@ class _AccountScreenState extends State<AccountScreen> {
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('Plus tard'),
-            ),
-            OutlinedButton(
-              onPressed: () =>
-                  Navigator.of(ctx).pop(SyncConflictResolution.keepRemote),
-              child: const Text('Récupérer'),
-            ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.of(ctx).pop(SyncConflictResolution.keepLocal),
-              child: const Text('Envoyer'),
             ),
           ],
         ),
@@ -472,10 +482,14 @@ class _AccountScreenState extends State<AccountScreen> {
     controller.dispose();
     if (name == null) return;
     await _run(() async {
-      await _sync.renameCurrentDevice(name);
+      final result = await _sync.renameCurrentDevice(name);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nom de l’appareil enregistré.')),
+          SnackBar(
+            content: Text(result == DeviceRenameResult.synced
+                ? 'Nom de l’appareil enregistré sur le serveur.'
+                : 'Nom enregistré sur cet appareil. Il sera envoyé à la prochaine synchronisation.'),
+          ),
         );
       }
     });
@@ -793,35 +807,50 @@ class _AccountScreenState extends State<AccountScreen> {
                             const LinearProgressIndicator(),
                             const SizedBox(height: 12),
                           ],
-                          Row(
-                            children: [
-                              Expanded(
-                                child: FilledButton.icon(
-                                  onPressed: _busy ? null : _startManualSync,
-                                  icon: _syncing
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(Icons.sync),
-                                  label: Text(_syncing
-                                      ? 'Synchronisation…'
-                                      : 'Synchroniser'),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              OutlinedButton.icon(
+                          LayoutBuilder(
+                            builder: (context, constraints) {
+                              final syncButton = FilledButton.icon(
+                                onPressed: _busy ? null : _startManualSync,
+                                icon: _syncing
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(Icons.sync),
+                                label: Text(_syncing
+                                    ? 'Synchronisation…'
+                                    : 'Synchroniser'),
+                              );
+                              final recoveryButton = OutlinedButton.icon(
                                 onPressed: _busy
                                     ? null
                                     : _showEditRecoveryPhraseDialog,
                                 icon: const Icon(Icons.key),
                                 label: const Text('Modifier la phrase'),
-                              ),
-                            ],
+                              );
+                              if (constraints.maxWidth < 520) {
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    syncButton,
+                                    const SizedBox(height: 8),
+                                    recoveryButton,
+                                  ],
+                                );
+                              }
+                              return Row(
+                                children: [
+                                  Expanded(child: syncButton),
+                                  const SizedBox(width: 8),
+                                  recoveryButton,
+                                ],
+                              );
+                            },
                           ),
                           const SizedBox(height: 8),
                           ListTile(

@@ -4,6 +4,10 @@ enum SyncStatus { offline, signedOut, idle, syncing, conflict, error }
 /// remotely since the last successful synchronisation.
 enum SyncConflictResolution { keepLocal, keepRemote }
 
+/// Outcome of renaming the local installation. The name is always persisted
+/// locally first; a remote retry can happen during the next synchronization.
+enum DeviceRenameResult { synced, savedLocally }
+
 class SyncConflict {
   const SyncConflict({
     required this.documentId,

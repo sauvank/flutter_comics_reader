@@ -27,9 +27,9 @@ locales restent utilisables.
 
 Lorsqu’une même donnée a été modifiée localement et sur le serveur de
 synchronisation depuis la dernière synchronisation, l’écran Compte demande
-explicitement s’il faut la récupérer depuis le serveur ou envoyer la version de
-cet appareil, et affiche les deux dates. Aucun écrasement n’est effectué sans ce
-choix. L’écran indique aussi les valeurs locales et distantes qui seront
+explicitement s’il faut la « Récupérer du serveur » ou « Envoyer vers le
+serveur » depuis cet appareil, et affiche les deux dates. Aucun écrasement n’est
+effectué sans ce choix. L’écran indique aussi les valeurs locales et distantes qui seront
 remplacées (page, favori et nombre de marque-pages pour un livre). La version
 sélectionnée devient la référence partagée afin que les autres appareils puissent
 l’appliquer.
@@ -41,6 +41,9 @@ et manuel afin de ne jamais demander deux fois la même décision.
 Chaque appareil conserve aussi une sauvegarde chiffrée distincte, repérée par
 un nom modifiable depuis Compte (ou un alias aléatoire par défaut). Ce nom est
 placé dans l’enveloppe chiffrée et ne contient ni modèle ni identifiant matériel.
+Le nouveau nom est toujours enregistré localement ; si le serveur est
+momentanément indisponible, l’interface l’indique et la prochaine
+synchronisation envoie la sauvegarde renommée.
 Le bouton de
 synchronisation manuelle demande quelle sauvegarde utiliser ; choisir un autre
 appareil restaure ses données localement et en fait la nouvelle référence
