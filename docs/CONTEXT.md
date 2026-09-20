@@ -86,7 +86,8 @@ proposition « Reprendre à la page … ». Son action ouvre le lecteur directem
 de données.
 
 Les filtres de la bibliothèque restent sur une rangée horizontalement défilable,
-afin de conserver les livres et l’action de reprise visibles dès l’ouverture.
+avec un pictogramme et un état sélectionné discret, afin de conserver les livres
+et l’action de reprise visibles dès l’ouverture.
 Les libellés courts de la navigation basse sont également maintenus sur une
 ligne.
 Pour préserver les boutons et sélecteurs horizontaux sur les téléphones étroits,

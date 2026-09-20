@@ -293,13 +293,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           value: LibraryViewMode.series,
                           icon: const Icon(Icons.folder_special_rounded,
                               size: 16),
-                          label: Text('Par Séries (${allSeries.length})'),
+                          label: Text('Séries (${allSeries.length})'),
                         ),
                         ButtonSegment(
                           value: LibraryViewMode.allBooks,
                           icon:
                               const Icon(Icons.auto_stories_rounded, size: 16),
-                          label: Text('Tous les tomes (${books.length})'),
+                          label: Text('Tomes (${books.length})'),
                         ),
                       ],
                       selected: {_viewMode},
@@ -390,7 +390,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: _buildFilterChipsRow(library),
+            child: _buildFilterChipsRow(context, library),
           ),
           if (recentBooks.isNotEmpty &&
               !_isSearching &&
@@ -514,7 +514,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: _buildFilterChipsRow(library),
+            child: _buildFilterChipsRow(context, library),
           ),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -1038,7 +1038,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
-  Widget _buildFilterChipsRow(LibraryProvider library) {
+  Widget _buildFilterChipsRow(BuildContext context, LibraryProvider library) {
     // Keep the discovery controls in one predictable row on phones.  The
     // previous Wrap could take four rows, pushing the resume action below the
     // fold before the user reached any books.
@@ -1050,34 +1050,64 @@ class _LibraryScreenState extends State<LibraryScreen> {
         child: Row(
           spacing: 8,
           children: [
+            _buildFilterChip(context, 'Tous (${library.books.length})',
+                LibraryFilter.all, library),
             _buildFilterChip(
-                'Tous (${library.books.length})', LibraryFilter.all, library),
-            _buildFilterChip('❤️ Favoris', LibraryFilter.favorites, library),
-            _buildFilterChip('En cours', LibraryFilter.inProgress, library),
-            _buildFilterChip('Non lus', LibraryFilter.unread, library),
-            _buildFilterChip('CBZ / CBR', LibraryFilter.cbz, library),
-            _buildFilterChip('PDF', LibraryFilter.pdf, library),
-            _buildFilterChip('EPUB / Romans', LibraryFilter.epub, library),
-            _buildFilterChip('Terminés', LibraryFilter.completed, library),
+                context, 'Favoris', LibraryFilter.favorites, library),
+            _buildFilterChip(
+                context, 'En cours', LibraryFilter.inProgress, library),
+            _buildFilterChip(context, 'Non lus', LibraryFilter.unread, library),
+            _buildFilterChip(context, 'CBZ / CBR', LibraryFilter.cbz, library),
+            _buildFilterChip(context, 'PDF', LibraryFilter.pdf, library),
+            _buildFilterChip(
+                context, 'EPUB / Romans', LibraryFilter.epub, library),
+            _buildFilterChip(
+                context, 'Terminés', LibraryFilter.completed, library),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterChip(
-      String label, LibraryFilter filter, LibraryProvider library) {
+  Widget _buildFilterChip(BuildContext context, String label,
+      LibraryFilter filter, LibraryProvider library) {
     final isSelected = library.filter == filter;
+    final theme = Theme.of(context);
+    final iconColor = filter == LibraryFilter.favorites
+        ? Colors.redAccent
+        : isSelected
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurfaceVariant;
     return FilterChip(
+      avatar: Icon(_filterIcon(filter), size: 16, color: iconColor),
       label: Text(label,
           style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
       selected: isSelected,
       onSelected: (_) => library.setFilter(filter),
+      showCheckmark: false,
+      backgroundColor: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+      selectedColor: theme.colorScheme.primary.withAlpha(45),
+      side: BorderSide(
+        color: isSelected
+            ? theme.colorScheme.primary.withAlpha(150)
+            : theme.colorScheme.outlineVariant.withAlpha(100),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
   }
+
+  IconData _filterIcon(LibraryFilter filter) => switch (filter) {
+        LibraryFilter.all => Icons.auto_stories_outlined,
+        LibraryFilter.favorites => Icons.favorite_rounded,
+        LibraryFilter.inProgress => Icons.menu_book_rounded,
+        LibraryFilter.unread => Icons.markunread_outlined,
+        LibraryFilter.cbz => Icons.collections_bookmark_outlined,
+        LibraryFilter.pdf => Icons.picture_as_pdf_outlined,
+        LibraryFilter.epub => Icons.menu_book_outlined,
+        LibraryFilter.completed => Icons.check_circle_outline_rounded,
+      };
 
   Widget _buildResumeReadingHero(BookItem book, ThemeData theme) {
     final progressPercent = (book.progress * 100).toInt();
