@@ -21,6 +21,9 @@ flutter test
 
 ## 🚀 Workflow de Release
 - Incrémentation automatique de version & tag Git : `./scripts/bump_and_push.sh`
+- **À chaque modification finalisée**, créer et pousser une nouvelle release
+  taguée avec `./scripts/bump_and_push.sh patch` (sauf demande explicite de
+  version mineure ou majeure).
 - Utiliser la convention Conventional Commits (`feat:`, `fix:`, `perf:`,
   `chore:`, `docs:`, etc.) lorsque des commits sont demandés.
 
