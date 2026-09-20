@@ -70,12 +70,13 @@ progression. Les modifications rapprochées sont regroupées pendant cinq
 secondes avant l’envoi.
 
 L’onglet **Fichiers**, placé au même niveau que l’onglet Serveur, ouvre le
-sélecteur de documents du système. Il ne présente que les formats lisibles :
-CBZ/CBR/ZIP, PDF et EPUB. Les fichiers choisis sont copiés dans le
+sélecteur de dossier du système. Il analyse ce dossier et ses sous-dossiers,
+ne présente que les formats lisibles (CBZ/CBR/ZIP, PDF et EPUB), puis permet de
+décocher les livres à ne pas conserver avant l’import. Les fichiers choisis sont copiés dans le
 stockage de ComicStream, indexés avec leur couverture quand elle est disponible
 et peuvent être lus hors ligne sans provenance serveur. Android ne reçoit aucun
 accès global au stockage : seuls les documents explicitement sélectionnés sont
-importés.
+importés depuis le dossier accordé par l’utilisateur.
 
 Après le téléchargement d’un livre, si la synchronisation restaure une
 progression non nulle pour ce même fichier, la bibliothèque affiche une unique

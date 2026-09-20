@@ -35,6 +35,31 @@ class LocalBookImportService {
   static bool isSupportedPath(String path) =>
       BookItem.formatFromExtension(path) != BookFormat.unknown;
 
+  /// Lists supported books from a user-selected directory and its subfolders.
+  ///
+  /// The directory is selected through Android's document picker, so the app
+  /// never needs broad access to the device storage.
+  static Future<List<String>> scanDirectory(String directoryPath) async {
+    final directory = Directory(directoryPath);
+    if (!await directory.exists()) return const [];
+
+    final paths = <String>[];
+    try {
+      await for (final entity
+          in directory.list(recursive: true, followLinks: false)) {
+        if (entity is File && isSupportedPath(entity.path)) {
+          paths.add(entity.path);
+        }
+      }
+    } on FileSystemException {
+      // A selected directory can contain a subdirectory Android no longer
+      // exposes. Keep the files that could be read instead of failing the scan.
+    }
+    paths.sort(
+        (left, right) => left.toLowerCase().compareTo(right.toLowerCase()));
+    return paths;
+  }
+
   Future<LocalBookImportResult> importFiles(
       Iterable<String> sourcePaths) async {
     var imported = 0;

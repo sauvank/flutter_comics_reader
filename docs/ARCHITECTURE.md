@@ -65,11 +65,13 @@ points de restauration et le publier comme nouvelle référence commune ; ce
 choix n’est jamais appliqué automatiquement.
 
 L’onglet de navigation `DeviceFilesScreen` rend l’import local visible au même
-niveau que les serveurs. Il passe par le sélecteur de documents de l’OS, puis
-`LocalBookImportService` copie le fichier choisi dans le stockage privé de
-l’application avant d’en extraire les métadonnées et la couverture. Cette copie
-évite de dépendre d’une permission de stockage large ou d’un fichier temporaire
-fourni par Android.
+niveau que les serveurs. Il passe par le sélecteur de dossier de l’OS :
+`LocalBookImportService.scanDirectory` y recherche récursivement les formats
+compatibles, puis l’utilisateur choisit les éléments à importer.
+`LocalBookImportService` copie ensuite chaque fichier retenu dans le stockage
+privé de l’application avant d’en extraire les métadonnées et la couverture.
+Cette copie évite de dépendre d’une permission de stockage large ou d’un fichier
+temporaire fourni par Android.
 
 `DatabaseService` marque les tomes tout juste téléchargés. Si `SyncService`
 leur applique ensuite une progression distante, il émet un évènement local que

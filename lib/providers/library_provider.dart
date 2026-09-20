@@ -332,6 +332,11 @@ class LibraryProvider extends ChangeNotifier {
     return result;
   }
 
+  /// Finds compatible books in a directory selected by the user.
+  Future<List<String>> scanLocalDirectory(String directoryPath) {
+    return LocalBookImportService.scanDirectory(directoryPath);
+  }
+
   BookItem? getBookById(String bookId) {
     try {
       return _books.firstWhere((b) => b.id == bookId);

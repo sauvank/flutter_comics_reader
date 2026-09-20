@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../models/book_item.dart';
@@ -19,20 +20,28 @@ class DeviceFilesScreen extends StatefulWidget {
 class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
   bool _importing = false;
 
-  Future<void> _scanFiles() async {
-    final selection = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['cbz', 'cbr', 'zip', 'pdf', 'epub'],
-      allowMultiple: true,
-      withData: false,
-    );
-    final paths = selection?.paths.whereType<String>().toList() ?? const [];
-    if (paths.isEmpty || !mounted) return;
+  Future<void> _chooseDirectoryAndScan() async {
+    final directoryPath = await FilePicker.getDirectoryPath();
+    if (directoryPath == null || !mounted) return;
 
     setState(() => _importing = true);
     try {
+      final paths = await context
+          .read<LibraryProvider>()
+          .scanLocalDirectory(directoryPath);
+      if (!mounted) return;
+      if (paths.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Aucun livre compatible dans ce dossier.')),
+        );
+        return;
+      }
+      final selectedPaths = await _chooseBooksToImport(paths);
+      if (selectedPaths == null || selectedPaths.isEmpty || !mounted) return;
+
       final result =
-          await context.read<LibraryProvider>().importLocalFiles(paths);
+          await context.read<LibraryProvider>().importLocalFiles(selectedPaths);
       if (!mounted) return;
       final skipped = result.skipped == 0
           ? ''
@@ -51,6 +60,73 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
     } finally {
       if (mounted) setState(() => _importing = false);
     }
+  }
+
+  Future<List<String>?> _chooseBooksToImport(List<String> paths) async {
+    final selectedPaths = paths.toSet();
+    return showDialog<List<String>>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('${paths.length} livre(s) trouvé(s)'),
+          content: SizedBox(
+            width: 520,
+            height: MediaQuery.sizeOf(context).height * 0.5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Décochez les fichiers que vous ne voulez pas garder.'),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: paths.length,
+                    itemBuilder: (_, index) {
+                      final path = paths[index];
+                      return CheckboxListTile(
+                        value: selectedPaths.contains(path),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          p.basename(path),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          p.dirname(path),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onChanged: (selected) => setDialogState(() {
+                          if (selected ?? false) {
+                            selectedPaths.add(path);
+                          } else {
+                            selectedPaths.remove(path);
+                          }
+                        }),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: selectedPaths.isEmpty
+                  ? null
+                  : () => Navigator.of(dialogContext)
+                      .pop(selectedPaths.toList(growable: false)),
+              child: Text('Importer (${selectedPaths.length})'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _openReader(BookItem book) {
@@ -100,12 +176,12 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Seuls les fichiers lisibles sont affichés : CBZ, CBR, ZIP, PDF et EPUB.',
+                  'Choisissez un dossier : ses sous-dossiers sont analysés automatiquement. Vous choisissez ensuite les livres à garder.',
                   style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
                 ),
                 const SizedBox(height: 18),
                 FilledButton.icon(
-                  onPressed: _importing ? null : _scanFiles,
+                  onPressed: _importing ? null : _chooseDirectoryAndScan,
                   icon: _importing
                       ? const SizedBox(
                           width: 18,
@@ -115,7 +191,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
                       : const Icon(Icons.manage_search_rounded),
                   label: Text(_importing
                       ? 'Analyse des fichiers…'
-                      : 'Scanner les fichiers'),
+                      : 'Choisir un dossier'),
                 ),
               ],
             ),
@@ -131,8 +207,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen> {
             const ListTile(
               leading: Icon(Icons.folder_open_outlined),
               title: Text('Aucun fichier ajouté'),
-              subtitle:
-                  Text('Utilisez « Scanner les fichiers » pour en choisir.'),
+              subtitle: Text('Choisissez un dossier pour analyser ses livres.'),
             )
           else
             for (final book in localBooks)
