@@ -35,26 +35,32 @@ class LocalBookImportService {
   static bool isSupportedPath(String path) =>
       BookItem.formatFromExtension(path) != BookFormat.unknown;
 
-  /// Lists supported books from a user-selected directory and its subfolders.
+  /// Lists supported books from a directory and its accessible subfolders.
   ///
-  /// The directory is selected through Android's document picker, so the app
-  /// never needs broad access to the device storage.
+  /// Android can deny access to individual system-owned folders while allowing
+  /// the shared storage root. A failure in one of those folders must not hide
+  /// books stored in the rest of the device.
   static Future<List<String>> scanDirectory(String directoryPath) async {
     final directory = Directory(directoryPath);
     if (!await directory.exists()) return const [];
 
     final paths = <String>[];
-    try {
-      await for (final entity
-          in directory.list(recursive: true, followLinks: false)) {
-        if (entity is File && isSupportedPath(entity.path)) {
-          paths.add(entity.path);
+    Future<void> scan(Directory currentDirectory) async {
+      try {
+        await for (final entity in currentDirectory.list(followLinks: false)) {
+          if (entity is File && isSupportedPath(entity.path)) {
+            paths.add(entity.path);
+          } else if (entity is Directory) {
+            await scan(entity);
+          }
         }
+      } on FileSystemException {
+        // Some Android system folders remain unavailable even with shared
+        // storage access. Skip only that folder and continue elsewhere.
       }
-    } on FileSystemException {
-      // A selected directory can contain a subdirectory Android no longer
-      // exposes. Keep the files that could be read instead of failing the scan.
     }
+
+    await scan(directory);
     paths.sort(
         (left, right) => left.toLowerCase().compareTo(right.toLowerCase()));
     return paths;

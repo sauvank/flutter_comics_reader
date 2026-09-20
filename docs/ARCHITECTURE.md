@@ -70,7 +70,8 @@ niveau que les serveurs. Son action « Scanner le téléphone » utilise
 pour demander et vérifier l’autorisation adaptée au système : accès spécial aux
 fichiers sous Android 11+, permission de lecture sous Android 8–10. Une fois
 accordé, `LocalBookImportService.scanDirectory` recherche récursivement les
-formats compatibles dans le stockage partagé ; l’utilisateur choisit ensuite
+formats compatibles dans le stockage partagé et ignore uniquement les
+sous-dossiers système qu’Android ne rend pas accessibles ; l’utilisateur choisit ensuite
 les éléments à importer.
 `LocalBookImportService` copie ensuite chaque fichier retenu dans le stockage
 privé de l’application avant d’en extraire les métadonnées et la couverture.
