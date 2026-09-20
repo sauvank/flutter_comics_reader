@@ -4,6 +4,10 @@
 
 Le kit `marketing/play-store/` utilise la vraie interface de ComicStream avec des livres et profils serveurs fictifs. Les illustrations de démonstration restent hors des assets de production. Voir le [guide du kit](../marketing/play-store/README.md) pour les exports, leur provenance et leur régénération.
 
+Chaque release GitHub inclut les APK installables et l’AAB signé destiné à la
+publication manuelle dans la Play Console. L’AAB ne doit pas être installé
+directement sur un appareil.
+
 Ce document résume l'environnement matériel, l'infrastructure serveur, les protocoles réseau, et l'état actuel de l'application **ComicStream**.
 
 ## Synchronisation de compte (préparation)

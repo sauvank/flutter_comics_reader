@@ -114,6 +114,16 @@ jobs:
         run: |
           flutter build apk --release --split-per-abi
 
+      # The App Bundle is needed for Play Console uploads and permission
+      # declarations. Keep it alongside the APKs in the GitHub release.
+      - name: 🔨 Build Android App Bundle (Google Play)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          flutter build appbundle --release
+
       - name: 📋 Prepare Android Artifacts
         run: |
           VERSION="${{ steps.app_version.outputs.version }}"
@@ -124,6 +134,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "release_android/ComicStream-${VERSION}-arm64-v8a.apk" || true
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "release_android/ComicStream-${VERSION}-armeabi-v7a.apk" || true
           cp build/app/outputs/flutter-apk/app-x86_64-release.apk "release_android/ComicStream-${VERSION}-x86_64.apk" || true
+          cp build/app/outputs/bundle/release/app-release.aab "release_android/ComicStream-${VERSION}.aab"
 
       - name: 📤 Upload Android Artifacts
         uses: actions/upload-artifact@v4
