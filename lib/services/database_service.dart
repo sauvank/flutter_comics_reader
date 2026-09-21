@@ -24,7 +24,10 @@ class DatabaseService {
   Stream<String> get syncChanges => _syncChanges.stream;
   final _resumeRestored = StreamController<BookItem>.broadcast();
   Stream<BookItem> get resumeRestored => _resumeRestored.stream;
+  final _remoteBooksChanged = StreamController<void>.broadcast();
+  Stream<void> get remoteBooksChanged => _remoteBooksChanged.stream;
   final Set<String> _awaitingRestoredProgress = {};
+  Future<void> _bookWrites = Future.value();
 
   Future<void> init() async {
     await _preferences();
@@ -57,9 +60,24 @@ class DatabaseService {
 
   // --- Books Management ---
 
+  Future<T> _queueBookWrite<T>(Future<T> Function() operation) {
+    final queued = _bookWrites.then((_) => operation());
+    // A failed write is still surfaced to its caller, while later writes must
+    // remain possible.
+    _bookWrites = queued.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return queued;
+  }
+
   Future<List<BookItem>> getBooks() async {
-    await init();
-    final jsonString = _prefs?.getString(_keyBooks);
+    await _bookWrites;
+    return _readBooks();
+  }
+
+  Future<List<BookItem>> _readBooks() async {
+    final jsonString = (await _preferences()).getString(_keyBooks);
     if (jsonString == null || jsonString.isEmpty) return [];
 
     try {
@@ -73,21 +91,26 @@ class DatabaseService {
   }
 
   Future<void> saveBooks(List<BookItem> books) async {
-    await init();
+    await _queueBookWrite(() => _saveBooks(books));
+  }
+
+  Future<void> _saveBooks(List<BookItem> books) async {
     final list = books.map((b) => b.toMap()).toList();
-    await _prefs?.setString(_keyBooks, jsonEncode(list));
+    await (await _preferences()).setString(_keyBooks, jsonEncode(list));
   }
 
   Future<void> addBook(BookItem book, {bool notifySync = true}) async {
-    final books = await getBooks();
-    final existingIndex = books.indexWhere((b) => b.id == book.id);
-    if (existingIndex >= 0) {
-      books[existingIndex] = book;
-    } else {
-      books.add(book);
-    }
-    await saveBooks(books);
-    if (notifySync) _syncChanges.add('books');
+    await _queueBookWrite(() async {
+      final books = await _readBooks();
+      final existingIndex = books.indexWhere((b) => b.id == book.id);
+      if (existingIndex >= 0) {
+        books[existingIndex] = book;
+      } else {
+        books.add(book);
+      }
+      await _saveBooks(books);
+      if (notifySync) _syncChanges.add('books');
+    });
   }
 
   Future<void> updateBook(BookItem book, {bool notifySync = true}) async {
@@ -105,6 +128,10 @@ class DatabaseService {
     }
   }
 
+  /// Refreshes in-memory library views after a cloud update without emitting
+  /// a new local synchronization event.
+  void notifyRemoteBooksChanged() => _remoteBooksChanged.add(null);
+
   Future<void> updateBookProgress({
     required String bookId,
     required int currentPage,
@@ -112,9 +139,10 @@ class DatabaseService {
     double? epubChapterProgress,
     bool? isCompleted,
   }) async {
-    final books = await getBooks();
-    final index = books.indexWhere((b) => b.id == bookId);
-    if (index >= 0) {
+    await _queueBookWrite(() async {
+      final books = await _readBooks();
+      final index = books.indexWhere((b) => b.id == bookId);
+      if (index < 0) return;
       final current = books[index];
       final tot = totalPages > 0 ? totalPages : current.totalPages;
       final chapterProgress =
@@ -140,16 +168,17 @@ class DatabaseService {
         isCompleted: completed,
         lastReadDate: DateTime.now(),
       );
-      await saveBooks(books);
+      await _saveBooks(books);
       _syncChanges.add('progress');
-    }
+    });
   }
 
   Future<void> toggleBookmark(
       {required String bookId, required int pageNumber}) async {
-    final books = await getBooks();
-    final index = books.indexWhere((b) => b.id == bookId);
-    if (index >= 0) {
+    await _queueBookWrite(() async {
+      final books = await _readBooks();
+      final index = books.indexWhere((b) => b.id == bookId);
+      if (index < 0) return;
       final current = books[index];
       final bookmarks = List<int>.from(current.bookmarks);
       if (bookmarks.contains(pageNumber)) {
@@ -162,23 +191,24 @@ class DatabaseService {
         bookmarks: bookmarks,
         lastReadDate: DateTime.now(),
       );
-      await saveBooks(books);
+      await _saveBooks(books);
       _syncChanges.add('progress');
-    }
+    });
   }
 
   Future<void> toggleFavoriteBook(String bookId) async {
-    final books = await getBooks();
-    final index = books.indexWhere((b) => b.id == bookId);
-    if (index >= 0) {
+    await _queueBookWrite(() async {
+      final books = await _readBooks();
+      final index = books.indexWhere((b) => b.id == bookId);
+      if (index < 0) return;
       final current = books[index];
       books[index] = current.copyWith(
         isFavorite: !current.isFavorite,
         lastReadDate: DateTime.now(),
       );
-      await saveBooks(books);
+      await _saveBooks(books);
       _syncChanges.add('progress');
-    }
+    });
   }
 
   static const String _keyFavoriteRemoteKeys = 'favorite_remote_paths_json';
@@ -201,26 +231,28 @@ class DatabaseService {
   }
 
   Future<void> deleteBook(String bookId) async {
-    final books = await getBooks();
-    final book = books.firstWhere((b) => b.id == bookId,
-        orElse: () => throw Exception('Not found'));
+    await _queueBookWrite(() async {
+      final books = await _readBooks();
+      final book = books.firstWhere((b) => b.id == bookId,
+          orElse: () => throw Exception('Not found'));
 
-    // Delete local file
-    final file = File(book.localPath);
-    if (await file.exists()) {
-      await file.delete();
-    }
-
-    // Delete cover file if exists
-    if (book.coverPath != null) {
-      final cover = File(book.coverPath!);
-      if (await cover.exists()) {
-        await cover.delete();
+      // Delete local file
+      final file = File(book.localPath);
+      if (await file.exists()) {
+        await file.delete();
       }
-    }
 
-    books.removeWhere((b) => b.id == bookId);
-    await saveBooks(books);
+      // Delete cover file if exists
+      if (book.coverPath != null) {
+        final cover = File(book.coverPath!);
+        if (await cover.exists()) {
+          await cover.delete();
+        }
+      }
+
+      books.removeWhere((b) => b.id == bookId);
+      await _saveBooks(books);
+    });
   }
 
   // --- Server Profiles ---
@@ -304,7 +336,8 @@ class DatabaseService {
   String _syncTimestampKey(String documentId) => 'sync.last_seen.$documentId';
 
   Future<DateTime?> getLastSyncedAt(String documentId) async {
-    final value = (await _preferences()).getString(_syncTimestampKey(documentId));
+    final value =
+        (await _preferences()).getString(_syncTimestampKey(documentId));
     return value == null ? null : DateTime.tryParse(value);
   }
 
@@ -316,8 +349,7 @@ class DatabaseService {
   static const _syncDomainPrefix = 'sync.domain.updated.';
 
   Future<DateTime> getSyncDomainUpdatedAt(String domain) async {
-    final value =
-        (await _preferences()).getString('$_syncDomainPrefix$domain');
+    final value = (await _preferences()).getString('$_syncDomainPrefix$domain');
     return value == null
         ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)
         : DateTime.parse(value);

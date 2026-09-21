@@ -75,6 +75,13 @@ numéroté à partir de 1, plutôt qu’une page.
 Les réglages de lecture portent leur véritable date de dernière modification :
 une synchronisation sans changement ne les présente plus comme une nouvelle
 version concurrente sur chaque appareil.
+Les enregistrements locaux de progression (page, marque-page et favori) sont
+sérialisés : un changement rapide de page dans un lecteur PDF, CBZ ou EPUB ne
+peut plus finir par réécrire une position plus récente. Le processus partage
+aussi un verrou entre synchronisation automatique et manuelle afin que deux
+exécutions simultanées ne créent pas de conflits artificiels. Une réception
+distante recharge immédiatement la bibliothèque déjà ouverte, sans générer un
+nouvel envoi vers le cloud.
 Chaque archive téléchargée reçoit une empreinte SHA-256 calculée en flux. Cette
 empreinte devient l’identifiant prioritaire de sa progression : un renommage ou
 un déplacement — y compris entre deux profils de serveur ayant des identifiants

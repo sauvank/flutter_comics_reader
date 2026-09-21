@@ -24,6 +24,7 @@ import 'vault_service.dart';
 class SyncService {
   static const _deviceIdKey = 'sync.device.id';
   static const _deviceNameKey = 'sync.device.name';
+  static Future<List<SyncConflict>>? _activeSync;
   SyncService({
     FirebaseAuth? auth,
     FirebaseFirestore? firestore,
@@ -176,7 +177,26 @@ class SyncService {
     });
   }
 
-  Future<List<SyncConflict>> syncNow() async {
+  /// Shares one in-flight run between the automatic provider and the account
+  /// screen. Without this, two service instances could compare the same stale
+  /// state simultaneously and create duplicate conflicts.
+  Future<List<SyncConflict>> syncNow() {
+    final active = _activeSync;
+    if (active != null) return active;
+    final run = _syncNow();
+    _activeSync = run;
+    run.then<void>(
+      (_) {
+        if (identical(_activeSync, run)) _activeSync = null;
+      },
+      onError: (Object _, StackTrace __) {
+        if (identical(_activeSync, run)) _activeSync = null;
+      },
+    );
+    return run;
+  }
+
+  Future<List<SyncConflict>> _syncNow() async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
     if (currentUser == null) throw StateError('Connexion requise');
@@ -708,6 +728,7 @@ class SyncService {
         }
         return book.serverId == server && book.serverRelativePath == path;
       });
+      var restoredAnyBook = false;
       for (final originalBook in candidates) {
         final progress = totalPages > 0
             ? ((currentPage +
@@ -729,8 +750,10 @@ class SyncService {
           lastReadDate: DateTime.parse(remote['updatedAt'] as String).toLocal(),
         );
         await _database.updateBook(restored, notifySync: false);
+        restoredAnyBook = true;
         if (currentPage > 0) _database.notifyRestoredProgress(restored);
       }
+      if (restoredAnyBook) _database.notifyRemoteBooksChanged();
     }
   }
 }

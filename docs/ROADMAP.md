@@ -141,6 +141,8 @@ gantt
 - [x] Synchroniser la position relative des EPUB et afficher les chapitres
   avec une numérotation humaine dans les aperçus et reprises.
 - [x] Éviter les faux conflits répétés lorsque les réglages n’ont pas changé.
+- [x] Sérialiser les changements de progression et empêcher les exécutions de
+  synchronisation concurrentes entre les lecteurs et l’écran Compte.
 - [ ] Déclencher une nouvelle tentative au retour réseau.
 
 ## Prochaine étape — qualité de production

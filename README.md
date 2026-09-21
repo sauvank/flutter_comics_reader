@@ -27,6 +27,9 @@ Pour les EPUB, la synchronisation conserve aussi la position relative dans le
 chapitre, afin de reprendre au bon endroit malgré une taille d’écran ou une
 police différente ; les aperçus parlent alors de « chapitre » plutôt que de
 « page ».
+Les mises à jour de progression sont sérialisées localement et une seule
+synchronisation peut être active à la fois, y compris lorsqu’elle est demandée
+depuis deux écrans différents.
 L’interface limite la taille de texte système à 115 % afin que les boutons et
 contrôles restent utilisables sur les téléphones étroits avec une police Android
 agrandie.

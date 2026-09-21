@@ -61,6 +61,11 @@ convertit en défilement adapté à l’écran courant. La position exacte en pi
 reste locale et ne peut remplacer un autre chapitre reçu par synchronisation.
 Les réglages sont horodatés seulement lors d’une modification locale, ce qui
 évite les faux conflits d’un appareil à l’autre.
+`DatabaseService` met les mutations de bibliothèque dans une file séquentielle
+avant leur persistance. `SyncService` utilise un verrou commun aux instances du
+service, de sorte que l’écran Compte et `SyncProvider` rejoignent la même
+opération au lieu de concourir. Les mises à jour cloud sont publiées sur un
+flux dédié pour recharger `LibraryProvider` sans déclencher de boucle de sync.
 
 Chaque synchronisation conserve également un point de restauration chiffré par
 installation dans Firestore. Son nom est modifiable depuis Compte et inclus dans

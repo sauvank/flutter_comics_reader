@@ -32,6 +32,7 @@ enum LibrarySort {
 class LibraryProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
   late final StreamSubscription<BookItem> _resumeRestoredSubscription;
+  late final StreamSubscription<void> _remoteBooksChangedSubscription;
 
   List<BookItem> _books = [];
   Set<String> _favoriteRemoteKeys = {};
@@ -48,6 +49,9 @@ class LibraryProvider extends ChangeNotifier {
       _resumeSuggestion =
           _books.where((candidate) => candidate.id == book.id).firstOrNull;
       notifyListeners();
+    });
+    _remoteBooksChangedSubscription = _db.remoteBooksChanged.listen((_) {
+      loadLibrary();
     });
   }
 
@@ -372,6 +376,7 @@ class LibraryProvider extends ChangeNotifier {
   @override
   void dispose() {
     _resumeRestoredSubscription.cancel();
+    _remoteBooksChangedSubscription.cancel();
     super.dispose();
   }
 }
