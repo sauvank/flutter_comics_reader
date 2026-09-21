@@ -19,6 +19,16 @@ import 'firebase_bootstrap.dart';
 import 'sync_models.dart';
 import 'vault_service.dart';
 
+/// Determines whether a book has a stable, private identity for progress
+/// synchronization. Content hashes cover both server downloads and files
+/// imported directly on a device; server metadata is a legacy fallback.
+@visibleForTesting
+bool hasProgressIdentity(BookItem book) {
+  final hash = book.contentHash;
+  return (hash != null && hash.isNotEmpty) ||
+      (book.serverId != null && book.serverRelativePath != null);
+}
+
 /// Synchronises encrypted user state. It intentionally never uploads comic
 /// files, local paths, covers, or server passwords outside an AES-GCM envelope.
 class SyncService {
@@ -214,8 +224,8 @@ class SyncService {
     await _syncDocument(root.doc('settings'), 'settings',
         await _settingsPayload(), key, conflicts, 'Paramètres de lecture');
     for (final book in await _database.getBooks()) {
-      if (book.serverId == null || book.serverRelativePath == null) continue;
       final fingerprintedBook = await _ensureFingerprint(book);
+      if (!hasProgressIdentity(fingerprintedBook)) continue;
       final id = _progressId(fingerprintedBook);
       await _syncDocument(
           root.doc('progress').collection('files').doc(id),
@@ -442,7 +452,8 @@ class SyncService {
       final progressId = documentId.substring('progress:'.length);
       for (final book in await _database.getBooks()) {
         final fingerprintedBook = await _ensureFingerprint(book);
-        if (_progressId(fingerprintedBook) == progressId) {
+        if (hasProgressIdentity(fingerprintedBook) &&
+            _progressId(fingerprintedBook) == progressId) {
           return _progressPayload(fingerprintedBook);
         }
       }
@@ -609,8 +620,9 @@ class SyncService {
     final deviceId = await _deviceId();
     final progress = <Map<String, dynamic>>[];
     for (final book in await _database.getBooks()) {
-      if (book.serverId == null || book.serverRelativePath == null) continue;
-      progress.add(await _progressPayload(await _ensureFingerprint(book)));
+      final fingerprintedBook = await _ensureFingerprint(book);
+      if (!hasProgressIdentity(fingerprintedBook)) continue;
+      progress.add(await _progressPayload(fingerprintedBook));
     }
     await root.doc('deviceBackups').collection('devices').doc(deviceId).set({
       'v': 1,
@@ -707,9 +719,10 @@ class SyncService {
     } else if (localId == 'settings') {
       await ReaderSettingsService()
           .applyFromSync(Map<String, dynamic>.from(remote['settings'] as Map));
+      _database.notifyRemoteSettingsChanged();
     } else if (localId.startsWith('progress:')) {
-      final path = remote['serverRelativePath'] as String;
-      final server = remote['serverId'] as String;
+      final path = remote['serverRelativePath'] as String?;
+      final server = remote['serverId'] as String?;
       final contentHash = remote['contentHash'] as String?;
       final currentPage = remote['currentPage'] as int;
       final totalPages = remote['totalPages'] as int;
@@ -726,6 +739,7 @@ class SyncService {
         if (contentHash != null && contentHash.isNotEmpty) {
           return book.contentHash == contentHash;
         }
+        if (server == null || path == null) return false;
         return book.serverId == server && book.serverRelativePath == path;
       });
       var restoredAnyBook = false;

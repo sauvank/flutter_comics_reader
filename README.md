@@ -21,6 +21,9 @@ détectés dans tout le stockage partagé depuis l’onglet **Fichiers** ; aprè
 l’autorisation Android explicite appropriée à la version du système,
 l’utilisateur coche ceux à conserver avant leur import local et leur lecture
 hors ligne, sans serveur configuré.
+Lorsqu’un même fichier est importé sur plusieurs appareils, sa progression est
+elle aussi synchronisée grâce à son empreinte, sans transmettre son fichier ni
+son chemin local.
 Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
 ComicStream propose de reprendre directement à la dernière page lue.
 Pour les EPUB, la synchronisation conserve aussi la position relative dans le
@@ -30,6 +33,8 @@ police différente ; les aperçus parlent alors de « chapitre » plutôt que de
 Les mises à jour de progression sont sérialisées localement et une seule
 synchronisation peut être active à la fois, y compris lorsqu’elle est demandée
 depuis deux écrans différents.
+Les réglages reçus du cloud sont également appliqués à l’interface ouverte,
+sans attendre le prochain lancement de l’application.
 L’interface limite la taille de texte système à 115 % afin que les boutons et
 contrôles restent utilisables sur les téléphones étroits avec une police Android
 agrandie.

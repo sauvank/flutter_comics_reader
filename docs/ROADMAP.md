@@ -122,8 +122,9 @@ gantt
 - [x] Définir la détection des écritures concurrentes par fichier.
 - [x] Permettre de résoudre les conflits en choisissant la version locale ou
   du serveur de synchronisation, avec les dates de modification.
-- [x] Identifier les BD synchronisées par empreinte SHA-256, avec repli sur le
-  serveur et le chemin pour les archives historiques.
+- [x] Identifier les BD synchronisées par empreinte SHA-256, y compris les
+  fichiers importés localement, avec repli sur le serveur et le chemin pour les
+  archives historiques.
 - [x] Ajouter les écrans d'inscription, connexion, saisie/confirmation de
   phrase de récupération, boîte de dialogue de confirmation, masquage/affichage
   et modification de phrase secrète.
@@ -143,6 +144,7 @@ gantt
 - [x] Éviter les faux conflits répétés lorsque les réglages n’ont pas changé.
 - [x] Sérialiser les changements de progression et empêcher les exécutions de
   synchronisation concurrentes entre les lecteurs et l’écran Compte.
+- [x] Appliquer immédiatement les réglages reçus du cloud au thème ouvert.
 - [ ] Déclencher une nouvelle tentative au retour réseau.
 
 ## Prochaine étape — qualité de production

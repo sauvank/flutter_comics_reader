@@ -82,11 +82,15 @@ aussi un verrou entre synchronisation automatique et manuelle afin que deux
 exécutions simultanées ne créent pas de conflits artificiels. Une réception
 distante recharge immédiatement la bibliothèque déjà ouverte, sans générer un
 nouvel envoi vers le cloud.
-Chaque archive téléchargée reçoit une empreinte SHA-256 calculée en flux. Cette
-empreinte devient l’identifiant prioritaire de sa progression : un renommage ou
-un déplacement — y compris entre deux profils de serveur ayant des identifiants
-locaux différents — n’interrompt plus le suivi, tandis que deux éditions différentes
-portant un titre similaire ne sont jamais confondues.
+Les réglages distants rechargent aussi le thème visible immédiatement, sans
+attendre le redémarrage de l’application.
+Chaque fichier importé ou téléchargé reçoit une empreinte SHA-256 calculée en
+flux. Cette empreinte devient l’identifiant prioritaire de sa progression : un
+renommage ou un déplacement — y compris entre deux profils de serveur ayant
+des identifiants locaux différents — n’interrompt plus le suivi, tandis que
+deux éditions différentes portant un titre similaire ne sont jamais confondues.
+Elle permet aussi de reprendre un EPUB, PDF ou CBZ importé localement après
+l’import du même fichier sur un autre appareil, sans envoyer son chemin local.
 L’ajout d’un tome, d’un favori ou d’un marque-page déclenche également une
 synchronisation automatique ; leur date de modification est transmise avec la
 progression. Les modifications rapprochées sont regroupées pendant cinq

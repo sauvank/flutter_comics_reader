@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
@@ -11,6 +13,12 @@ enum AppThemeMode {
 
 class ThemeProvider extends ChangeNotifier {
   AppThemeMode _mode = AppThemeMode.dark;
+  late final StreamSubscription<void> _remoteSettingsSubscription;
+
+  ThemeProvider() {
+    _remoteSettingsSubscription =
+        DatabaseService().remoteSettingsChanged.listen((_) => init());
+  }
 
   AppThemeMode get mode => _mode;
 
@@ -48,5 +56,11 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_theme_mode', mode.name);
     await DatabaseService().notifySettingsChanged();
+  }
+
+  @override
+  void dispose() {
+    _remoteSettingsSubscription.cancel();
+    super.dispose();
   }
 }

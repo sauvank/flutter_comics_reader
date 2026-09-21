@@ -54,8 +54,10 @@ des données déverrouillées. Les règles Firestore limitent chaque chemin
 synchronisation lorsque le compte et le coffre local sont disponibles. Les
 applications distantes n'émettent pas à nouveau cet évènement : une réception
 de données ne crée donc pas de boucle de synchronisation. La progression est
-adressée par l'empreinte SHA-256 de l'archive ; le profil serveur et le chemin
-restent un repli pour les anciennes données sans empreinte.
+adressée par l'empreinte SHA-256 de chaque fichier importé ou téléchargé ; le
+profil serveur et le chemin restent un repli pour les anciennes données sans
+empreinte. Ainsi, un EPUB, PDF ou CBZ importé localement sur deux appareils
+partage sa progression sans exposer ses chemins locaux.
 Les EPUB ajoutent à cet état l’avancement relatif du chapitre ; le lecteur le
 convertit en défilement adapté à l’écran courant. La position exacte en pixels
 reste locale et ne peut remplacer un autre chapitre reçu par synchronisation.
@@ -66,6 +68,8 @@ avant leur persistance. `SyncService` utilise un verrou commun aux instances du
 service, de sorte que l’écran Compte et `SyncProvider` rejoignent la même
 opération au lieu de concourir. Les mises à jour cloud sont publiées sur un
 flux dédié pour recharger `LibraryProvider` sans déclencher de boucle de sync.
+Un second flux notifie `ThemeProvider` lorsqu’un réglage distant est appliqué,
+afin que le thème actif reflète la synchronisation sans redémarrage.
 
 Chaque synchronisation conserve également un point de restauration chiffré par
 installation dans Firestore. Son nom est modifiable depuis Compte et inclus dans

@@ -26,6 +26,8 @@ class DatabaseService {
   Stream<BookItem> get resumeRestored => _resumeRestored.stream;
   final _remoteBooksChanged = StreamController<void>.broadcast();
   Stream<void> get remoteBooksChanged => _remoteBooksChanged.stream;
+  final _remoteSettingsChanged = StreamController<void>.broadcast();
+  Stream<void> get remoteSettingsChanged => _remoteSettingsChanged.stream;
   final Set<String> _awaitingRestoredProgress = {};
   Future<void> _bookWrites = Future.value();
 
@@ -131,6 +133,10 @@ class DatabaseService {
   /// Refreshes in-memory library views after a cloud update without emitting
   /// a new local synchronization event.
   void notifyRemoteBooksChanged() => _remoteBooksChanged.add(null);
+
+  /// Refreshes providers after settings were applied from the cloud without
+  /// scheduling those same settings for another upload.
+  void notifyRemoteSettingsChanged() => _remoteSettingsChanged.add(null);
 
   Future<void> updateBookProgress({
     required String bookId,
