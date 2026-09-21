@@ -138,6 +138,9 @@ gantt
   explicitement celle qui devient la référence lors d’une synchronisation
   manuelle.
 - [x] Permettre de nommer chaque appareil pour distinguer ses sauvegardes.
+- [x] Synchroniser la position relative des EPUB et afficher les chapitres
+  avec une numérotation humaine dans les aperçus et reprises.
+- [x] Éviter les faux conflits répétés lorsque les réglages n’ont pas changé.
 - [ ] Déclencher une nouvelle tentative au retour réseau.
 
 ## Prochaine étape — qualité de production

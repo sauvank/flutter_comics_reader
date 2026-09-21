@@ -23,6 +23,10 @@ l’utilisateur coche ceux à conserver avant leur import local et leur lecture
 hors ligne, sans serveur configuré.
 Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
 ComicStream propose de reprendre directement à la dernière page lue.
+Pour les EPUB, la synchronisation conserve aussi la position relative dans le
+chapitre, afin de reprendre au bon endroit malgré une taille d’écran ou une
+police différente ; les aperçus parlent alors de « chapitre » plutôt que de
+« page ».
 L’interface limite la taille de texte système à 115 % afin que les boutons et
 contrôles restent utilisables sur les téléphones étroits avec une police Android
 agrandie.
@@ -46,7 +50,7 @@ agrandie.
 - **Gestion du stockage** : Calcul de l'espace disque consommé et nettoyage du cache en un clic.
 
 ### 📖 3. Lecteur BD & Manga Ultra-Fluide
-- **Formats supportés** : `.cbz`, `.cbr`, `.pdf`, `.zip`.
+- **Formats supportés** : `.cbz`, `.cbr`, `.pdf`, `.zip`, `.epub`.
 - **Modes de lecture** :
   - **Franco-Belge / Comics** : Défilement horizontal de Gauche à Droite (LTR).
   - **Manga Japonais** : Défilement horizontal de Droite à Gauche (RTL).

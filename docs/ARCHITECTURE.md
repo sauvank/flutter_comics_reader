@@ -56,6 +56,11 @@ applications distantes n'émettent pas à nouveau cet évènement : une récepti
 de données ne crée donc pas de boucle de synchronisation. La progression est
 adressée par l'empreinte SHA-256 de l'archive ; le profil serveur et le chemin
 restent un repli pour les anciennes données sans empreinte.
+Les EPUB ajoutent à cet état l’avancement relatif du chapitre ; le lecteur le
+convertit en défilement adapté à l’écran courant. La position exacte en pixels
+reste locale et ne peut remplacer un autre chapitre reçu par synchronisation.
+Les réglages sont horodatés seulement lors d’une modification locale, ce qui
+évite les faux conflits d’un appareil à l’autre.
 
 Chaque synchronisation conserve également un point de restauration chiffré par
 installation dans Firestore. Son nom est modifiable depuis Compte et inclus dans

@@ -250,19 +250,33 @@ class LibraryProvider extends ChangeNotifier {
     required String bookId,
     required int currentPage,
     required int totalPages,
+    double? epubChapterProgress,
     bool? isCompleted,
   }) async {
     final index = _books.indexWhere((b) => b.id == bookId);
     if (index >= 0) {
       final current = _books[index];
       final tot = totalPages > 0 ? totalPages : current.totalPages;
-      final prog = tot > 0 ? (currentPage / tot).clamp(0.0, 1.0) : 0.0;
+      final chapterProgress =
+          (epubChapterProgress ?? current.epubChapterProgress)
+              .clamp(0.0, 1.0)
+              .toDouble();
+      final prog = tot > 0
+          ? ((currentPage +
+                      (current.format == BookFormat.epub
+                          ? chapterProgress
+                          : 0)) /
+                  tot)
+              .clamp(0.0, 1.0)
+              .toDouble()
+          : 0.0;
       final completed = isCompleted ?? (prog >= 0.95);
 
       _books[index] = current.copyWith(
         currentPage: currentPage,
         totalPages: tot,
         progress: prog,
+        epubChapterProgress: chapterProgress,
         isCompleted: completed,
         lastReadDate: DateTime.now(),
       );
@@ -273,6 +287,7 @@ class LibraryProvider extends ChangeNotifier {
       bookId: bookId,
       currentPage: currentPage,
       totalPages: totalPages,
+      epubChapterProgress: epubChapterProgress,
       isCompleted: isCompleted,
     );
   }

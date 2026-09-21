@@ -19,6 +19,12 @@ class BookItem {
   final int totalPages;
   final int currentPage;
   final double progress; // 0.0 to 1.0
+  /// Position within the current EPUB chapter (0.0 to 1.0).
+  ///
+  /// Unlike a pixel offset, this value can be restored on screens with
+  /// different sizes, fonts and margins. It is ignored for image and PDF
+  /// readers.
+  final double epubChapterProgress;
   final bool isCompleted;
   final DateTime addedDate;
   final DateTime? lastReadDate;
@@ -42,6 +48,7 @@ class BookItem {
     this.totalPages = 0,
     this.currentPage = 0,
     this.progress = 0.0,
+    this.epubChapterProgress = 0.0,
     this.isCompleted = false,
     required this.addedDate,
     this.lastReadDate,
@@ -90,6 +97,7 @@ class BookItem {
     int? totalPages,
     int? currentPage,
     double? progress,
+    double? epubChapterProgress,
     bool? isCompleted,
     DateTime? addedDate,
     DateTime? lastReadDate,
@@ -110,6 +118,7 @@ class BookItem {
       totalPages: totalPages ?? this.totalPages,
       currentPage: currentPage ?? this.currentPage,
       progress: progress ?? this.progress,
+      epubChapterProgress: epubChapterProgress ?? this.epubChapterProgress,
       isCompleted: isCompleted ?? this.isCompleted,
       addedDate: addedDate ?? this.addedDate,
       lastReadDate: lastReadDate ?? this.lastReadDate,
@@ -133,6 +142,7 @@ class BookItem {
       'totalPages': totalPages,
       'currentPage': currentPage,
       'progress': progress,
+      'epubChapterProgress': epubChapterProgress,
       'isCompleted': isCompleted ? 1 : 0,
       'addedDate': addedDate.toIso8601String(),
       'lastReadDate': lastReadDate?.toIso8601String(),
@@ -148,6 +158,14 @@ class BookItem {
   factory BookItem.fromMap(Map<String, dynamic> map) {
     final totalPages = map['totalPages'] as int? ?? 0;
     final currentPage = map['currentPage'] as int? ?? 0;
+    final format = BookFormat.values.firstWhere(
+      (e) => e.name == map['format'],
+      orElse: () => BookFormat.unknown,
+    );
+    final epubChapterProgress =
+        ((map['epubChapterProgress'] as num?)?.toDouble() ?? 0.0)
+            .clamp(0.0, 1.0)
+            .toDouble();
     return BookItem(
       id: map['id'] as String,
       title: map['title'] as String,
@@ -155,18 +173,20 @@ class BookItem {
           map['originalFilename'] as String? ?? map['title'] as String,
       localPath: map['localPath'] as String,
       coverPath: map['coverPath'] as String?,
-      format: BookFormat.values.firstWhere(
-        (e) => e.name == map['format'],
-        orElse: () => BookFormat.unknown,
-      ),
+      format: format,
       totalPages: totalPages,
       currentPage: currentPage,
       // Progress is a derived value. Recomputing it repairs historical
       // records where the page was synchronized but the stored percentage
       // had not yet been updated.
       progress: totalPages > 0
-          ? (currentPage / totalPages).clamp(0.0, 1.0)
+          ? ((currentPage +
+              (format == BookFormat.epub ? epubChapterProgress : 0)) /
+                  totalPages)
+              .clamp(0.0, 1.0)
+              .toDouble()
           : (map['progress'] as num?)?.toDouble() ?? 0.0,
+      epubChapterProgress: epubChapterProgress,
       isCompleted: (map['isCompleted'] == 1 || map['isCompleted'] == true),
       addedDate: DateTime.tryParse(map['addedDate'] as String? ?? '') ??
           DateTime.now(),

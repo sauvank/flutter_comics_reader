@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'database_service.dart';
+
 enum ReadingMode {
   leftToRight, // BD / Comics / Standard
   rightToLeft, // Manga (Japonais)
@@ -64,21 +66,25 @@ enum EpubTextAlign {
 }
 
 class ReaderSettingsService extends ChangeNotifier {
-  static final ReaderSettingsService _instance = ReaderSettingsService._internal();
+  static final ReaderSettingsService _instance =
+      ReaderSettingsService._internal();
   factory ReaderSettingsService() => _instance;
   ReaderSettingsService._internal();
 
-  ReadingMode _readingMode = (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-      ? ReadingMode.leftToRight
-      : ReadingMode.vertical;
-  FitMode _fitMode = (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
-      ? FitMode.fitScreen
-      : FitMode.fitWidth;
+  ReadingMode _readingMode =
+      (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+          ? ReadingMode.leftToRight
+          : ReadingMode.vertical;
+  FitMode _fitMode =
+      (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS))
+          ? FitMode.fitScreen
+          : FitMode.fitWidth;
   ReaderBgColor _bgColor = ReaderBgColor.black;
   bool _keepScreenOn = true;
   bool _showPageNumbers = true;
   bool _volumeButtonsNavigation = false;
-  bool _autoConvertPdfToCbz = false; // Native PDF reading by default (instant and smooth)
+  bool _autoConvertPdfToCbz =
+      false; // Native PDF reading by default (instant and smooth)
   PdfRenderQuality _pdfRenderQuality = PdfRenderQuality.autoAdaptive;
 
   // EPUB custom settings
@@ -202,8 +208,10 @@ class ReaderSettingsService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    final isDesktop = !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
-    final defaultReadingMode = isDesktop ? ReadingMode.leftToRight : ReadingMode.vertical;
+    final isDesktop =
+        !kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+    final defaultReadingMode =
+        isDesktop ? ReadingMode.leftToRight : ReadingMode.vertical;
     final defaultFitMode = isDesktop ? FitMode.fitScreen : FitMode.fitWidth;
 
     final modeStr = prefs.getString('reader_reading_mode');
@@ -247,24 +255,32 @@ class ReaderSettingsService extends ChangeNotifier {
     // Load EPUB settings
     final epubThemeStr = prefs.getString('epub_theme');
     if (epubThemeStr != null) {
-      _epubTheme = EpubTheme.values.firstWhere((e) => e.name == epubThemeStr, orElse: () => EpubTheme.dark);
+      _epubTheme = EpubTheme.values.firstWhere((e) => e.name == epubThemeStr,
+          orElse: () => EpubTheme.dark);
     }
     _epubFontSize = prefs.getDouble('epub_font_size') ?? 17.0;
     final epubFontStr = prefs.getString('epub_font_family');
     if (epubFontStr != null) {
-      _epubFontFamily = EpubFontFamily.values.firstWhere((e) => e.name == epubFontStr, orElse: () => EpubFontFamily.serif);
+      _epubFontFamily = EpubFontFamily.values.firstWhere(
+          (e) => e.name == epubFontStr,
+          orElse: () => EpubFontFamily.serif);
     }
     final epubLineHeightStr = prefs.getString('epub_line_height');
     if (epubLineHeightStr != null) {
-      _epubLineHeight = EpubLineHeight.values.firstWhere((e) => e.name == epubLineHeightStr, orElse: () => EpubLineHeight.normal);
+      _epubLineHeight = EpubLineHeight.values.firstWhere(
+          (e) => e.name == epubLineHeightStr,
+          orElse: () => EpubLineHeight.normal);
     }
     final epubMarginStr = prefs.getString('epub_margin');
     if (epubMarginStr != null) {
-      _epubMargin = EpubMargin.values.firstWhere((e) => e.name == epubMarginStr, orElse: () => EpubMargin.normal);
+      _epubMargin = EpubMargin.values.firstWhere((e) => e.name == epubMarginStr,
+          orElse: () => EpubMargin.normal);
     }
     final epubAlignStr = prefs.getString('epub_text_align');
     if (epubAlignStr != null) {
-      _epubTextAlign = EpubTextAlign.values.firstWhere((e) => e.name == epubAlignStr, orElse: () => EpubTextAlign.justify);
+      _epubTextAlign = EpubTextAlign.values.firstWhere(
+          (e) => e.name == epubAlignStr,
+          orElse: () => EpubTextAlign.justify);
     }
 
     WakelockPlus.toggle(enable: _keepScreenOn);
@@ -316,11 +332,15 @@ class ReaderSettingsService extends ChangeNotifier {
     await init();
   }
 
+  Future<void> _notifySettingsChanged() =>
+      DatabaseService().notifySettingsChanged();
+
   Future<void> setReadingMode(ReadingMode mode) async {
     _readingMode = mode;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('reader_reading_mode', mode.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setFitMode(FitMode mode) async {
@@ -328,6 +348,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('reader_fit_mode', mode.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setBgColor(ReaderBgColor color) async {
@@ -335,6 +356,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('reader_bg_color', color.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setKeepScreenOn(bool value) async {
@@ -343,13 +365,15 @@ class ReaderSettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('reader_keep_screen_on', value);
     WakelockPlus.toggle(enable: value);
+    await _notifySettingsChanged();
   }
 
   Future<void> setVolumeButtonsNavigation(bool value) async {
     _volumeButtonsNavigation = value;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('volumeButtonsNavigation', value);
+    await prefs.setBool('reader_volume_nav', value);
+    await _notifySettingsChanged();
   }
 
   Future<void> setShowPageNumbers(bool value) async {
@@ -357,6 +381,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('reader_show_page_numbers', value);
+    await _notifySettingsChanged();
   }
 
   Future<void> setAutoConvertPdfToCbz(bool value) async {
@@ -364,6 +389,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('auto_convert_pdf_to_cbz', value);
+    await _notifySettingsChanged();
   }
 
   Future<void> setPdfRenderQuality(PdfRenderQuality quality) async {
@@ -371,6 +397,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pdf_render_quality', quality.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubTheme(EpubTheme theme) async {
@@ -378,6 +405,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('epub_theme', theme.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubFontSize(double size) async {
@@ -385,6 +413,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('epub_font_size', size);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubFontFamily(EpubFontFamily family) async {
@@ -392,6 +421,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('epub_font_family', family.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubLineHeight(EpubLineHeight lineHeight) async {
@@ -399,6 +429,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('epub_line_height', lineHeight.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubMargin(EpubMargin margin) async {
@@ -406,6 +437,7 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('epub_margin', margin.name);
+    await _notifySettingsChanged();
   }
 
   Future<void> setEpubTextAlign(EpubTextAlign align) async {
@@ -413,5 +445,6 @@ class ReaderSettingsService extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('epub_text_align', align.name);
+    await _notifySettingsChanged();
   }
 }

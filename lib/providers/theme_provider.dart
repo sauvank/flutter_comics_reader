@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/database_service.dart';
 import '../utils/app_theme.dart';
 
 enum AppThemeMode {
@@ -46,5 +47,6 @@ class ThemeProvider extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_theme_mode', mode.name);
+    await DatabaseService().notifySettingsChanged();
   }
 }

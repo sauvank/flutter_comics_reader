@@ -24,7 +24,8 @@ class BookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasCover = book.coverPath != null && File(book.coverPath!).existsSync();
+    final hasCover =
+        book.coverPath != null && File(book.coverPath!).existsSync();
 
     return InkWell(
       onTap: onTap,
@@ -60,7 +61,8 @@ class BookCard extends StatelessWidget {
                       File(book.coverPath!),
                       fit: BoxFit.cover,
                       cacheWidth: 400,
-                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
                         if (wasSynchronouslyLoaded) return child;
                         return AnimatedOpacity(
                           opacity: frame == null ? 0 : 1,
@@ -98,7 +100,8 @@ class BookCard extends StatelessWidget {
                     top: 8,
                     left: 8,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
                         color: _getFormatColor(book.format),
                         borderRadius: BorderRadius.circular(6),
@@ -127,8 +130,11 @@ class BookCard extends StatelessWidget {
                             HapticFeedback.selectionClick();
                             onToggleFavorite?.call();
                           },
-                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                          tooltip: book.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                          constraints:
+                              const BoxConstraints(minWidth: 36, minHeight: 36),
+                          tooltip: book.isFavorite
+                              ? 'Retirer des favoris'
+                              : 'Ajouter aux favoris',
                           padding: EdgeInsets.zero,
                           icon: Container(
                             padding: const EdgeInsets.all(5),
@@ -139,8 +145,12 @@ class BookCard extends StatelessWidget {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              color: book.isFavorite ? Colors.white : Colors.white70,
+                              book.isFavorite
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
+                              color: book.isFavorite
+                                  ? Colors.white
+                                  : Colors.white70,
                               size: 15,
                             ),
                           ),
@@ -155,10 +165,12 @@ class BookCard extends StatelessWidget {
                     child: Material(
                       color: Colors.transparent,
                       child: PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+                        icon: const Icon(Icons.more_vert,
+                            color: Colors.white, size: 20),
                         padding: EdgeInsets.zero,
                         color: theme.colorScheme.surfaceContainerHighest,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         onSelected: (value) {
                           if (value == 'delete') {
                             onDelete();
@@ -177,12 +189,16 @@ class BookCard extends StatelessWidget {
                             child: Row(
                               children: [
                                 Icon(
-                                  book.isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                  book.isFavorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
                                   size: 18,
                                   color: Colors.redAccent,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(book.isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'),
+                                Text(book.isFavorite
+                                    ? 'Retirer des favoris'
+                                    : 'Ajouter aux favoris'),
                               ],
                             ),
                           ),
@@ -191,7 +207,8 @@ class BookCard extends StatelessWidget {
                               value: 'convert',
                               child: Row(
                                 children: [
-                                  Icon(Icons.transform_rounded, size: 18, color: Color(0xFF8B5CF6)),
+                                  Icon(Icons.transform_rounded,
+                                      size: 18, color: Color(0xFF8B5CF6)),
                                   SizedBox(width: 8),
                                   Text('Convertir en BD (CBZ)'),
                                 ],
@@ -202,12 +219,16 @@ class BookCard extends StatelessWidget {
                             child: Row(
                               children: [
                                 Icon(
-                                  book.isCompleted ? Icons.restart_alt : Icons.check_circle_outline,
+                                  book.isCompleted
+                                      ? Icons.restart_alt
+                                      : Icons.check_circle_outline,
                                   size: 18,
                                   color: theme.colorScheme.primary,
                                 ),
                                 const SizedBox(width: 8),
-                                Text(book.isCompleted ? 'Marquer comme non lu' : 'Marquer comme lu'),
+                                Text(book.isCompleted
+                                    ? 'Marquer comme non lu'
+                                    : 'Marquer comme lu'),
                               ],
                             ),
                           ),
@@ -215,9 +236,11 @@ class BookCard extends StatelessWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                                Icon(Icons.delete_outline,
+                                    size: 18, color: Colors.redAccent),
                                 SizedBox(width: 8),
-                                Text('Supprimer de l\'appareil', style: TextStyle(color: Colors.redAccent)),
+                                Text('Supprimer de l\'appareil',
+                                    style: TextStyle(color: Colors.redAccent)),
                               ],
                             ),
                           ),
@@ -233,7 +256,8 @@ class BookCard extends StatelessWidget {
                     right: 8,
                     child: book.isCompleted
                         ? Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 3),
                             decoration: BoxDecoration(
                               color: Colors.green.shade700,
                               borderRadius: BorderRadius.circular(6),
@@ -241,11 +265,15 @@ class BookCard extends StatelessWidget {
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.check, size: 12, color: Colors.white),
+                                Icon(Icons.check,
+                                    size: 12, color: Colors.white),
                                 SizedBox(width: 4),
                                 Text(
                                   'TERMINÉ',
-                                  style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -256,7 +284,8 @@ class BookCard extends StatelessWidget {
                                 child: LinearProgressIndicator(
                                   value: book.progress,
                                   backgroundColor: Colors.white24,
-                                  valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      theme.colorScheme.primary),
                                   minHeight: 4,
                                 ),
                               )
@@ -286,7 +315,9 @@ class BookCard extends StatelessWidget {
                     children: [
                       if (book.totalPages > 0)
                         Text(
-                          'Page ${book.currentPage + 1}/${book.totalPages}',
+                          book.format == BookFormat.epub
+                              ? 'Chapitre ${book.currentPage + 1}/${book.totalPages}'
+                              : 'Page ${book.currentPage + 1}/${book.totalPages}',
                           style: TextStyle(
                             fontSize: 11,
                             color: theme.colorScheme.onSurfaceVariant,
@@ -326,7 +357,9 @@ class BookCard extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerHighest,
       child: Center(
         child: Icon(
-          book.format == BookFormat.pdf ? Icons.picture_as_pdf : Icons.auto_stories,
+          book.format == BookFormat.pdf
+              ? Icons.picture_as_pdf
+              : Icons.auto_stories,
           size: 40,
           color: theme.colorScheme.primary.withAlpha(120),
         ),

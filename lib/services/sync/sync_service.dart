@@ -525,6 +525,7 @@ class SyncService {
   bool _isUntouchedProgress(Map<String, dynamic> payload) {
     final bookmarks = payload['bookmarks'];
     return (payload['currentPage'] as int? ?? 0) == 0 &&
+        (payload['epubChapterProgress'] as num? ?? 0) == 0 &&
         payload['isCompleted'] != true &&
         payload['isFavorite'] != true &&
         (bookmarks is! List || bookmarks.isEmpty);
@@ -534,10 +535,13 @@ class SyncService {
     if (documentId.startsWith('progress:')) {
       final page = payload['currentPage'] as int? ?? 0;
       final total = payload['totalPages'] as int? ?? 0;
+      final isEpub = payload['format'] == BookFormat.epub.name;
       final bookmarks = payload['bookmarks'];
       final bookmarkCount = bookmarks is List ? bookmarks.length : 0;
       final favorite = payload['isFavorite'] == true ? 'oui' : 'non';
-      return 'Page $page/$total · Favori : $favorite · '
+      final location =
+          isEpub ? 'Chapitre ${page + 1}/$total' : 'Page $page/$total';
+      return '$location · Favori : $favorite · '
           '$bookmarkCount marque-page${bookmarkCount > 1 ? 's' : ''}';
     }
     if (documentId == 'servers') {
@@ -625,7 +629,12 @@ class SyncService {
       };
 
   Future<Map<String, dynamic>> _settingsPayload() async => {
-        'updatedAt': DateTime.now().toUtc().toIso8601String(),
+        // A stable timestamp is essential: using "now" here made unchanged
+        // settings look like a fresh edit on every device and repeatedly
+        // raised the same conflict.
+        'updatedAt': (await _database.getSyncDomainUpdatedAt('settings'))
+            .toUtc()
+            .toIso8601String(),
         'settings': await ReaderSettingsService().exportForSync(),
       };
 
@@ -637,6 +646,8 @@ class SyncService {
         'contentHash': book.contentHash,
         'currentPage': book.currentPage,
         'totalPages': book.totalPages,
+        'format': book.format.name,
+        'epubChapterProgress': book.epubChapterProgress,
         'isCompleted': book.isCompleted,
         'bookmarks': book.bookmarks,
         'isFavorite': book.isFavorite,
@@ -682,8 +693,10 @@ class SyncService {
       final contentHash = remote['contentHash'] as String?;
       final currentPage = remote['currentPage'] as int;
       final totalPages = remote['totalPages'] as int;
-      final progress =
-          totalPages > 0 ? (currentPage / totalPages).clamp(0.0, 1.0) : 0.0;
+      final epubChapterProgress =
+          ((remote['epubChapterProgress'] as num?)?.toDouble() ?? 0.0)
+              .clamp(0.0, 1.0)
+              .toDouble();
       final books = await _database.getBooks();
       // An archive fingerprint is independent from the server profile. A
       // profile can legitimately have a different local id on another device
@@ -696,10 +709,20 @@ class SyncService {
         return book.serverId == server && book.serverRelativePath == path;
       });
       for (final originalBook in candidates) {
+        final progress = totalPages > 0
+            ? ((currentPage +
+                        (originalBook.format == BookFormat.epub
+                            ? epubChapterProgress
+                            : 0)) /
+                    totalPages)
+                .clamp(0.0, 1.0)
+                .toDouble()
+            : 0.0;
         final restored = originalBook.copyWith(
           currentPage: currentPage,
           totalPages: totalPages,
           progress: progress,
+          epubChapterProgress: epubChapterProgress,
           isCompleted: remote['isCompleted'] as bool,
           bookmarks: List<int>.from(remote['bookmarks'] as List),
           isFavorite: remote['isFavorite'] as bool,

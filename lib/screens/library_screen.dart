@@ -160,7 +160,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            '« ${book.title} » était déjà commencé. Reprendre à la page ${book.currentPage + 1} ?',
+            book.format == BookFormat.epub
+                ? '« ${book.title} » était déjà commencé. Reprendre au chapitre ${book.currentPage + 1} ?'
+                : '« ${book.title} » était déjà commencé. Reprendre à la page ${book.currentPage + 1} ?',
           ),
           duration: const Duration(seconds: 8),
           action: SnackBarAction(
@@ -700,7 +702,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     nextLocalBook.totalPages > 0
-                                        ? 'Page ${nextLocalBook.currentPage + 1}/${nextLocalBook.totalPages} (${(nextLocalBook.progress * 100).toInt()}%)'
+                                        ? '${nextLocalBook.format == BookFormat.epub ? 'Chapitre' : 'Page'} ${nextLocalBook.currentPage + 1}/${nextLocalBook.totalPages} (${(nextLocalBook.progress * 100).toInt()}%)'
                                         : nextLocalBook.formatString,
                                     style: TextStyle(
                                         fontSize: 11,
@@ -1198,7 +1200,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 2),
                         Text(
                           book.totalPages > 0
-                              ? 'Page ${book.currentPage + 1} sur ${book.totalPages}'
+                              ? '${book.format == BookFormat.epub ? 'Chapitre' : 'Page'} ${book.currentPage + 1} sur ${book.totalPages}'
                               : book.formatString,
                           style: TextStyle(
                               fontSize: 12,

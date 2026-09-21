@@ -67,6 +67,14 @@ La réception d’une progression recalcule aussi le pourcentage affiché à par
 de la page et du nombre total de pages, puis recharge la bibliothèque locale.
 Au chargement de la bibliothèque, ce pourcentage est également toujours dérivé
 de la page enregistrée afin de corriger les données issues d’anciennes versions.
+Pour un EPUB, la position relative dans le chapitre est synchronisée en plus de
+l’index du chapitre. Elle est rétablie proportionnellement sur l’autre écran,
+sans qu’un ancien défilement local puisse écraser un chapitre plus récent reçu
+du cloud. Les cartes et les propositions de reprise affichent donc un chapitre,
+numéroté à partir de 1, plutôt qu’une page.
+Les réglages de lecture portent leur véritable date de dernière modification :
+une synchronisation sans changement ne les présente plus comme une nouvelle
+version concurrente sur chaque appareil.
 Chaque archive téléchargée reçoit une empreinte SHA-256 calculée en flux. Cette
 empreinte devient l’identifiant prioritaire de sa progression : un renommage ou
 un déplacement — y compris entre deux profils de serveur ayant des identifiants

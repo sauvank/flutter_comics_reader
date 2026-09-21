@@ -27,11 +27,14 @@ class DatabaseService {
   final Set<String> _awaitingRestoredProgress = {};
 
   Future<void> init() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    await _preferences();
     // Ensure base directories exist
     await getBooksDirectory();
     await getCoversDirectory();
   }
+
+  Future<SharedPreferences> _preferences() async =>
+      _prefs ??= await SharedPreferences.getInstance();
 
   Future<Directory> getBooksDirectory() async {
     final docsDir = await getApplicationDocumentsDirectory();
@@ -106,6 +109,7 @@ class DatabaseService {
     required String bookId,
     required int currentPage,
     required int totalPages,
+    double? epubChapterProgress,
     bool? isCompleted,
   }) async {
     final books = await getBooks();
@@ -113,13 +117,26 @@ class DatabaseService {
     if (index >= 0) {
       final current = books[index];
       final tot = totalPages > 0 ? totalPages : current.totalPages;
-      final prog = tot > 0 ? (currentPage / tot).clamp(0.0, 1.0) : 0.0;
+      final chapterProgress =
+          (epubChapterProgress ?? current.epubChapterProgress)
+              .clamp(0.0, 1.0)
+              .toDouble();
+      final prog = tot > 0
+          ? ((currentPage +
+                      (current.format == BookFormat.epub
+                          ? chapterProgress
+                          : 0)) /
+                  tot)
+              .clamp(0.0, 1.0)
+              .toDouble()
+          : 0.0;
       final completed = isCompleted ?? (prog >= 0.95);
 
       books[index] = current.copyWith(
         currentPage: currentPage,
         totalPages: tot,
         progress: prog,
+        epubChapterProgress: chapterProgress,
         isCompleted: completed,
         lastReadDate: DateTime.now(),
       );
@@ -287,31 +304,35 @@ class DatabaseService {
   String _syncTimestampKey(String documentId) => 'sync.last_seen.$documentId';
 
   Future<DateTime?> getLastSyncedAt(String documentId) async {
-    await init();
-    final value = _prefs?.getString(_syncTimestampKey(documentId));
+    final value = (await _preferences()).getString(_syncTimestampKey(documentId));
     return value == null ? null : DateTime.tryParse(value);
   }
 
   Future<void> setLastSyncedAt(String documentId, DateTime timestamp) async {
-    await init();
-    await _prefs?.setString(
+    await (await _preferences()).setString(
         _syncTimestampKey(documentId), timestamp.toUtc().toIso8601String());
   }
 
   static const _syncDomainPrefix = 'sync.domain.updated.';
 
   Future<DateTime> getSyncDomainUpdatedAt(String domain) async {
-    await init();
-    final value = _prefs?.getString('$_syncDomainPrefix$domain');
+    final value =
+        (await _preferences()).getString('$_syncDomainPrefix$domain');
     return value == null
         ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)
         : DateTime.parse(value);
   }
 
   Future<void> touchSyncDomain(String domain) async {
-    await init();
-    await _prefs?.setString(
+    await (await _preferences()).setString(
         '$_syncDomainPrefix$domain', DateTime.now().toUtc().toIso8601String());
+  }
+
+  /// Records a reading-settings change and lets [SyncProvider] batch it with
+  /// the other local synchronization changes.
+  Future<void> notifySettingsChanged() async {
+    await touchSyncDomain('settings');
+    _syncChanges.add('settings');
   }
 
   // --- Storage calculation ---

@@ -22,6 +22,7 @@ class _Library extends LibraryProvider {
     required String bookId,
     required int currentPage,
     required int totalPages,
+    double? epubChapterProgress,
     bool? isCompleted,
   }) async {
     savedPages.add(currentPage);
