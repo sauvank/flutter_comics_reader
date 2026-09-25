@@ -12,10 +12,16 @@ modification de lecture, de favori, de marque-page ou de bibliothèque. Les
 fichiers et chemins locaux ne sont pas envoyés. La connexion nécessite encore
 de rattacher un projet Firebase de production ; voir
 [la configuration Firebase](docs/FIREBASE_SETUP.md).
-Lors d’une synchronisation manuelle, l’utilisateur peut aussi choisir une
-sauvegarde chiffrée d’un appareil et la définir comme référence partagée.
-Chaque appareil peut être renommé depuis Compte afin d’être clairement reconnu
-dans ce choix.
+Chaque appareil publie un instantané chiffré distinct pour chaque livre. À
+l’ouverture d’un livre — et au retour dans un lecteur resté ouvert — ComicStream
+compare uniquement sa position de lecture avec celle des autres appareils. Si
+elles diffèrent, l’utilisateur peut continuer depuis l’appareil indiqué,
+conserver la position locale ou ignorer cette révision. Une révision ignorée
+n’est plus proposée tant que l’autre appareil n’a pas avancé. Les marque-pages
+et favoris ne sont pas remplacés par ce choix.
+Lors d’une synchronisation manuelle, l’utilisateur peut toujours choisir une
+sauvegarde chiffrée globale d’un appareil pour une récupération exceptionnelle.
+Chaque appareil peut être renommé depuis Compte afin d’être clairement reconnu.
 Les fichiers CBZ/CBR/ZIP, PDF et EPUB déjà présents sur l’appareil peuvent être
 détectés dans tout le stockage partagé depuis l’onglet **Fichiers** ; après
 l’autorisation Android explicite appropriée à la version du système,
@@ -24,8 +30,8 @@ hors ligne, sans serveur configuré.
 Lorsqu’un même fichier est importé sur plusieurs appareils, sa progression est
 elle aussi synchronisée grâce à son empreinte, sans transmettre son fichier ni
 son chemin local.
-Lorsqu’un livre téléchargé existe déjà dans la progression synchronisée,
-ComicStream propose de reprendre directement à la dernière page lue.
+Lorsqu’un livre téléchargé existe déjà sur plusieurs appareils, ComicStream
+affiche leurs pages ou chapitres et leurs dates avant toute décision.
 Pour les EPUB, la synchronisation conserve aussi la position relative dans le
 chapitre, afin de reprendre au bon endroit malgré une taille d’écran ou une
 police différente ; les aperçus parlent alors de « chapitre » plutôt que de
@@ -97,6 +103,7 @@ lib/
 │   ├── library_screen.dart            # Bibliothèque locale & carrousel de reprise
 │   ├── server_screen.dart             # Explorateur de serveur local avec fil d'Ariane
 │   ├── downloads_screen.dart          # Suivi des téléchargements actifs et terminés
+│   ├── synced_reader_screen.dart       # Entrée commune avec vérification par appareil
 │   ├── cbz_reader_screen.dart         # Lecteur CBZ/Manga avec zoom et modes LTR/RTL/Webtoon
 │   ├── pdf_reader_screen.dart         # Lecteur PDF avec pagination et zoom
 │   └── settings_screen.dart           # Paramètres de l'application et gestion du stockage
@@ -104,6 +111,7 @@ lib/
 │   ├── book_card.dart                 # Carte visuelle de livre avec badge et progression
 │   ├── remote_file_tile.dart          # Ligne de fichier distant avec bouton/indicateur de téléchargement
 │   ├── server_form_dialog.dart        # Fenêtre d'ajout/modification avec bouton « Tester »
+│   ├── synced_reader_gate.dart         # Choix de progression avant/reprise du lecteur
 │   └── reader_controls.dart           # Barres de contrôle supérieure et inférieure du lecteur
 └── utils/
     ├── format_utils.dart              # Tri naturel (page2 avant page10) et formatage de tailles/dates

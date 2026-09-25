@@ -4,6 +4,10 @@ enum SyncStatus { offline, signedOut, idle, syncing, conflict, error }
 /// remotely since the last successful synchronisation.
 enum SyncConflictResolution { keepLocal, keepRemote }
 
+/// Choice made when the same book has a different reading position on another
+/// installation.
+enum BookProgressChoice { useRemote, keepLocal, ignore }
+
 /// Outcome of renaming the local installation. The name is always persisted
 /// locally first; a remote retry can happen during the next synchronization.
 enum DeviceRenameResult { synced, savedLocally }
@@ -44,4 +48,37 @@ class SyncDeviceBackup {
   final String label;
   final bool isCurrentDevice;
   final DateTime? updatedAt;
+}
+
+/// A device-specific reading position offered when a book is opened.
+class BookSyncProposal {
+  const BookSyncProposal({
+    required this.bookId,
+    required this.progressId,
+    required this.remoteDeviceId,
+    required this.remoteDeviceName,
+    required this.localPage,
+    required this.localTotalPages,
+    required this.localChapterProgress,
+    required this.localUpdatedAt,
+    required this.remotePage,
+    required this.remoteTotalPages,
+    required this.remoteChapterProgress,
+    required this.remoteUpdatedAt,
+    required this.isEpub,
+  });
+
+  final String bookId;
+  final String progressId;
+  final String remoteDeviceId;
+  final String remoteDeviceName;
+  final int localPage;
+  final int localTotalPages;
+  final double localChapterProgress;
+  final DateTime localUpdatedAt;
+  final int remotePage;
+  final int remoteTotalPages;
+  final double remoteChapterProgress;
+  final DateTime remoteUpdatedAt;
+  final bool isEpub;
 }

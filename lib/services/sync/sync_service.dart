@@ -29,11 +29,36 @@ bool hasProgressIdentity(BookItem book) {
       (book.serverId != null && book.serverRelativePath != null);
 }
 
+/// Reading-position comparison shared by the sync service and its tests.
+/// Bookmarks and favorites deliberately do not participate: choosing a page
+/// must never discard those independent pieces of metadata.
+@visibleForTesting
+bool hasDifferentReadingPosition(BookItem local, Map<String, dynamic> remote) {
+  final remotePage = remote['currentPage'] as int? ?? 0;
+  final remoteChapterProgress =
+      (remote['epubChapterProgress'] as num?)?.toDouble() ?? 0.0;
+  return local.currentPage != remotePage ||
+      (local.epubChapterProgress - remoteChapterProgress).abs() > 0.001;
+}
+
+bool _payloadsHaveSameReadingPosition(
+    Map<String, dynamic> first, Map<String, dynamic> second) {
+  final firstProgress =
+      (first['epubChapterProgress'] as num?)?.toDouble() ?? 0.0;
+  final secondProgress =
+      (second['epubChapterProgress'] as num?)?.toDouble() ?? 0.0;
+  return (first['currentPage'] as int? ?? 0) ==
+          (second['currentPage'] as int? ?? 0) &&
+      (firstProgress - secondProgress).abs() <= 0.001;
+}
+
 /// Synchronises encrypted user state. It intentionally never uploads comic
 /// files, local paths, covers, or server passwords outside an AES-GCM envelope.
 class SyncService {
   static const _deviceIdKey = 'sync.device.id';
   static const _deviceNameKey = 'sync.device.name';
+  static const _bookDecisionPrefix = 'sync.book.decision.';
+  static const _legacyDeviceId = 'legacy-shared-progress';
   static Future<List<SyncConflict>>? _activeSync;
   SyncService({
     FirebaseAuth? auth,
@@ -227,6 +252,9 @@ class SyncService {
       final fingerprintedBook = await _ensureFingerprint(book);
       if (!hasProgressIdentity(fingerprintedBook)) continue;
       final id = _progressId(fingerprintedBook);
+      // Every installation owns its snapshot. It can therefore publish its
+      // current position without erasing the position of another device.
+      await _saveDeviceProgress(root, fingerprintedBook, key);
       await _syncDocument(
           root.doc('progress').collection('files').doc(id),
           'progress:$id',
@@ -276,6 +304,166 @@ class SyncService {
       // retries writing this encrypted restore point.
       return DeviceRenameResult.savedLocally;
     }
+  }
+
+  /// Finds the most recently read, different position for [book] on another
+  /// installation. A dismissed revision is not offered again unless that
+  /// device advances the book afterwards.
+  Future<BookSyncProposal?> bookProgressProposal(BookItem book) async {
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null || key == null) return null;
+
+    final localBooks = await _database.getBooks();
+    final local =
+        localBooks.where((item) => item.id == book.id).firstOrNull ?? book;
+    final fingerprintedBook = await _ensureFingerprint(local);
+    if (!hasProgressIdentity(fingerprintedBook)) return null;
+
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    final progressId = _progressId(fingerprintedBook);
+    final currentDeviceId = await _deviceId();
+    final progressReference =
+        root.doc('progress').collection('files').doc(progressId);
+    final candidates = <_DeviceProgressCandidate>[];
+
+    final deviceSnapshots = await progressReference.collection('devices').get();
+    for (final snapshot in deviceSnapshots.docs) {
+      if (snapshot.id == currentDeviceId) continue;
+      try {
+        final payload = await _crypto.decryptJson(
+          key: key,
+          envelope:
+              Map<String, dynamic>.from(snapshot.data()['envelope'] as Map),
+        );
+        final updatedAt = _payloadUpdatedAt(payload);
+        if (_isUntouchedProgress(payload) ||
+            !hasDifferentReadingPosition(fingerprintedBook, payload) ||
+            await _hasHandledBookRevision(progressId, snapshot.id, updatedAt)) {
+          continue;
+        }
+        candidates.add(_DeviceProgressCandidate(
+          deviceId: snapshot.id,
+          deviceName: payload['sourceDeviceName'] as String? ??
+              'Appareil ${snapshot.id.substring(0, 4).toUpperCase()}',
+          payload: payload,
+          updatedAt: updatedAt,
+        ));
+      } catch (_) {
+        // One stale or unreadable device snapshot must not prevent reading.
+      }
+    }
+
+    // Compatibility with progress uploaded before per-device snapshots were
+    // introduced. It remains available until every installation has synced.
+    final legacySnapshot = await progressReference.get();
+    if (legacySnapshot.exists) {
+      try {
+        final payload = await _crypto.decryptJson(
+          key: key,
+          envelope: Map<String, dynamic>.from(
+              legacySnapshot.data()!['envelope'] as Map),
+        );
+        final sourceId =
+            payload['sourceDeviceId'] as String? ?? _legacyDeviceId;
+        final alreadyRepresented =
+            candidates.any((candidate) => candidate.deviceId == sourceId);
+        final updatedAt = _payloadUpdatedAt(payload);
+        if (sourceId != currentDeviceId &&
+            !alreadyRepresented &&
+            !_isUntouchedProgress(payload) &&
+            hasDifferentReadingPosition(fingerprintedBook, payload) &&
+            !await _hasHandledBookRevision(progressId, sourceId, updatedAt)) {
+          candidates.add(_DeviceProgressCandidate(
+            // This payload is physically stored in the historical shared
+            // document even when newer fields identify its source device.
+            deviceId: _legacyDeviceId,
+            deviceName:
+                payload['sourceDeviceName'] as String? ?? 'Autre appareil',
+            payload: payload,
+            updatedAt: updatedAt,
+          ));
+        }
+      } catch (_) {
+        // Ignore a legacy value that can no longer be decrypted.
+      }
+    }
+
+    if (candidates.isEmpty) return null;
+    candidates.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final selected = candidates.first;
+    final remote = selected.payload;
+    return BookSyncProposal(
+      bookId: fingerprintedBook.id,
+      progressId: progressId,
+      remoteDeviceId: selected.deviceId,
+      remoteDeviceName: selected.deviceName,
+      localPage: fingerprintedBook.currentPage,
+      localTotalPages: fingerprintedBook.totalPages,
+      localChapterProgress: fingerprintedBook.epubChapterProgress,
+      localUpdatedAt:
+          fingerprintedBook.lastReadDate ?? fingerprintedBook.addedDate,
+      remotePage: remote['currentPage'] as int? ?? 0,
+      remoteTotalPages: remote['totalPages'] as int? ?? 0,
+      remoteChapterProgress:
+          (remote['epubChapterProgress'] as num?)?.toDouble() ?? 0.0,
+      remoteUpdatedAt: selected.updatedAt,
+      isEpub: remote['format'] == BookFormat.epub.name,
+    );
+  }
+
+  /// Applies one book-scoped choice. Only the reading location is replaced;
+  /// favorites and bookmarks stay local and continue to sync independently.
+  Future<void> resolveBookProgress(
+      BookSyncProposal proposal, BookProgressChoice choice) async {
+    final currentUser = user;
+    final key = await _vault.readLocalKey();
+    if (currentUser == null) throw StateError('Connexion requise');
+    if (key == null) {
+      throw StateError('Phrase de récupération requise sur cet appareil.');
+    }
+    final root = _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('private');
+    final progressReference =
+        root.doc('progress').collection('files').doc(proposal.progressId);
+
+    Map<String, dynamic>? remote;
+    if (choice == BookProgressChoice.useRemote) {
+      final reference = proposal.remoteDeviceId == _legacyDeviceId
+          ? progressReference
+          : progressReference
+              .collection('devices')
+              .doc(proposal.remoteDeviceId);
+      final snapshot = await reference.get();
+      if (!snapshot.exists) {
+        throw StateError('Cette progression distante n’existe plus.');
+      }
+      remote = await _crypto.decryptJson(
+        key: key,
+        envelope:
+            Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map),
+      );
+      await _applyRemoteBookPosition(proposal.bookId, remote);
+    }
+
+    final books = await _database.getBooks();
+    final local = books.where((book) => book.id == proposal.bookId).firstOrNull;
+    if (local != null && choice != BookProgressChoice.ignore) {
+      final fingerprintedBook = await _ensureFingerprint(local);
+      final localPayload = await _progressPayload(fingerprintedBook);
+      await _saveDeviceProgress(root, fingerprintedBook, key);
+      await _write(progressReference, key, localPayload,
+          resolvedAt: DateTime.now().toUtc());
+      await _database.setLastSyncedAt('progress:${proposal.progressId}',
+          DateTime.parse(localPayload['updatedAt'] as String));
+    }
+
+    await _markBookRevisionHandled(proposal);
   }
 
   /// Lists the current installation and the encrypted restore points uploaded
@@ -483,6 +671,16 @@ class SyncService {
         envelope:
             Map<String, dynamic>.from(snapshot.data()!['envelope'] as Map));
     final remoteUpdated = DateTime.parse(remote['updatedAt'] as String);
+    if (localId.startsWith('progress:')) {
+      final localSource = local['sourceDeviceId'] as String?;
+      final remoteSource = remote['sourceDeviceId'] as String?;
+      if (localSource != remoteSource &&
+          !_payloadsHaveSameReadingPosition(local, remote)) {
+        // A background sync must never choose between two devices. The
+        // decision is deferred until this specific book is opened.
+        return;
+      }
+    }
     final lastSynced = await _database.getLastSyncedAt(localId);
     final resolutionValue = snapshot.data()!['resolvedAt'];
     final resolvedAt =
@@ -613,6 +811,81 @@ class SyncService {
     await _database.setLastSyncedAt(documentId, resolvedAt);
   }
 
+  DateTime _payloadUpdatedAt(Map<String, dynamic> payload) {
+    final value = payload['updatedAt'] as String?;
+    return value == null
+        ? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true)
+        : DateTime.parse(value).toUtc();
+  }
+
+  String _bookDecisionKey(String progressId, String deviceId) =>
+      '$_bookDecisionPrefix$progressId.$deviceId';
+
+  Future<bool> _hasHandledBookRevision(
+      String progressId, String deviceId, DateTime updatedAt) async {
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getString(_bookDecisionKey(progressId, deviceId)) ==
+        updatedAt.toUtc().toIso8601String();
+  }
+
+  Future<void> _markBookRevisionHandled(BookSyncProposal proposal) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _bookDecisionKey(proposal.progressId, proposal.remoteDeviceId),
+      proposal.remoteUpdatedAt.toUtc().toIso8601String(),
+    );
+  }
+
+  Future<void> _saveDeviceProgress(
+    CollectionReference<Map<String, dynamic>> root,
+    BookItem book,
+    SecretKey key,
+  ) async {
+    final deviceId = await _deviceId();
+    final payload = await _progressPayload(book);
+    await root
+        .doc('progress')
+        .collection('files')
+        .doc(_progressId(book))
+        .collection('devices')
+        .doc(deviceId)
+        .set({
+      'v': 1,
+      'envelope': await _crypto.encryptJson(key: key, value: payload),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> _applyRemoteBookPosition(
+      String bookId, Map<String, dynamic> remote) async {
+    final books = await _database.getBooks();
+    final local = books.where((book) => book.id == bookId).firstOrNull;
+    if (local == null) return;
+    final currentPage = remote['currentPage'] as int? ?? 0;
+    final totalPages = remote['totalPages'] as int? ?? local.totalPages;
+    final chapterProgress =
+        ((remote['epubChapterProgress'] as num?)?.toDouble() ?? 0.0)
+            .clamp(0.0, 1.0)
+            .toDouble();
+    final progress = totalPages > 0
+        ? ((currentPage +
+                    (local.format == BookFormat.epub ? chapterProgress : 0)) /
+                totalPages)
+            .clamp(0.0, 1.0)
+            .toDouble()
+        : 0.0;
+    final restored = local.copyWith(
+      currentPage: currentPage,
+      totalPages: totalPages,
+      progress: progress,
+      epubChapterProgress: chapterProgress,
+      isCompleted: remote['isCompleted'] as bool? ?? local.isCompleted,
+      lastReadDate: _payloadUpdatedAt(remote).toLocal(),
+    );
+    await _database.updateBook(restored, notifySync: false);
+    _database.notifyRemoteBooksChanged();
+  }
+
   Future<void> _saveDeviceBackup(
     CollectionReference<Map<String, dynamic>> root,
     SecretKey key,
@@ -673,6 +946,8 @@ class SyncService {
   Future<Map<String, dynamic>> _progressPayload(BookItem book) async => {
         'updatedAt':
             (book.lastReadDate ?? book.addedDate).toUtc().toIso8601String(),
+        'sourceDeviceId': await _deviceId(),
+        'sourceDeviceName': await currentDeviceName(),
         'serverId': book.serverId,
         'serverRelativePath': book.serverRelativePath,
         'contentHash': book.contentHash,
@@ -770,4 +1045,18 @@ class SyncService {
       if (restoredAnyBook) _database.notifyRemoteBooksChanged();
     }
   }
+}
+
+class _DeviceProgressCandidate {
+  const _DeviceProgressCandidate({
+    required this.deviceId,
+    required this.deviceName,
+    required this.payload,
+    required this.updatedAt,
+  });
+
+  final String deviceId;
+  final String deviceName;
+  final Map<String, dynamic> payload;
+  final DateTime updatedAt;
 }

@@ -73,6 +73,10 @@ class DatabaseService {
     return queued;
   }
 
+  /// Waits until all progress/bookmark mutations already queued by a reader
+  /// have reached local storage.
+  Future<void> flushBookWrites() => _bookWrites;
+
   Future<List<BookItem>> getBooks() async {
     await _bookWrites;
     return _readBooks();

@@ -58,6 +58,15 @@ adressée par l'empreinte SHA-256 de chaque fichier importé ou téléchargé ; 
 profil serveur et le chemin restent un repli pour les anciennes données sans
 empreinte. Ainsi, un EPUB, PDF ou CBZ importé localement sur deux appareils
 partage sa progression sans exposer ses chemins locaux.
+Sous chaque document de livre, `SyncService` écrit une enveloppe distincte par
+identifiant d’installation. Une synchronisation de fond n’écrase jamais deux
+positions différentes provenant de deux appareils. `SyncedReaderGate` compare
+ces instantanés à l’ouverture du lecteur et lors du retour de l’application au
+premier plan, puis applique uniquement le choix explicite de l’utilisateur.
+L’option distante remplace la page ou le chapitre et son avancement relatif,
+mais conserve les favoris et marque-pages locaux. Une décision locale mémorise
+la révision distante traitée afin de ne la reproposer qu’après une nouvelle
+lecture sur cet appareil.
 Les EPUB ajoutent à cet état l’avancement relatif du chapitre ; le lecteur le
 convertit en défilement adapté à l’écran courant. La position exacte en pixels
 reste locale et ne peut remplacer un autre chapitre reçu par synchronisation.
@@ -71,12 +80,13 @@ flux dédié pour recharger `LibraryProvider` sans déclencher de boucle de sync
 Un second flux notifie `ThemeProvider` lorsqu’un réglage distant est appliqué,
 afin que le thème actif reflète la synchronisation sans redémarrage.
 
-Chaque synchronisation conserve également un point de restauration chiffré par
+Chaque synchronisation conserve également un point de restauration global chiffré par
 installation dans Firestore. Son nom est modifiable depuis Compte et inclus dans
 l’enveloppe chiffrée ; l’alias par défaut ne comporte aucun modèle ou identifiant
 matériel. Une synchronisation manuelle peut restaurer l’un de ces
 points de restauration et le publier comme nouvelle référence commune ; ce
-choix n’est jamais appliqué automatiquement.
+choix n’est jamais appliqué automatiquement et reste distinct du dialogue de
+progression par livre.
 
 L’onglet de navigation `DeviceFilesScreen` rend l’import local visible au même
 niveau que les serveurs. Son action « Scanner le téléphone » utilise

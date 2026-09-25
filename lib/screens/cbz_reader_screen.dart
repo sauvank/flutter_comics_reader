@@ -10,6 +10,7 @@ import '../services/reader_settings_service.dart';
 import '../widgets/reader_controls.dart';
 import '../widgets/cbz_page_image.dart';
 import '../widgets/cbz_zoom_viewport.dart';
+import '../widgets/synced_reader_gate.dart';
 import '../utils/cbz_page_layout.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
@@ -323,8 +324,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
               .updateBookFormat(widget.book.id, BookFormat.pdf);
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => PdfReaderScreen(
-                  book: widget.book.copyWith(format: BookFormat.pdf)),
+              builder: (_) => SyncedReaderGate(
+                book: widget.book.copyWith(format: BookFormat.pdf),
+                readerBuilder: (book) => PdfReaderScreen(book: book),
+              ),
             ),
           );
           return;
@@ -1028,22 +1031,22 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                     borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: () {
-                if (nextBook.format == BookFormat.pdf) {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (_) => PdfReaderScreen(book: nextBook)),
-                  );
-                } else if (nextBook.format == BookFormat.epub) {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (_) => EpubReaderScreen(book: nextBook)),
-                  );
-                } else {
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                        builder: (_) => CbzReaderScreen(book: nextBook)),
-                  );
-                }
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => SyncedReaderGate(
+                      book: nextBook,
+                      readerBuilder: (book) {
+                        if (book.format == BookFormat.pdf) {
+                          return PdfReaderScreen(book: book);
+                        }
+                        if (book.format == BookFormat.epub) {
+                          return EpubReaderScreen(book: book);
+                        }
+                        return CbzReaderScreen(book: book);
+                      },
+                    ),
+                  ),
+                );
               },
             )
           else

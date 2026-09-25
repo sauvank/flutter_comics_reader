@@ -16,9 +16,7 @@ import '../widgets/book_card.dart';
 import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import '../widgets/series_card.dart';
-import 'cbz_reader_screen.dart';
-import 'epub_reader_screen.dart';
-import 'pdf_reader_screen.dart';
+import 'synced_reader_screen.dart';
 
 enum LibraryViewMode {
   series,
@@ -104,25 +102,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _openReader(BookItem book) {
-    if (book.format == BookFormat.pdf) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PdfReaderScreen(book: book),
-        ),
-      );
-    } else if (book.format == BookFormat.epub) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => EpubReaderScreen(book: book),
-        ),
-      );
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => CbzReaderScreen(book: book),
-        ),
-      );
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => buildSyncedReaderScreen(book)),
+    );
   }
 
   void _confirmDelete(BookItem book) {

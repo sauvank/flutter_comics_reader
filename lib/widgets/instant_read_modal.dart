@@ -6,9 +6,7 @@ import '../models/remote_file.dart';
 import '../models/server_profile.dart';
 import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
-import '../screens/cbz_reader_screen.dart';
-import '../screens/epub_reader_screen.dart';
-import '../screens/pdf_reader_screen.dart';
+import '../screens/synced_reader_screen.dart';
 
 class InstantReadModal extends StatefulWidget {
   final ServerProfile server;
@@ -26,7 +24,8 @@ class InstantReadModal extends StatefulWidget {
     required RemoteFile file,
   }) async {
     final libraryProvider = context.read<LibraryProvider>();
-    final existingBook = libraryProvider.getBookByServerPath(server.id, file.path);
+    final existingBook =
+        libraryProvider.getBookByServerPath(server.id, file.path);
 
     if (existingBook != null) {
       _openReader(context, existingBook);
@@ -48,25 +47,9 @@ class InstantReadModal extends StatefulWidget {
   }
 
   static void _openReader(BuildContext context, BookItem book) {
-    if (book.format == BookFormat.pdf) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => PdfReaderScreen(book: book),
-        ),
-      );
-    } else if (book.format == BookFormat.epub) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => EpubReaderScreen(book: book),
-        ),
-      );
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => CbzReaderScreen(book: book),
-        ),
-      );
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => buildSyncedReaderScreen(book)),
+    );
   }
 
   @override
@@ -83,7 +66,8 @@ class _InstantReadModalState extends State<InstantReadModal> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final libraryProvider = context.read<LibraryProvider>();
-      final existingBook = libraryProvider.getBookByServerPath(widget.server.id, widget.file.path);
+      final existingBook = libraryProvider.getBookByServerPath(
+          widget.server.id, widget.file.path);
       if (existingBook != null) {
         _hasClosedModal = true;
         Navigator.of(context).pop(existingBook);
@@ -105,7 +89,9 @@ class _InstantReadModalState extends State<InstantReadModal> {
   }
 
   void _checkCompletion(DownloadTask? task) {
-    if (task != null && task.status == DownloadStatus.completed && !_hasClosedModal) {
+    if (task != null &&
+        task.status == DownloadStatus.completed &&
+        !_hasClosedModal) {
       _hasClosedModal = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
@@ -113,7 +99,8 @@ class _InstantReadModalState extends State<InstantReadModal> {
         final libraryProvider = context.read<LibraryProvider>();
         await libraryProvider.loadLibrary();
 
-        BookItem? book = libraryProvider.getBookByServerPath(widget.server.id, widget.file.path);
+        BookItem? book = libraryProvider.getBookByServerPath(
+            widget.server.id, widget.file.path);
         book ??= libraryProvider.getBookById(task.bookId);
         if (book == null && libraryProvider.books.isNotEmpty) {
           book = libraryProvider.books.first;
@@ -149,7 +136,8 @@ class _InstantReadModalState extends State<InstantReadModal> {
     final progress = task?.progress ?? 0.0;
     final speed = task?.speedString ?? '';
     final received = task?.downloadedBytes ?? 0;
-    final total = (task?.totalBytes ?? 0) > 0 ? task!.totalBytes : widget.file.size;
+    final total =
+        (task?.totalBytes ?? 0) > 0 ? task!.totalBytes : widget.file.size;
     final isFailed = task?.status == DownloadStatus.failed;
     final isConverting = task?.status == DownloadStatus.converting;
 
@@ -231,7 +219,8 @@ class _InstantReadModalState extends State<InstantReadModal> {
                       widget.file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -262,7 +251,9 @@ class _InstantReadModalState extends State<InstantReadModal> {
                 minHeight: 10,
                 backgroundColor: theme.colorScheme.surfaceContainerHighest,
                 valueColor: AlwaysStoppedAnimation<Color>(
-                  isConverting ? const Color(0xFF8B5CF6) : theme.colorScheme.primary,
+                  isConverting
+                      ? const Color(0xFF8B5CF6)
+                      : theme.colorScheme.primary,
                 ),
               ),
             ),
@@ -278,7 +269,9 @@ class _InstantReadModalState extends State<InstantReadModal> {
                             : '${(progress * 100).toInt()}% • ${_formatBytes(received)} / ${_formatBytes(total)}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ),
                 if (task?.etaString != null && !isConverting)
@@ -315,7 +308,8 @@ class _InstantReadModalState extends State<InstantReadModal> {
                     }
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Annuler', style: TextStyle(color: Colors.redAccent)),
+                  child: const Text('Annuler',
+                      style: TextStyle(color: Colors.redAccent)),
                 ),
               const Spacer(),
               if (isFailed && task != null) ...[

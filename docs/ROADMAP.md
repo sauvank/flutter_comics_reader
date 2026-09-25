@@ -139,6 +139,11 @@ gantt
   explicitement celle qui devient la référence lors d’une synchronisation
   manuelle.
 - [x] Permettre de nommer chaque appareil pour distinguer ses sauvegardes.
+- [x] Conserver une progression chiffrée par livre et par appareil, puis
+  demander à l’ouverture du lecteur s’il faut prendre la position distante,
+  conserver la position locale ou ignorer la révision.
+- [x] Refaire cette vérification au retour au premier plan d’un lecteur déjà
+  ouvert sans remplacer ses favoris ou marque-pages.
 - [x] Synchroniser la position relative des EPUB et afficher les chapitres
   avec une numérotation humaine dans les aperçus et reprises.
 - [x] Éviter les faux conflits répétés lorsque les réglages n’ont pas changé.

@@ -36,20 +36,23 @@ explique que la synchronisation sera disponible après la configuration. Il ne
 tente alors pas d’accéder aux services Firebase : le lecteur et les données
 locales restent utilisables.
 
-Lorsqu’une même donnée a été modifiée localement et sur le serveur de
-synchronisation depuis la dernière synchronisation, l’écran Compte demande
-explicitement s’il faut la « Récupérer du serveur » ou « Envoyer vers le
-serveur » depuis cet appareil, et affiche les deux dates. Aucun écrasement n’est
-effectué sans ce choix. L’écran indique aussi les valeurs locales et distantes qui seront
-remplacées (page, favori et nombre de marque-pages pour un livre). La version
-sélectionnée devient la référence partagée afin que les autres appareils puissent
-l’appliquer.
-Un conflit détecté pendant une synchronisation automatique est signalé dans
-l’écran Compte avec un bouton permettant de le résoudre ; il ne reste plus
-silencieusement bloqué.
+La progression de lecture est conservée séparément pour chaque couple
+livre/appareil. À l’ouverture d’un livre, ainsi qu’au retour au premier plan
+d’un lecteur déjà ouvert, ComicStream compare sa position locale avec la
+dernière position différente d’un autre appareil. Le dialogue affiche le nom
+de l’appareil, les pages ou chapitres et les dates, puis propose de continuer
+depuis cet appareil, de conserver la position locale ou d’ignorer la révision.
+Aucun écrasement n’est effectué sans ce choix. Une révision ignorée n’est plus
+proposée tant que l’appareil distant n’a pas avancé. Ce choix ne remplace ni les
+favoris ni les marque-pages.
+Les conflits concernant les serveurs ou les réglages restent résolus depuis
+l’écran Compte.
+Un conflit de serveurs ou de réglages détecté pendant une synchronisation
+automatique est signalé dans l’écran Compte avec un bouton permettant de le
+résoudre ; les divergences de lecture sont traitées dans le livre concerné.
 Après un choix de résolution, ce même conflit est retiré des flux automatique
 et manuel afin de ne jamais demander deux fois la même décision.
-Chaque appareil conserve aussi une sauvegarde chiffrée distincte, repérée par
+Chaque appareil conserve aussi une sauvegarde globale chiffrée distincte, repérée par
 un nom modifiable depuis Compte (ou un alias aléatoire par défaut). Ce nom est
 placé dans l’enveloppe chiffrée et ne contient ni modèle ni identifiant matériel.
 Le nouveau nom est toujours enregistré localement ; si le serveur est
@@ -58,8 +61,8 @@ synchronisation envoie la sauvegarde renommée.
 Le bouton de
 synchronisation manuelle demande quelle sauvegarde utiliser ; choisir un autre
 appareil restaure ses données localement et en fait la nouvelle référence
-partagée. La synchronisation automatique ne remplace jamais les données selon
-ce choix.
+partagée. La synchronisation automatique ne restaure jamais une sauvegarde
+globale ; ce mécanisme reste réservé à la récupération explicite.
 Une petite icône de nuage dans la barre de la bibliothèque indique uniquement
 qu’une synchronisation est en cours.
 Après une synchronisation, les profils de serveurs importés rechargent aussi la
@@ -68,10 +71,11 @@ redémarrage de l’application.
 Pendant une synchronisation manuelle, le bouton indique l’opération en cours et
 une barre de progression est affichée afin d’éviter les doubles appuis.
 Lorsqu’une BD déjà connue est téléchargée sur un nouvel appareil, son état
-initial non lu n’écrase pas la progression chiffrée : celle-ci est restaurée
-automatiquement à la première synchronisation.
-La réception d’une progression recalcule aussi le pourcentage affiché à partir
-de la page et du nombre total de pages, puis recharge la bibliothèque locale.
+initial non lu n’écrase pas la progression chiffrée : le choix est proposé à
+la première ouverture du livre.
+Après le choix d’une progression distante, le pourcentage affiché est recalculé
+à partir de la page et du nombre total de pages, puis la bibliothèque locale est
+rechargée.
 Au chargement de la bibliothèque, ce pourcentage est également toujours dérivé
 de la page enregistrée afin de corriger les données issues d’anciennes versions.
 Pour un EPUB, la position relative dans le chapitre est synchronisée en plus de
@@ -113,11 +117,9 @@ fichiers retenus sont copiés dans le stockage de ComicStream, indexés avec leu
 couverture quand elle est disponible et peuvent être lus hors ligne sans
 provenance serveur.
 
-Après le téléchargement d’un livre, si la synchronisation restaure une
-progression non nulle pour ce même fichier, la bibliothèque affiche une unique
-proposition « Reprendre à la page … ». Son action ouvre le lecteur directement
-à cette page ; aucune notification n’est affichée pour les autres restaurations
-de données.
+Après le téléchargement ou l’import d’un livre déjà lu ailleurs, la décision de
+reprise est présentée à l’ouverture du lecteur avec l’appareil source et les
+deux positions ; elle ne modifie aucun autre livre.
 
 Les filtres de la bibliothèque restent sur une rangée horizontalement défilable,
 avec un pictogramme et un état sélectionné discret, afin de conserver les livres

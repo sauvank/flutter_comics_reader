@@ -5,9 +5,7 @@ import 'package:provider/provider.dart';
 import '../models/book_item.dart';
 import '../providers/library_provider.dart';
 import '../services/device_storage_access_service.dart';
-import 'cbz_reader_screen.dart';
-import 'epub_reader_screen.dart';
-import 'pdf_reader_screen.dart';
+import 'synced_reader_screen.dart';
 
 /// Dedicated entry point for books already stored on the current device.
 class DeviceFilesScreen extends StatefulWidget {
@@ -113,7 +111,8 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Autorisation non accordée : aucun fichier n’a été analysé.'),
+          content: Text(
+              'Autorisation non accordée : aucun fichier n’a été analysé.'),
         ),
       );
     }
@@ -210,15 +209,9 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
   }
 
   void _openReader(BookItem book) {
-    final Widget screen;
-    if (book.format == BookFormat.pdf) {
-      screen = PdfReaderScreen(book: book);
-    } else if (book.format == BookFormat.epub) {
-      screen = EpubReaderScreen(book: book);
-    } else {
-      screen = CbzReaderScreen(book: book);
-    }
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => buildSyncedReaderScreen(book)),
+    );
   }
 
   @override

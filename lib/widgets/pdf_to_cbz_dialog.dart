@@ -5,6 +5,7 @@ import '../models/book_item.dart';
 import '../providers/library_provider.dart';
 import '../screens/cbz_reader_screen.dart';
 import '../services/pdf_converter_service.dart';
+import 'synced_reader_gate.dart';
 
 class PdfToCbzDialog extends StatefulWidget {
   final BookItem book;
@@ -89,7 +90,8 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
     }
 
     // Remove the old PDF entry from library since we now have the CBZ version
-    if (widget.book.format == BookFormat.pdf && targetBook.id != widget.book.id) {
+    if (widget.book.format == BookFormat.pdf &&
+        targetBook.id != widget.book.id) {
       await library.deleteBook(widget.book.id);
     }
 
@@ -100,7 +102,10 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
       // Use pushReplacement to replace the current PDF reader with CBZ reader
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => CbzReaderScreen(book: targetBook!),
+          builder: (_) => SyncedReaderGate(
+            book: targetBook!,
+            readerBuilder: (book) => CbzReaderScreen(book: book),
+          ),
         ),
       );
     }
@@ -121,7 +126,8 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
               color: const Color(0xFF8B5CF6).withAlpha(40),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.transform_rounded, color: Color(0xFF8B5CF6), size: 24),
+            child: const Icon(Icons.transform_rounded,
+                color: Color(0xFF8B5CF6), size: 24),
           ),
           const SizedBox(width: 12),
           const Expanded(
@@ -151,9 +157,11 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+                  color:
+                      theme.colorScheme.surfaceContainerHighest.withAlpha(80),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(30)),
+                  border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withAlpha(30)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,14 +170,20 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                       children: [
                         Icon(Icons.bolt_rounded, size: 16, color: Colors.amber),
                         SizedBox(width: 6),
-                        Text('Avantages du format CBZ :', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                        Text('Avantages du format CBZ :',
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 12)),
                       ],
                     ),
                     SizedBox(height: 6),
-                    Text('• Rendu beaucoup plus rapide et fluide', style: TextStyle(fontSize: 11)),
-                    Text('• Mode Manga (sens droit-à-gauche) disponible', style: TextStyle(fontSize: 11)),
-                    Text('• Mode Webtoon (défilement continu) fluide', style: TextStyle(fontSize: 11)),
-                    Text('• Moins de consommation mémoire et batterie', style: TextStyle(fontSize: 11)),
+                    Text('• Rendu beaucoup plus rapide et fluide',
+                        style: TextStyle(fontSize: 11)),
+                    Text('• Mode Manga (sens droit-à-gauche) disponible',
+                        style: TextStyle(fontSize: 11)),
+                    Text('• Mode Webtoon (défilement continu) fluide',
+                        style: TextStyle(fontSize: 11)),
+                    Text('• Moins de consommation mémoire et batterie',
+                        style: TextStyle(fontSize: 11)),
                   ],
                 ),
               ),
@@ -191,12 +205,17 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                   Expanded(
                     child: Text(
                       _progress?.statusText ?? 'Conversion en cours...',
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ),
                   Text(
                     '${(percent * 100).toInt()}%',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF8B5CF6)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: Color(0xFF8B5CF6)),
                   ),
                 ],
               ),
@@ -214,14 +233,19 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24),
+                    const Icon(Icons.check_circle_rounded,
+                        color: Colors.green, size: 24),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: const [
-                          Text('Conversion réussie !', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          Text('Votre BD est disponible au format CBZ haute définition.', style: TextStyle(fontSize: 11)),
+                          Text('Conversion réussie !',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13)),
+                          Text(
+                              'Votre BD est disponible au format CBZ haute définition.',
+                              style: TextStyle(fontSize: 11)),
                         ],
                       ),
                     ),
@@ -242,12 +266,14 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+                    const Icon(Icons.error_outline,
+                        color: Colors.redAccent, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+                        style: const TextStyle(
+                            color: Colors.redAccent, fontSize: 12),
                       ),
                     ),
                   ],
@@ -264,7 +290,8 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
             child: const Text('Annuler'),
           ),
           FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+            style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6)),
             onPressed: _startConversion,
             icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
             label: const Text('Convertir'),
@@ -275,7 +302,8 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
             child: const Text('Fermer'),
           ),
           FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6)),
+            style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6)),
             onPressed: _openConvertedBook,
             icon: const Icon(Icons.auto_stories_rounded, size: 16),
             label: const Text('Lire en mode BD (CBZ)'),
@@ -283,7 +311,8 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
         ] else ...[
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Veuillez patienter...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            child: Text('Veuillez patienter...',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
           ),
         ],
       ],
