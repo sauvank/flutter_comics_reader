@@ -1,6 +1,7 @@
 # ComicStream — Visuels Google Play (français)
 
-Le lot contient six visuels téléphone, quatre captures tablette et une bannière.
+Le lot contient six visuels téléphone, quatre captures tablette, une bannière et
+une vidéo de présentation en français.
 Ouvrir `preview.html` pour les comparer, ou `preview.jpg` pour un aperçu unique.
 L’archive `ComicStream-Google-Play-FR.zip` regroupe les images à importer et ce guide.
 
@@ -11,6 +12,8 @@ L’archive `ComicStream-Google-Play-FR.zip` regroupe les images à importer et 
 | Captures téléphone | `exports/phone/01-library.jpg` à `06-favorites.jpg`, dans cet ordre | 1080 × 1920 |
 | Captures tablette 10 pouces | Les quatre images de `exports/tablet/` | 1200 × 1920 |
 | Image de présentation | `exports/feature-graphic.jpg` | 1024 × 500 |
+| Vidéo de présentation | `exports/video/comicstream-google-play-fr.mp4` | 1920 × 1080, 27,9 s |
+| Miniature de la vidéo | `exports/video/youtube-thumbnail.jpg` | 1920 × 1080 |
 
 Les exports sont des JPEG RVB sans transparence. Les captures tablette conservent le ratio natif de l’appareil et n’ont aucun texte promotionnel ajouté. La taille de la bannière et les dimensions des captures suivent les [consignes officielles Google Play](https://support.google.com/googleplay/android-developer/answer/9866151?hl=fr). La recommandation 9:16 pour une éventuelle mise en avant est appliquée aux six visuels téléphone ; les captures tablette restent au format natif 10:16.
 
@@ -74,4 +77,20 @@ python3 package.py
 
 Le rendu charge la police Manrope locale, sous licence SIL OFL (fichier `source/fonts/OFL.txt`). `PLAYWRIGHT_MODULE` et `CHROMIUM_EXECUTABLE` permettent d’utiliser une installation de navigateur existante. Adapter le cadrage CSS si les nouvelles captures n’ont pas les mêmes bandes latérales.
 
-Validation réalisée : analyse Flutter sans erreur, 32 tests réussis, inspection visuelle des onze exports, contrôle des dimensions et de l’absence de transparence. Les images sont prêtes à importer ; leur remplacement dans Play Console reste une opération distincte.
+## Régénérer la vidéo
+
+FFmpeg doit être disponible sur la machine. Depuis la racine du dépôt :
+
+```sh
+bash marketing/play-store/source/render_video.sh
+```
+
+Le script assemble sept scènes à partir des captures et de la bannière, puis
+génère la vidéo H.264 Full HD et sa miniature. La piste AAC est volontairement
+silencieuse afin que la publication ne dépende d’aucune musique sous licence.
+Le fichier est prévu pour une publication vidéo avant son association à la
+fiche Google Play.
+
+Validation réalisée : analyse Flutter sans erreur, inspection visuelle des
+exports, contrôle des dimensions des images et décodage intégral de la vidéo.
+Leur publication dans Play Console reste une opération distincte.

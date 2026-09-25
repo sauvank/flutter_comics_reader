@@ -2,7 +2,7 @@
 
 ## Présentation Google Play
 
-Le kit `marketing/play-store/` utilise la vraie interface de ComicStream avec des livres et profils serveurs fictifs. Les illustrations de démonstration restent hors des assets de production. Voir le [guide du kit](../marketing/play-store/README.md) pour les exports, leur provenance et leur régénération.
+Le kit `marketing/play-store/` utilise la vraie interface de ComicStream avec des livres et profils serveurs fictifs. Il contient aussi une vidéo promotionnelle française Full HD de 27,9 secondes et sa miniature, générées à partir de ces captures avec une piste audio silencieuse. Les illustrations de démonstration restent hors des assets de production. Voir le [guide du kit](../marketing/play-store/README.md) pour les exports, leur provenance et leur régénération.
 
 Chaque release GitHub inclut les APK installables et l’AAB signé destiné à la
 publication manuelle dans la Play Console. L’AAB ne doit pas être installé

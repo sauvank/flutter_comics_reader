@@ -2,7 +2,7 @@
 
 ## Outillage de présentation
 
-`marketing/play-store/source/capture_app.dart` initialise les données fictives puis lance le vrai `ComicStreamApp` dans un paquet Android distinct. `prepare.py` prépare ce projet temporaire ; `capture_device.py` capture les écrans ; `render.mjs` compose les visuels HTML/CSS ; `package.py` valide et archive les exports. Cet outillage ne modifie pas le fonctionnement du lecteur en production.
+`marketing/play-store/source/capture_app.dart` initialise les données fictives puis lance le vrai `ComicStreamApp` dans un paquet Android distinct. `prepare.py` prépare ce projet temporaire ; `capture_device.py` capture les écrans ; `render.mjs` compose les visuels HTML/CSS ; `package.py` valide et archive les exports. `render_video.sh` assemble les captures et la bannière avec FFmpeg en une vidéo H.264 Full HD, accompagnée d’une piste AAC silencieuse et d’une miniature JPEG. Cet outillage ne modifie pas le fonctionnement du lecteur en production.
 
 Ce document décrit l'architecture logicielle, les flux de données et les pipelines de traitement de l'application **ComicStream**.
 

@@ -5,7 +5,9 @@
 - [x] Six visuels téléphone et une bannière fondés sur des captures de la vraie application.
 - [x] Quatre captures tablette sans habillage promotionnel.
 - [x] Illustrations fictives, sources reproductibles et guide d’import dans `marketing/play-store/`.
+- [x] Vidéo de présentation Full HD en français, miniature et script de rendu reproductible.
 - [ ] Remplacer les images de la fiche dans Play Console avec le lot validé.
+- [ ] Publier la vidéo puis l’associer à la fiche Google Play.
 
 Bienvenue sur la feuille de route du lecteur de BD / Manga **ComicStream**.  
 Ce document détaille les phases de développement pour enrichir l'expérience sur tablette et serveur local.
