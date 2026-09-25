@@ -10,6 +10,13 @@ directement sur un appareil.
 
 Ce document résume l'environnement matériel, l'infrastructure serveur, les protocoles réseau, et l'état actuel de l'application **ComicStream**.
 
+## Workflow de versionnement
+
+Tout commit doit créer un nouveau tag de version. Un tag existant ne doit jamais
+être déplacé ni réutilisé : chaque modification finalisée passe par une nouvelle
+release, avec une incrémentation `patch` par défaut via
+`./scripts/bump_and_push.sh patch` (ou `minor`/`major` sur demande explicite).
+
 ## Synchronisation de compte (préparation)
 
 Firebase Authentication et Cloud Firestore constituent le backend prévu pour
