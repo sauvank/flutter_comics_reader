@@ -63,4 +63,16 @@ void main() {
     expect(stored.bookmarks, [7]);
     expect(stored.isFavorite, isTrue);
   });
+
+  test('cached library is isolated from caller-side list mutations', () async {
+    final database = DatabaseService();
+    final books = [_book()];
+    await database.saveBooks(books);
+    books.clear();
+
+    final read = await database.getBooks();
+    expect(read, hasLength(1));
+    read.clear();
+    expect(await database.getBooks(), hasLength(1));
+  });
 }

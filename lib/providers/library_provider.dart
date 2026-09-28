@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:pdfrx/pdfrx.dart';
 import '../models/book_item.dart';
+import '../models/series_item.dart';
 import '../services/cbz_service.dart';
 import '../services/epub_service.dart';
 import '../services/database_service.dart';
@@ -42,6 +43,12 @@ class LibraryProvider extends ChangeNotifier {
   LibrarySort _sort = LibrarySort.lastRead;
   int _totalStorageBytes = 0;
   BookItem? _resumeSuggestion;
+  bool _extractingCovers = false;
+
+  // Derived views, rebuilt lazily after each change instead of on every build.
+  List<BookItem>? _filteredBooksCache;
+  List<SeriesItem>? _filteredSeriesCache;
+  List<BookItem>? _recentBooksCache;
 
   LibraryProvider() {
     _resumeRestoredSubscription = _db.resumeRestored.listen((book) async {
@@ -69,7 +76,24 @@ class LibraryProvider extends ChangeNotifier {
     return suggestion;
   }
 
-  List<BookItem> get filteredBooks {
+  @override
+  void notifyListeners() {
+    _filteredBooksCache = null;
+    _filteredSeriesCache = null;
+    _recentBooksCache = null;
+    super.notifyListeners();
+  }
+
+  /// Books matching the current filter, search and sort. The returned list is
+  /// shared between callers until the next change and must not be modified.
+  List<BookItem> get filteredBooks =>
+      _filteredBooksCache ??= List.unmodifiable(_computeFilteredBooks());
+
+  /// [filteredBooks] grouped into series.
+  List<SeriesItem> get filteredSeries =>
+      _filteredSeriesCache ??= SeriesItem.groupFromBooks(filteredBooks);
+
+  List<BookItem> _computeFilteredBooks() {
     var list = List<BookItem>.from(_books);
 
     // Apply format/status filter
@@ -104,7 +128,7 @@ class LibraryProvider extends ChangeNotifier {
 
     // Apply search filter
     if (_searchQuery.trim().isNotEmpty) {
-      final q = _searchQuery.toLowerCase();
+      final q = _searchQuery.trim().toLowerCase();
       list = list
           .where((b) =>
               b.title.toLowerCase().contains(q) ||
@@ -125,8 +149,8 @@ class LibraryProvider extends ChangeNotifier {
         });
         break;
       case LibrarySort.title:
-        list.sort(
-            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+        final keys = {for (final b in list) b.id: b.title.toLowerCase()};
+        list.sort((a, b) => keys[a.id]!.compareTo(keys[b.id]!));
         break;
       case LibrarySort.dateAdded:
         list.sort((a, b) => b.addedDate.compareTo(a.addedDate));
@@ -139,11 +163,11 @@ class LibraryProvider extends ChangeNotifier {
     return list;
   }
 
-  List<BookItem> get recentBooks {
-    final list = _books.where((b) => b.lastReadDate != null).toList();
-    list.sort((a, b) => b.lastReadDate!.compareTo(a.lastReadDate!));
-    return list.take(6).toList();
-  }
+  List<BookItem> get recentBooks => _recentBooksCache ??= () {
+        final list = _books.where((b) => b.lastReadDate != null).toList();
+        list.sort((a, b) => b.lastReadDate!.compareTo(a.lastReadDate!));
+        return List<BookItem>.unmodifiable(list.take(6));
+      }();
 
   /// Finds the logically next volume in the library for the given book
   BookItem? getNextBook(BookItem currentBook) {
@@ -183,11 +207,22 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   Future<void> _extractMissingCovers() async {
+    // loadLibrary() is triggered from many places; a single pass is enough.
+    if (_extractingCovers) return;
+    _extractingCovers = true;
+    try {
+      await _extractMissingCoversPass();
+    } finally {
+      _extractingCovers = false;
+    }
+  }
+
+  Future<void> _extractMissingCoversPass() async {
     final coversDir = await _db.getCoversDirectory();
 
     for (int i = 0; i < _books.length; i++) {
       final book = _books[i];
-      if (book.coverPath == null || !File(book.coverPath!).existsSync()) {
+      if (book.coverPath == null || !await File(book.coverPath!).exists()) {
         final targetCover = p.join(coversDir.path, '${book.id}.jpg');
         String? newCover;
 
@@ -225,11 +260,15 @@ class LibraryProvider extends ChangeNotifier {
           } catch (_) {}
         }
 
-        if (newCover != null && File(newCover).existsSync()) {
+        if (newCover != null && await File(newCover).exists()) {
           final updated = book.copyWith(coverPath: newCover);
           await _db.updateBook(updated);
-          _books[i] = updated;
-          notifyListeners();
+          // The list may have been reloaded while the cover was extracted.
+          final index = _books.indexWhere((b) => b.id == book.id);
+          if (index >= 0) {
+            _books[index] = _books[index].copyWith(coverPath: newCover);
+            notifyListeners();
+          }
         }
       }
     }
@@ -335,7 +374,9 @@ class LibraryProvider extends ChangeNotifier {
   Future<void> toggleBookmark(
       {required String bookId, required int pageNumber}) async {
     await _db.toggleBookmark(bookId: bookId, pageNumber: pageNumber);
-    await loadLibrary();
+    // Only bookmarks changed: skip the storage scan and cover pass.
+    _books = await _db.getBooks();
+    notifyListeners();
   }
 
   Future<void> deleteBook(String bookId) async {

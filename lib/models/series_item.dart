@@ -41,7 +41,11 @@ class SeriesItem {
     return books.isNotEmpty ? books.first : null;
   }
 
-  String? get coverPath {
+  /// Resolved once per instance: series cards read it several times per build
+  /// and each lookup otherwise hits the file system synchronously.
+  late final String? coverPath = _resolveCoverPath();
+
+  String? _resolveCoverPath() {
     final latest = latestReadBook;
     if (latest?.coverPath != null && File(latest!.coverPath!).existsSync()) {
       return latest.coverPath;
@@ -53,6 +57,15 @@ class SeriesItem {
     }
     return null;
   }
+
+  static final RegExp _sepRegex = RegExp(
+      r'^(.*?)\s*[-–—]\s*(?:Tome|Vol\.?|Volume|Book|Ch\.?|Chapitre|T|V|#|\d+)',
+      caseSensitive: false);
+  static final RegExp _volRegex = RegExp(
+      r'^(.*?)\s+(?:Tome|Vol\.?|Volume|Book|#|T)\s*\d+',
+      caseSensitive: false);
+  static final RegExp _hashRegex =
+      RegExp(r'^(.*?)\s*#\s*\d+', caseSensitive: false);
 
   /// Groups a list of books into series
   static List<SeriesItem> groupFromBooks(List<BookItem> books) {
@@ -92,22 +105,19 @@ class SeriesItem {
     final title = book.title.trim();
 
     // e.g. "Spider-Man - Tome 01" -> "Spider-Man"
-    final sepRegex = RegExp(r'^(.*?)\s*[-–—]\s*(?:Tome|Vol\.?|Volume|Book|Ch\.?|Chapitre|T|V|#|\d+)', caseSensitive: false);
-    final sepMatch = sepRegex.firstMatch(title);
+    final sepMatch = _sepRegex.firstMatch(title);
     if (sepMatch != null && sepMatch.group(1)!.trim().length >= 2) {
       return sepMatch.group(1)!.trim();
     }
 
     // e.g. "Batman Tome 01", "One Piece Vol 12", "Astérix T04"
-    final volRegex = RegExp(r'^(.*?)\s+(?:Tome|Vol\.?|Volume|Book|#|T)\s*\d+', caseSensitive: false);
-    final volMatch = volRegex.firstMatch(title);
+    final volMatch = _volRegex.firstMatch(title);
     if (volMatch != null && volMatch.group(1)!.trim().length >= 2) {
       return volMatch.group(1)!.trim();
     }
 
     // e.g. "Dragon Ball #12"
-    final hashRegex = RegExp(r'^(.*?)\s*#\s*\d+', caseSensitive: false);
-    final hashMatch = hashRegex.firstMatch(title);
+    final hashMatch = _hashRegex.firstMatch(title);
     if (hashMatch != null && hashMatch.group(1)!.trim().length >= 2) {
       return hashMatch.group(1)!.trim();
     }

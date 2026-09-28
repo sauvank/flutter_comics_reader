@@ -2,10 +2,11 @@
 
 class NaturalSort {
   /// Sorts a list of strings naturally (e.g., 'page2.jpg' before 'page10.jpg', 'Ch01/01.jpg' before 'Ch02/01.jpg')
+  static final RegExp _chunks = RegExp(r'(\d+|\D+)');
+
   static int compare(String a, String b) {
-    final regex = RegExp(r'(\d+|\D+)');
-    final matchesA = regex.allMatches(a).map((m) => m.group(0)!).toList();
-    final matchesB = regex.allMatches(b).map((m) => m.group(0)!).toList();
+    final matchesA = _chunks.allMatches(a).map((m) => m.group(0)!).toList();
+    final matchesB = _chunks.allMatches(b).map((m) => m.group(0)!).toList();
 
     final minLength = matchesA.length < matchesB.length ? matchesA.length : matchesB.length;
 

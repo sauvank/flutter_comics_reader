@@ -31,6 +31,12 @@ class DatabaseService {
   final Set<String> _awaitingRestoredProgress = {};
   Future<void> _bookWrites = Future.value();
 
+  /// Decoded copy of [_keyBooks], kept alongside the preferences instance it
+  /// was read from so each read or mutation does not re-parse the whole
+  /// library JSON.
+  List<BookItem>? _booksCache;
+  SharedPreferences? _booksCacheSource;
+
   Future<void> init() async {
     await _preferences();
     // Ensure base directories exist
@@ -83,17 +89,27 @@ class DatabaseService {
   }
 
   Future<List<BookItem>> _readBooks() async {
-    final jsonString = (await _preferences()).getString(_keyBooks);
-    if (jsonString == null || jsonString.isEmpty) return [];
-
-    try {
-      final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
-      return list
-          .map((e) => BookItem.fromMap(e as Map<String, dynamic>))
-          .toList();
-    } catch (e) {
-      return [];
+    final prefs = await _preferences();
+    final cached = _booksCache;
+    if (cached != null && identical(_booksCacheSource, prefs)) {
+      return List<BookItem>.of(cached);
     }
+
+    final jsonString = prefs.getString(_keyBooks);
+    var books = <BookItem>[];
+    if (jsonString != null && jsonString.isNotEmpty) {
+      try {
+        final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
+        books = list
+            .map((e) => BookItem.fromMap(e as Map<String, dynamic>))
+            .toList();
+      } catch (e) {
+        books = [];
+      }
+    }
+    _booksCache = books;
+    _booksCacheSource = prefs;
+    return List<BookItem>.of(books);
   }
 
   Future<void> saveBooks(List<BookItem> books) async {
@@ -101,8 +117,13 @@ class DatabaseService {
   }
 
   Future<void> _saveBooks(List<BookItem> books) async {
+    final prefs = await _preferences();
     final list = books.map((b) => b.toMap()).toList();
-    await (await _preferences()).setString(_keyBooks, jsonEncode(list));
+    // Drop the cache first so a failed write is never masked by stale data.
+    _booksCache = null;
+    await prefs.setString(_keyBooks, jsonEncode(list));
+    _booksCache = List<BookItem>.of(books);
+    _booksCacheSource = prefs;
   }
 
   Future<void> addBook(BookItem book, {bool notifySync = true}) async {
@@ -277,6 +298,7 @@ class DatabaseService {
     try {
       final List<dynamic> list = jsonDecode(jsonString) as List<dynamic>;
       final servers = <ServerProfile>[];
+      var migrated = false;
       for (final item in list) {
         final map = Map<String, dynamic>.from(item as Map);
         // One-time migration from legacy unprotected preferences.
@@ -284,12 +306,14 @@ class DatabaseService {
         final id = map['id'] as String;
         if (legacyPassword != null && legacyPassword.isNotEmpty) {
           await _credentials.save(id, legacyPassword);
+          migrated = true;
         }
         map['password'] = await _credentials.read(id);
         servers.add(ServerProfile.fromMap(map));
       }
       // Re-save migrated profiles without their password in SharedPreferences.
-      await saveServers(servers);
+      // Skipped otherwise: it rewrote every credential on each read.
+      if (migrated) await saveServers(servers);
       return servers;
     } catch (e) {
       return [];
@@ -381,13 +405,10 @@ class DatabaseService {
 
   Future<int> calculateTotalLibraryStorage() async {
     final books = await getBooks();
-    var total = 0;
-    for (final book in books) {
+    final sizes = await Future.wait(books.map((book) async {
       final file = File(book.localPath);
-      if (await file.exists()) {
-        total += await file.length();
-      }
-    }
-    return total;
+      return await file.exists() ? await file.length() : 0;
+    }));
+    return sizes.fold<int>(0, (total, size) => total + size);
   }
 }

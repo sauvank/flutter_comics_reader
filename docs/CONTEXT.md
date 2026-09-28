@@ -199,7 +199,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
 
 ## 🗂️ 5. Structure des Données Locales
 
-* **Base de données / Métadonnées** : `SharedPreferences` stockant les profils serveurs et les listes d'objets `BookItem`.
+* **Base de données / Métadonnées** : `SharedPreferences` stockant les profils serveurs et les listes d'objets `BookItem`. La liste des livres décodée est conservée en mémoire par `DatabaseService`.
 * **Répertoires de Stockage (Documents App)** :
   * `.../app_flutter/books/` : Fichiers `.cbz`, `.pdf` téléchargés en local.
   * `.../app_flutter/covers/` : Miniatures JPEG extraites des couvertures.

@@ -73,7 +73,13 @@ reste locale et ne peut remplacer un autre chapitre reçu par synchronisation.
 Les réglages sont horodatés seulement lors d’une modification locale, ce qui
 évite les faux conflits d’un appareil à l’autre.
 `DatabaseService` met les mutations de bibliothèque dans une file séquentielle
-avant leur persistance. `SyncService` utilise un verrou commun aux instances du
+avant leur persistance. Il garde en mémoire la liste `BookItem` décodée et ne
+réanalyse plus le JSON complet à chaque lecture ou mise à jour ; chaque appel
+reçoit une copie de la liste. Les profils serveurs ne sont réécrits dans le
+stockage sécurisé que lors de la migration d’un ancien mot de passe en clair.
+`LibraryProvider` calcule les listes filtrées, les séries et les lectures
+récentes une seule fois par changement, au lieu de les recalculer à chaque
+reconstruction de l’écran. `SyncService` utilise un verrou commun aux instances du
 service, de sorte que l’écran Compte et `SyncProvider` rejoignent la même
 opération au lieu de concourir. Les mises à jour cloud sont publiées sur un
 flux dédié pour recharger `LibraryProvider` sans déclencher de boucle de sync.

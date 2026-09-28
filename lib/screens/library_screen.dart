@@ -180,7 +180,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       BuildContext context, LibraryProvider library, ThemeData theme) {
     _queueResumePrompt(library);
     final books = library.filteredBooks;
-    final allSeries = SeriesItem.groupFromBooks(books);
+    final allSeries = library.filteredSeries;
     final sync = context.watch<SyncProvider>();
 
     return Scaffold(
@@ -408,9 +408,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: recentBooks.skip(1).length,
+                  itemCount: recentBooks.length - 1,
                   itemBuilder: (context, index) {
-                    final book = recentBooks.skip(1).toList()[index];
+                    final book = recentBooks[index + 1];
                     return Container(
                       width: 130,
                       margin: const EdgeInsets.symmetric(
