@@ -98,11 +98,10 @@ class LocalBookImportService {
           p.join(booksDirectory.path, '$id${p.extension(fileName)}');
       try {
         await source.copy(destination);
-        final metadata = await _readMetadata(
-          id: id,
+        final metadata = await readMetadata(
           path: destination,
           format: format,
-          coversDirectory: coversDirectory,
+          coverTarget: p.join(coversDirectory.path, '$id.jpg'),
         );
         final book = BookItem(
           id: id,
@@ -129,13 +128,15 @@ class LocalBookImportService {
     return LocalBookImportResult(imported: imported, skipped: skipped);
   }
 
-  Future<({String? coverPath, int totalPages})> _readMetadata({
-    required String id,
+  /// Extracts the cover to [coverTarget] and counts pages, without importing.
+  ///
+  /// Also used by the scan results screen to preview covers of files that are
+  /// still outside the library.
+  static Future<({String? coverPath, int totalPages})> readMetadata({
     required String path,
     required BookFormat format,
-    required Directory coversDirectory,
+    required String coverTarget,
   }) async {
-    final coverTarget = p.join(coversDirectory.path, '$id.jpg');
     if (format == BookFormat.cbz ||
         format == BookFormat.zip ||
         format == BookFormat.cbr) {

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 
 import '../models/book_item.dart';
 import '../providers/library_provider.dart';
 import '../services/device_storage_access_service.dart';
+import 'device_scan_results_screen.dart';
 import 'synced_reader_screen.dart';
 
 /// Dedicated entry point for books already stored on the current device.
@@ -77,7 +77,18 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
         );
         return;
       }
-      final selectedPaths = await _chooseBooksToImport(paths);
+      final library = context.read<LibraryProvider>();
+      final books =
+          await DeviceScanResultsScreen.describe(paths, library.books);
+      if (!mounted) return;
+      final selectedPaths = await Navigator.of(context).push<List<String>>(
+        MaterialPageRoute(
+          builder: (_) => DeviceScanResultsScreen(
+            books: books,
+            rootPath: storagePath,
+          ),
+        ),
+      );
       if (selectedPaths == null || selectedPaths.isEmpty || !mounted) return;
 
       final result =
@@ -139,73 +150,6 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
       ),
     );
     return granted ?? false;
-  }
-
-  Future<List<String>?> _chooseBooksToImport(List<String> paths) async {
-    final selectedPaths = paths.toSet();
-    return showDialog<List<String>>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text('${paths.length} livre(s) trouvé(s)'),
-          content: SizedBox(
-            width: 520,
-            height: MediaQuery.sizeOf(context).height * 0.5,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                    'Décochez les fichiers que vous ne voulez pas garder.'),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: paths.length,
-                    itemBuilder: (_, index) {
-                      final path = paths[index];
-                      return CheckboxListTile(
-                        value: selectedPaths.contains(path),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          p.basename(path),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text(
-                          p.dirname(path),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        onChanged: (selected) => setDialogState(() {
-                          if (selected ?? false) {
-                            selectedPaths.add(path);
-                          } else {
-                            selectedPaths.remove(path);
-                          }
-                        }),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Annuler'),
-            ),
-            FilledButton(
-              onPressed: selectedPaths.isEmpty
-                  ? null
-                  : () => Navigator.of(dialogContext)
-                      .pop(selectedPaths.toList(growable: false)),
-              child: Text('Importer (${selectedPaths.length})'),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _openReader(BookItem book) {
