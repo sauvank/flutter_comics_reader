@@ -11,6 +11,7 @@ import '../widgets/folder_card.dart';
 import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import '../widgets/server_form_dialog.dart';
+import '../widgets/server_setup_guide.dart';
 
 class ServerScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -399,7 +400,10 @@ class _ServerScreenState extends State<ServerScreen> {
         ],
       ),
       body: servers.isEmpty
-          ? _buildNoServerState(theme)
+          ? ServerSetupGuide(
+              onAddServer: _openAddServerDialog,
+              onImportConfiguration: _importServersDialog,
+            )
           : ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               itemCount: servers.length,
@@ -1020,37 +1024,6 @@ class _ServerScreenState extends State<ServerScreen> {
                           ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNoServerState(ThemeData theme) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.dns_outlined,
-                size: 64, color: theme.colorScheme.primary.withAlpha(150)),
-            const SizedBox(height: 16),
-            const Text('Aucun serveur configuré',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-              'Ajoutez votre serveur WebDAV, HTTP ou FTP pour explorer et lire vos BDs.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
-            ),
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _openAddServerDialog,
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Ajouter un serveur'),
-            ),
-          ],
-        ),
       ),
     );
   }
