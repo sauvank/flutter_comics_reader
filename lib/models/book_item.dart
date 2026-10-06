@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../l10n/l10n.dart';
 
 enum BookFormat {
   cbz,
@@ -83,7 +84,7 @@ class BookItem {
       case BookFormat.epub:
         return 'EPUB';
       default:
-        return 'LIVRE';
+        return l10n.bookUpper;
     }
   }
 

@@ -6,6 +6,7 @@ import '../providers/library_provider.dart';
 import '../services/device_storage_access_service.dart';
 import 'device_scan_results_screen.dart';
 import 'synced_reader_screen.dart';
+import '../l10n/l10n.dart';
 
 /// Dedicated entry point for books already stored on the current device.
 class DeviceFilesScreen extends StatefulWidget {
@@ -50,9 +51,9 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
       if (!requested && mounted) {
         _waitingForStorageAccess = false;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-                'L’accès à tous les fichiers est nécessaire pour analyser le téléphone.'),
+                l10n.allFilesAccessRequired),
           ),
         );
       } else if (await DeviceStorageAccessService.hasAllFilesAccess()) {
@@ -72,8 +73,8 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
       if (!mounted) return;
       if (paths.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Aucun livre compatible trouvé sur le téléphone.')),
+          SnackBar(
+              content: Text(l10n.noCompatibleBookFound)),
         );
         return;
       }
@@ -96,16 +97,16 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
       if (!mounted) return;
       final skipped = result.skipped == 0
           ? ''
-          : ' · ${result.skipped} déjà présent(s) ou ignoré(s)';
+          : l10n.alreadyPresentOrSkipped(result.skipped);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${result.imported} livre(s) ajouté(s)$skipped'),
+          content: Text(l10n.booksAddedCount(result.imported, skipped)),
         ),
       );
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import impossible : $error')),
+          SnackBar(content: Text(l10n.importFailed(error))),
         );
       }
     } finally {
@@ -121,9 +122,9 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-              'Autorisation non accordée : aucun fichier n’a été analysé.'),
+              l10n.permissionNotGranted),
         ),
       );
     }
@@ -133,18 +134,18 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     final granted = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Analyser les livres du téléphone ?'),
-        content: const Text(
-          'ComicStream demandera l’accès aux fichiers uniquement pour repérer les BD, PDF et EPUB. Vous choisirez ensuite les fichiers à importer ; rien n’est copié sans confirmation.',
+        title: Text(l10n.scanPhoneTitle),
+        content: Text(
+          l10n.scanPhoneBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Pas maintenant'),
+            child: Text(l10n.notNow),
           ),
           FilledButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Continuer'),
+            child: Text(l10n.continueLabel),
           ),
         ],
       ),
@@ -168,7 +169,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Fichiers de l’appareil')),
+      appBar: AppBar(title: Text(l10n.deviceFiles)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -185,7 +186,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                     size: 38, color: theme.colorScheme.onPrimaryContainer),
                 const SizedBox(height: 12),
                 Text(
-                  'Ajouter des BD depuis cet appareil',
+                  l10n.addComicsFromDevice,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onPrimaryContainer,
@@ -193,7 +194,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Analysez tous les fichiers compatibles du téléphone, puis choisissez les livres à garder.',
+                  l10n.addComicsFromDeviceBody,
                   style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
                 ),
                 const SizedBox(height: 18),
@@ -207,24 +208,24 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                         )
                       : const Icon(Icons.manage_search_rounded),
                   label: Text(_importing
-                      ? 'Analyse des fichiers…'
-                      : 'Scanner le téléphone'),
+                      ? l10n.scanningFiles
+                      : l10n.scanPhone),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            'Fichiers ajoutés (${localBooks.length})',
+            l10n.addedFilesCount(localBooks.length),
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           if (localBooks.isEmpty)
-            const ListTile(
+            ListTile(
               leading: Icon(Icons.folder_open_outlined),
-              title: Text('Aucun fichier ajouté'),
-              subtitle: Text('Analysez le téléphone pour trouver vos livres.'),
+              title: Text(l10n.noFileAdded),
+              subtitle: Text(l10n.scanPhoneToFindBooks),
             )
           else
             for (final book in localBooks)
@@ -234,7 +235,7 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                   title: Text(book.title,
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   subtitle: Text(
-                      '${book.formatString} · Page ${book.currentPage + 1}/${book.totalPages}'),
+                      l10n.formatPageProgress(book.formatString, book.currentPage + 1, book.totalPages)),
                   trailing: const Icon(Icons.play_arrow_rounded),
                   onTap: () => _openReader(book),
                 ),

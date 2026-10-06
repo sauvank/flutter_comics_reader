@@ -9,6 +9,7 @@ import 'device_files_screen.dart';
 import 'library_screen.dart';
 import 'server_screen.dart';
 import 'settings_screen.dart';
+import '../l10n/l10n.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -86,10 +87,10 @@ class _HomeScreenState extends State<HomeScreen> {
           _lastBackPressTime = now;
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 2),
-              content: Text('Appuyez à nouveau pour quitter ComicStream'),
+              content: Text(l10n.pressAgainToExit),
             ),
           );
           return;
@@ -107,23 +108,23 @@ class _HomeScreenState extends State<HomeScreen> {
           selectedIndex: _currentIndex,
           onDestinationSelected: _onTabSelected,
           destinations: [
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.auto_stories_outlined),
               selectedIcon: Icon(Icons.auto_stories),
               // Five destinations share the same limited horizontal space on
               // phones.  A compact label prevents the selected destination
               // from wrapping at enlarged system text sizes.
-              label: 'Biblio',
+              label: l10n.libraryTab,
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.dns_outlined),
               selectedIcon: Icon(Icons.dns),
-              label: 'Serveur',
+              label: l10n.serverTab,
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.folder_open_outlined),
               selectedIcon: Icon(Icons.folder_open),
-              label: 'Fichiers',
+              label: l10n.filesTab,
             ),
             NavigationDestination(
               icon: Badge(
@@ -136,12 +137,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: Text('$activeDownloadsCount'),
                 child: const Icon(Icons.download),
               ),
-              label: 'Télécharg.',
+              label: l10n.downloadsTabShort,
             ),
-            const NavigationDestination(
+            NavigationDestination(
               icon: Icon(Icons.settings_outlined),
               selectedIcon: Icon(Icons.settings),
-              label: 'Réglages',
+              label: l10n.settingsTab,
             ),
           ],
         ),

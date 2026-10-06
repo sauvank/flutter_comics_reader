@@ -4,6 +4,7 @@ import '../models/book_item.dart';
 import '../models/download_task.dart';
 import '../models/remote_file.dart';
 import '../utils/format_utils.dart';
+import '../l10n/l10n.dart';
 
 class RemoteFileTile extends StatelessWidget {
   final RemoteFile file;
@@ -51,7 +52,7 @@ class RemoteFileTile extends StatelessWidget {
           ),
         ),
         subtitle: file.isDirectory
-            ? const Text('Dossier', style: TextStyle(fontSize: 12, color: Colors.grey))
+            ? Text(l10n.folder, style: TextStyle(fontSize: 12, color: Colors.grey))
             : Row(
                 children: [
                   if (file.size > 0) ...[
@@ -139,13 +140,13 @@ class RemoteFileTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: Colors.green.withAlpha(80)),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.check_circle, color: Colors.green, size: 14),
             SizedBox(width: 4),
             Text(
-              'Téléchargé',
+              l10n.downloaded,
               style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ],
@@ -195,7 +196,7 @@ class RemoteFileTile extends StatelessWidget {
     return IconButton.filledTonal(
       icon: const Icon(Icons.download_rounded, size: 18),
       onPressed: onDownload,
-      tooltip: 'Télécharger',
+      tooltip: l10n.download,
       style: IconButton.styleFrom(
         backgroundColor: theme.colorScheme.primary.withAlpha(40),
         foregroundColor: theme.colorScheme.primary,

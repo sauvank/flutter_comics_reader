@@ -6,6 +6,7 @@ import '../providers/library_provider.dart';
 import '../providers/server_provider.dart';
 import '../utils/format_utils.dart';
 import 'synced_reader_screen.dart';
+import '../l10n/l10n.dart';
 
 class DownloadsScreen extends StatelessWidget {
   const DownloadsScreen({super.key, this.onNavigateToServers});
@@ -35,7 +36,7 @@ class DownloadsScreen extends StatelessWidget {
                   color: theme.colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Téléchargements'),
+            Text(l10n.downloads),
           ],
         ),
         actions: [
@@ -43,7 +44,7 @@ class DownloadsScreen extends StatelessWidget {
             TextButton.icon(
               onPressed: () => downloadProvider.clearCompleted(),
               icon: const Icon(Icons.cleaning_services_rounded, size: 16),
-              label: const Text('Nettoyer', style: TextStyle(fontSize: 12)),
+              label: Text(l10n.clean, style: TextStyle(fontSize: 12)),
             ),
         ],
       ),
@@ -57,12 +58,12 @@ class DownloadsScreen extends StatelessWidget {
                     Icon(Icons.cloud_done_outlined,
                         size: 56, color: Colors.grey.shade600),
                     const SizedBox(height: 16),
-                    const Text('Aucun téléchargement en cours',
+                    Text(l10n.noDownloadInProgress,
                         style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Text(
-                      'Les fichiers que vous téléchargez depuis votre serveur local apparaîtront ici avec leur progression.',
+                      l10n.noDownloadInProgressBody,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           color: theme.colorScheme.onSurfaceVariant,
@@ -73,7 +74,7 @@ class DownloadsScreen extends StatelessWidget {
                       FilledButton.icon(
                         onPressed: onNavigateToServers,
                         icon: const Icon(Icons.dns_outlined),
-                        label: const Text('Explorer mes serveurs'),
+                        label: Text(l10n.exploreServers),
                       ),
                     ],
                   ],
@@ -99,7 +100,7 @@ class DownloadsScreen extends StatelessWidget {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'En cours (${activeTasks.length})',
+                              l10n.inProgressCount(activeTasks.length),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 14),
                             ),
@@ -117,7 +118,7 @@ class DownloadsScreen extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 8),
                         child: Text(
-                          'Historique (${otherTasks.length})',
+                          l10n.historyCount(otherTasks.length),
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -167,7 +168,7 @@ class DownloadsScreen extends StatelessWidget {
                 icon:
                     const Icon(Icons.close, size: 20, color: Colors.redAccent),
                 onPressed: () => provider.cancelDownload(task.id),
-                tooltip: 'Annuler',
+                tooltip: l10n.cancel,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               ),
@@ -283,10 +284,10 @@ class DownloadsScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   isSuccess
-                      ? 'Terminé • ${FormatUtils.formatBytes(task.totalBytes)}'
+                      ? l10n.doneWithSize(FormatUtils.formatBytes(task.totalBytes))
                       : isCancelled
-                          ? 'Annulé'
-                          : 'Échec: ${task.errorMessage ?? "Erreur réseau"}',
+                          ? l10n.cancelled
+                          : l10n.failedWithReason(task.errorMessage ?? l10n.networkError),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -316,12 +317,12 @@ class DownloadsScreen extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 visualDensity: VisualDensity.compact,
               ),
-              child: const Text('Lire', style: TextStyle(fontSize: 12)),
+              child: Text(l10n.read, style: TextStyle(fontSize: 12)),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline,
                   size: 18, color: Colors.redAccent),
-              tooltip: 'Supprimer du stockage',
+              tooltip: l10n.deleteFromStorage,
               onPressed: () async {
                 final library = context.read<LibraryProvider>();
                 await library.deleteBook(task.bookId);
@@ -338,7 +339,7 @@ class DownloadsScreen extends StatelessWidget {
                 );
                 provider.retryDownload(task.id, server);
               },
-              tooltip: 'Réessayer',
+              tooltip: l10n.retry,
             ),
         ],
       ),

@@ -197,6 +197,12 @@ l’interface plafonne le facteur de texte Android à 115 %.
 
 ---
 
+Interface traduite (FR, EN, ES, DE, IT, PT) selon la langue du téléphone ;
+voir `docs/ARCHITECTURE.md` › Langues de l'interface. Un mot de passe serveur
+illisible dans le stockage sécurisé (« bad base-64 » après certaines
+réinstallations) ne masque plus la liste des serveurs ; le profil reste
+affiché et seul le mot de passe est à ressaisir.
+
 ## 🗂️ 5. Structure des Données Locales
 
 * **Base de données / Métadonnées** : `SharedPreferences` stockant les profils serveurs et les listes d'objets `BookItem`. La liste des livres décodée est conservée en mémoire par `DatabaseService`.

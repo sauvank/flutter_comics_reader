@@ -8,6 +8,7 @@ import '../providers/library_provider.dart';
 import '../services/reader_settings_service.dart';
 import '../widgets/pdf_to_cbz_dialog.dart';
 import '../widgets/reader_controls.dart';
+import '../l10n/l10n.dart';
 
 class PdfReaderScreen extends StatefulWidget {
   final BookItem book;
@@ -148,15 +149,15 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
               children: [
                 const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
                 const SizedBox(height: 16),
-                const Text(
-                  'Fichier PDF introuvable sur l\'appareil.',
+                Text(
+                  l10n.pdfNotFoundOnDevice,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Retour'),
+                  child: Text(l10n.back),
                 ),
               ],
             ),
@@ -291,7 +292,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                       ),
                       child: IconButton(
                         icon: const Icon(Icons.auto_fix_high_rounded, color: Colors.white),
-                        tooltip: 'Convertir en CBZ (Mode BD)',
+                        tooltip: l10n.convertToCbzComicMode,
                         onPressed: () => PdfToCbzDialog.show(context, book: widget.book),
                       ),
                     ),

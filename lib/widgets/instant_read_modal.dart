@@ -7,6 +7,7 @@ import '../models/server_profile.dart';
 import '../providers/download_provider.dart';
 import '../providers/library_provider.dart';
 import '../screens/synced_reader_screen.dart';
+import '../l10n/l10n.dart';
 
 class InstantReadModal extends StatefulWidget {
   final ServerProfile server;
@@ -205,10 +206,10 @@ class _InstantReadModalState extends State<InstantReadModal> {
                   children: [
                     Text(
                       isFailed
-                          ? 'Échec du téléchargement'
+                          ? l10n.downloadFailed
                           : isConverting
-                              ? 'Conversion HD en CBZ (Mode BD)...'
-                              : 'Téléchargement de votre BD...',
+                              ? l10n.convertingHdCbz
+                              : l10n.downloadingYourComic,
                       style: TextStyle(
                         fontSize: 12,
                         color: isFailed ? Colors.redAccent : Colors.grey,
@@ -239,7 +240,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
                 border: Border.all(color: Colors.red.withAlpha(50)),
               ),
               child: Text(
-                task?.errorMessage ?? 'Une erreur réseau est survenue.',
+                task?.errorMessage ?? l10n.networkErrorOccurred,
                 style: const TextStyle(color: Colors.redAccent, fontSize: 12),
               ),
             ),
@@ -265,7 +266,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
                   child: Text(
                     task?.statusDescription ??
                         (isConverting
-                            ? 'Conversion HD en cours...'
+                            ? l10n.convertingHdInProgress
                             : '${(progress * 100).toInt()}% • ${_formatBytes(received)} / ${_formatBytes(total)}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -308,14 +309,14 @@ class _InstantReadModalState extends State<InstantReadModal> {
                     }
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Annuler',
+                  child: Text(l10n.cancel,
                       style: TextStyle(color: Colors.redAccent)),
                 ),
               const Spacer(),
               if (isFailed && task != null) ...[
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Fermer'),
+                  child: Text(l10n.close),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
@@ -323,7 +324,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
                     downloadProvider.retryDownload(task.id, widget.server);
                   },
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Réessayer'),
+                  label: Text(l10n.retry),
                 ),
               ] else ...[
                 FilledButton.tonalIcon(
@@ -332,7 +333,7 @@ class _InstantReadModalState extends State<InstantReadModal> {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.download_done_rounded, size: 18),
-                  label: const Text('Arrière-plan'),
+                  label: Text(l10n.background),
                 ),
               ],
             ],

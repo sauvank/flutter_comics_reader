@@ -11,6 +11,7 @@ import '../services/cbz_service.dart';
 import '../services/database_service.dart';
 import '../services/reader_settings_service.dart';
 import '../utils/format_utils.dart';
+import '../l10n/l10n.dart';
 
 class _JpgTask {
   final int width;
@@ -86,7 +87,7 @@ class PdfConverterService {
   }) async* {
     final pdfFile = File(pdfFilePath);
     if (!await pdfFile.exists()) {
-      throw Exception('Fichier PDF introuvable : $pdfFilePath');
+      throw Exception(l10n.pdfNotFound(pdfFilePath));
     }
 
     final effectiveScale = targetDpiScale ?? ReaderSettingsService().pdfDpiScale;
@@ -95,14 +96,14 @@ class PdfConverterService {
     final totalPages = doc.pages.length;
 
     if (totalPages == 0) {
-      throw Exception('Le fichier PDF ne contient aucune page.');
+      throw Exception(l10n.pdfHasNoPage);
     }
 
     yield PdfConverterProgress(
       currentPage: 0,
       totalPages: totalPages,
       progress: 0.0,
-      statusText: 'Initialisation de la conversion ($totalPages pages)...',
+      statusText: l10n.conversionInit(totalPages),
     );
 
     final baseName = p.basenameWithoutExtension(pdfFilePath);
@@ -130,8 +131,8 @@ class PdfConverterService {
           totalPages: totalPages,
           progress: (i / totalPages) * 0.88,
           statusText: currentBatchEnd > i + 1
-              ? 'Rendu HD pages ${i + 1} à $currentBatchEnd / $totalPages...'
-              : 'Rendu HD page ${i + 1} / $totalPages...',
+              ? l10n.renderingPagesRange(i + 1, currentBatchEnd, totalPages)
+              : l10n.renderingPage(i + 1, totalPages),
         );
 
         for (int j = i; j < currentBatchEnd; j++) {
@@ -192,7 +193,7 @@ class PdfConverterService {
         currentPage: totalPages,
         totalPages: totalPages,
         progress: 0.92,
-        statusText: 'Assemblage ultra-rapide de l\'archive CBZ...',
+        statusText: l10n.assemblingCbz,
       );
 
       final generatedImages = conversionTempDir
@@ -203,7 +204,7 @@ class PdfConverterService {
       generatedImages.sort((a, b) => NaturalSort.compare(p.basename(a.path), p.basename(b.path)));
 
       if (generatedImages.isEmpty) {
-        throw Exception('Aucune page n\'a pu être générée depuis le PDF.');
+        throw Exception(l10n.noPageGenerated);
       }
 
       final items = <_ArchiveItem>[];
@@ -218,7 +219,7 @@ class PdfConverterService {
       // Execute ZIP assembly in background isolate with store mode (no redundant re-compression)
       final encodedZip = await compute(_encodeZipIsolate, items);
       if (encodedZip.isEmpty) {
-        throw Exception('Échec de l\'encodage de l\'archive CBZ.');
+        throw Exception(l10n.cbzEncodingFailed);
       }
 
       final targetFile = File(targetPath);
@@ -232,7 +233,7 @@ class PdfConverterService {
         currentPage: totalPages,
         totalPages: totalPages,
         progress: 0.95,
-        statusText: 'Finalisation et extraction de la couverture...',
+        statusText: l10n.finalizingCover,
       );
 
       BookItem? newBook;
@@ -281,7 +282,7 @@ class PdfConverterService {
           currentPage: totalPages,
           totalPages: totalPages,
           progress: 1.0,
-          statusText: 'Conversion terminée avec succès !',
+          statusText: l10n.conversionDone,
           convertedBook: newBook,
         );
     } finally {

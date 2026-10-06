@@ -17,6 +17,7 @@ import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import '../widgets/series_card.dart';
 import 'synced_reader_screen.dart';
+import '../l10n/l10n.dart';
 
 enum LibraryViewMode {
   series,
@@ -111,13 +112,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer ce livre ?'),
+        title: Text(l10n.deleteBookTitle),
         content: Text(
-            'Voulez-vous supprimer "${book.title}" de votre stockage local ?'),
+            l10n.deleteBookBody(book.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -125,7 +126,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Navigator.of(ctx).pop();
               context.read<LibraryProvider>().deleteBook(book.id);
             },
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -143,12 +144,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
         SnackBar(
           content: Text(
             book.format == BookFormat.epub
-                ? '« ${book.title} » était déjà commencé. Reprendre au chapitre ${book.currentPage + 1} ?'
-                : '« ${book.title} » était déjà commencé. Reprendre à la page ${book.currentPage + 1} ?',
+                ? l10n.resumeAtChapter(book.title, book.currentPage + 1)
+                : l10n.resumeAtPage(book.title, book.currentPage + 1),
           ),
           duration: const Duration(seconds: 8),
           action: SnackBarAction(
-            label: 'Reprendre',
+            label: l10n.resume,
             onPressed: () => _openReader(book),
           ),
         ),
@@ -200,9 +201,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            const Flexible(
+            Flexible(
               child: Text(
-                'Ma Bibliothèque',
+                l10n.myLibrary,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -215,7 +216,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${library.books.length} BD',
+                  l10n.comicsCount(library.books.length),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -228,33 +229,33 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
         actions: [
           if (sync.status == SyncStatus.syncing)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(right: 4),
               child: Tooltip(
-                message: 'Synchronisation en cours',
+                message: l10n.syncInProgress,
                 child: Icon(Icons.cloud_sync_outlined, size: 18),
               ),
             ),
           PopupMenuButton<LibrarySort>(
             icon: const Icon(Icons.sort_rounded),
-            tooltip: 'Trier par',
+            tooltip: l10n.sortBy,
             onSelected: (sort) => library.setSort(sort),
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: LibrarySort.lastRead,
-                child: Text('Dernière lecture'),
+                child: Text(l10n.lastRead),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: LibrarySort.title,
-                child: Text('Titre (A-Z)'),
+                child: Text(l10n.titleAz),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: LibrarySort.dateAdded,
-                child: Text('Date d\'ajout'),
+                child: Text(l10n.dateAdded),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: LibrarySort.progress,
-                child: Text('Progression'),
+                child: Text(l10n.progress),
               ),
             ],
           ),
@@ -277,13 +278,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           value: LibraryViewMode.series,
                           icon: const Icon(Icons.folder_special_rounded,
                               size: 16),
-                          label: Text('Séries (${allSeries.length})'),
+                          label: Text(l10n.seriesCount(allSeries.length)),
                         ),
                         ButtonSegment(
                           value: LibraryViewMode.allBooks,
                           icon:
                               const Icon(Icons.auto_stories_rounded, size: 16),
-                          label: Text('Tomes (${books.length})'),
+                          label: Text(l10n.volumesCount(books.length)),
                         ),
                       ],
                       selected: {_viewMode},
@@ -310,7 +311,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       controller: _searchController,
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Rechercher une série, un tome, un auteur...',
+                        hintText: l10n.searchLibraryHint,
                         hintStyle: TextStyle(
                           fontSize: 13,
                           color:
@@ -393,8 +394,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Icon(Icons.history_rounded,
                         size: 18, color: theme.colorScheme.primary),
                     const SizedBox(width: 6),
-                    const Text(
-                      'Récemment ouverts',
+                    Text(
+                      l10n.recentlyOpened,
                       style:
                           TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
@@ -447,7 +448,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Mes Collections & Séries (${allSeries.length})',
+                    l10n.myCollectionsCount(allSeries.length),
                     style: const TextStyle(
                         fontSize: 15, fontWeight: FontWeight.bold),
                   ),
@@ -569,7 +570,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Retour aux séries',
+          tooltip: l10n.backToSeries,
           onPressed: () {
             setState(() {
               _selectedSeries = null;
@@ -585,7 +586,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              '${series.completedBooks}/${series.totalBooks} tomes lus • $progressPercent%',
+              l10n.seriesProgress(series.completedBooks, series.totalBooks, progressPercent),
               style: TextStyle(
                   fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
             ),
@@ -595,7 +596,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           if (_seriesServer != null)
             IconButton(
               icon: const Icon(Icons.refresh_rounded),
-              tooltip: 'Vérifier les nouveaux tomes sur le serveur',
+              tooltip: l10n.checkNewVolumes,
               onPressed: () => _checkAndLoadRemoteSeries(series),
             ),
         ],
@@ -663,8 +664,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     ),
                                     child: Text(
                                       nextLocalBook.progress > 0
-                                          ? 'REPRENDRE'
-                                          : 'TOME SUIVANT À LIRE',
+                                          ? l10n.resumeUpper
+                                          : l10n.nextVolumeToRead,
                                       style: TextStyle(
                                         fontSize: 9,
                                         fontWeight: FontWeight.bold,
@@ -684,7 +685,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     nextLocalBook.totalPages > 0
-                                        ? '${nextLocalBook.format == BookFormat.epub ? 'Chapitre' : 'Page'} ${nextLocalBook.currentPage + 1}/${nextLocalBook.totalPages} (${(nextLocalBook.progress * 100).toInt()}%)'
+                                        ? (nextLocalBook.format == BookFormat.epub ? l10n.chapterProgressPercent : l10n.pageProgressPercent)(nextLocalBook.currentPage + 1, nextLocalBook.totalPages, (nextLocalBook.progress * 100).toInt())
                                         : nextLocalBook.formatString,
                                     style: TextStyle(
                                         fontSize: 11,
@@ -699,7 +700,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                               onPressed: () => _openReader(nextLocalBook),
                               icon: const Icon(Icons.play_arrow_rounded,
                                   size: 18),
-                              label: const Text('Lire'),
+                              label: Text(l10n.read),
                               style: FilledButton.styleFrom(
                                 visualDensity: VisualDensity.compact,
                                 padding: const EdgeInsets.symmetric(
@@ -766,8 +767,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       color: const Color(0xFFF59E0B),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Text(
-                                      'TOME SUIVANT SUR LE SERVEUR',
+                                    child: Text(
+                                      l10n.nextVolumeOnServer,
                                       style: TextStyle(
                                         fontSize: 8.5,
                                         fontWeight: FontWeight.bold,
@@ -807,7 +808,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     ),
                                     icon: const Icon(Icons.download_rounded,
                                         size: 16),
-                                    label: const Text('Télécharger',
+                                    label: Text(l10n.download,
                                         style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold)),
@@ -820,7 +821,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                           .showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                              '📥 Téléchargement lancé : ${nextRemoteToDownload.name}'),
+                                              l10n.downloadStarted(nextRemoteToDownload.name)),
                                           duration: const Duration(seconds: 2),
                                         ),
                                       );
@@ -835,7 +836,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                     ),
                                     icon: const Icon(Icons.visibility_rounded,
                                         size: 15),
-                                    label: const Text('Lire direct',
+                                    label: Text(l10n.readNow,
                                         style: TextStyle(fontSize: 11)),
                                     onPressed: () {
                                       InstantReadModal.show(
@@ -870,7 +871,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Recherche des tomes suivants sur le serveur distant...',
+                      l10n.searchingNextVolumes,
                       style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant),
@@ -888,7 +889,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       size: 18, color: theme.colorScheme.primary),
                   const SizedBox(width: 8),
                   Text(
-                    'Tomes téléchargés (${series.totalBooks})',
+                    l10n.downloadedVolumesCount(series.totalBooks),
                     style: const TextStyle(
                         fontSize: 14, fontWeight: FontWeight.bold),
                   ),
@@ -937,7 +938,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         size: 18, color: Color(0xFFF59E0B)),
                     const SizedBox(width: 8),
                     Text(
-                      'Tomes disponibles sur le serveur (${undownloadedRemote.length})',
+                      l10n.serverVolumesCount(undownloadedRemote.length),
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.bold),
                     ),
@@ -949,7 +950,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         icon: const Icon(Icons.download_for_offline_outlined,
                             size: 16),
                         label: Text(
-                            'Tout télécharger (${undownloadedRemote.length})',
+                            l10n.downloadAllCount(undownloadedRemote.length),
                             style: const TextStyle(fontSize: 11)),
                         onPressed: () {
                           for (final f in undownloadedRemote) {
@@ -961,7 +962,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  '📥 ${undownloadedRemote.length} tomes ajoutés à la file de téléchargement'),
+                                  l10n.volumesQueued(undownloadedRemote.length)),
                             ),
                           );
                         },
@@ -1005,7 +1006,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content:
-                                Text('📥 Téléchargement : ${remoteFile.name}'),
+                                Text(l10n.downloadingName(remoteFile.name)),
                             duration: const Duration(seconds: 2),
                           ),
                         );
@@ -1027,26 +1028,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
     // previous Wrap could take four rows, pushing the resume action below the
     // fold before the user reached any books.
     return Semantics(
-      label: 'Filtres de la bibliothèque',
+      label: l10n.libraryFilters,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(
           spacing: 8,
           children: [
-            _buildFilterChip(context, 'Tous (${library.books.length})',
+            _buildFilterChip(context, l10n.allCount(library.books.length),
                 LibraryFilter.all, library),
             _buildFilterChip(
-                context, 'Favoris', LibraryFilter.favorites, library),
+                context, l10n.favorites, LibraryFilter.favorites, library),
             _buildFilterChip(
-                context, 'En cours', LibraryFilter.inProgress, library),
-            _buildFilterChip(context, 'Non lus', LibraryFilter.unread, library),
+                context, l10n.inProgress, LibraryFilter.inProgress, library),
+            _buildFilterChip(context, l10n.unread, LibraryFilter.unread, library),
             _buildFilterChip(context, 'CBZ / CBR', LibraryFilter.cbz, library),
             _buildFilterChip(context, 'PDF', LibraryFilter.pdf, library),
             _buildFilterChip(
-                context, 'EPUB / Romans', LibraryFilter.epub, library),
+                context, l10n.epubNovels, LibraryFilter.epub, library),
             _buildFilterChip(
-                context, 'Terminés', LibraryFilter.completed, library),
+                context, l10n.finished, LibraryFilter.completed, library),
           ],
         ),
       ),
@@ -1152,7 +1153,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'CONTINUER LA LECTURE',
+                                l10n.continueReading,
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -1182,7 +1183,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 2),
                         Text(
                           book.totalPages > 0
-                              ? '${book.format == BookFormat.epub ? 'Chapitre' : 'Page'} ${book.currentPage + 1} sur ${book.totalPages}'
+                              ? (book.format == BookFormat.epub ? l10n.chapterOfTotal : l10n.pageOfTotal)(book.currentPage + 1, book.totalPages)
                               : book.formatString,
                           style: TextStyle(
                               fontSize: 12,
@@ -1233,13 +1234,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
               color: Colors.grey.shade600,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Votre bibliothèque est vide',
+            Text(
+              l10n.libraryEmpty,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur votre téléphone.',
+              l10n.libraryEmptyBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
@@ -1249,13 +1250,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
               FilledButton.icon(
                 onPressed: () => widget.onNavigateTab?.call(1),
                 icon: const Icon(Icons.dns_rounded, size: 18),
-                label: const Text('Explorer mes serveurs'),
+                label: Text(l10n.exploreServers),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () => widget.onNavigateTab?.call(2),
                 icon: const Icon(Icons.folder_open_rounded, size: 18),
-                label: const Text('Importer depuis ce téléphone'),
+                label: Text(l10n.importFromPhone),
               ),
             ],
           ],
@@ -1277,13 +1278,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
               color: Colors.grey.shade600,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Aucun résultat pour cette recherche',
+            Text(
+              l10n.noSearchResults,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'Essayez un autre mot-clé ou réinitialisez les filtres.',
+              l10n.noSearchResultsBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 13),

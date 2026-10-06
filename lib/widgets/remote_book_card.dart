@@ -8,6 +8,7 @@ import '../models/remote_file.dart';
 import '../models/server_profile.dart';
 import '../providers/library_provider.dart';
 import '../services/remote_cover_service.dart';
+import '../l10n/l10n.dart';
 
 class RemoteBookCard extends StatefulWidget {
   final ServerProfile server;
@@ -94,14 +95,14 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Supprimer de l\'appareil ?'),
+        title: Text(l10n.deleteFromDeviceTitle),
         content: Text(
-          'Voulez-vous supprimer le fichier téléchargé en local de "${widget.file.name}" pour libérer de l\'espace ?\n\nLe fichier reste toujours accessible et téléchargeable depuis votre serveur.',
+          l10n.deleteDownloadedFileBody(widget.file.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -115,13 +116,13 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('"${widget.file.name}" a été supprimé de votre tablette.'),
+                    content: Text(l10n.deletedFromDevice(widget.file.name)),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               }
             },
-            child: const Text('Supprimer du local'),
+            child: Text(l10n.deleteLocalCopy),
           ),
         ],
       ),
@@ -346,7 +347,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  widget.isDownloaded ? 'LOCAL' : 'SERVEUR',
+                                  widget.isDownloaded ? 'LOCAL' : l10n.serverUpper,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 8.5,
@@ -380,14 +381,14 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                   }
                                 },
                                 itemBuilder: (ctx) => [
-                                  const PopupMenuItem(
+                                  PopupMenuItem(
                                     value: 'delete',
                                     child: Row(
                                       children: [
                                         Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
                                         SizedBox(width: 8),
                                         Text(
-                                          'Supprimer du local',
+                                          l10n.deleteLocalCopy,
                                           style: TextStyle(color: Colors.redAccent, fontSize: 13),
                                         ),
                                       ],
@@ -502,7 +503,7 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                         icon: const Icon(Icons.download_rounded, size: 18),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        tooltip: 'Télécharger pour lecture hors-ligne',
+                        tooltip: l10n.downloadForOffline,
                         onPressed: widget.onDownload,
                       ),
                   ],

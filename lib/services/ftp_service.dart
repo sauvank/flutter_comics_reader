@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
+import '../l10n/l10n.dart';
 
 class FtpService {
   /// Tests FTP connection with credentials
@@ -112,7 +113,7 @@ class FtpService {
     try {
       final banner = await reader.readLine();
       if (!banner.startsWith('220')) {
-        throw Exception('Serveur FTP invalide: $banner');
+        throw Exception(l10n.ftpInvalidServer(banner));
       }
 
       // Login
@@ -123,10 +124,10 @@ class FtpService {
         controlSocket.write('PASS ${server.password ?? ''}\r\n');
         final passResp = await reader.readLine();
         if (!passResp.startsWith('230')) {
-          throw Exception('Identifiants FTP refusés: $passResp');
+          throw Exception(l10n.ftpCredentialsRefused(passResp));
         }
       } else if (!userResp.startsWith('230')) {
-        throw Exception('Identifiant FTP refusé: $userResp');
+        throw Exception(l10n.ftpUsernameRefused(userResp));
       }
 
       // Set UTF8 & Binary
@@ -148,7 +149,7 @@ class FtpService {
       controlSocket.write('PASV\r\n');
       final pasvResp = await reader.readLine();
       if (!pasvResp.startsWith('227')) {
-        throw Exception('Mode passif FTP échoué: $pasvResp');
+        throw Exception(l10n.ftpPassiveFailed(pasvResp));
       }
 
       final dataEndpoint = _parsePasvResponse(pasvResp, server.host);
@@ -374,7 +375,7 @@ class FtpService {
       controlSocket.write('RETR $filePart\r\n');
       final retrResp = await reader.readLine().timeout(const Duration(seconds: 10));
       if (!retrResp.startsWith('150') && !retrResp.startsWith('125')) {
-        throw Exception('Impossible de télécharger le fichier FTP: $retrResp');
+        throw Exception(l10n.ftpDownloadFailed(retrResp));
       }
 
       if (await tempFile.exists()) {
@@ -392,7 +393,7 @@ class FtpService {
         inactivityTimer?.cancel();
         inactivityTimer = Timer(const Duration(seconds: 45), () {
           if (!completer.isCompleted) {
-            completer.completeError(TimeoutException('Délai d\'inactivité FTP dépassé'));
+            completer.completeError(TimeoutException(l10n.ftpIdleTimeout));
           }
         });
       }
@@ -494,7 +495,7 @@ class FtpService {
       final port = (p1 * 256) + p2;
       return _FtpEndpoint(fallbackHost.isNotEmpty ? fallbackHost : ip, port);
     }
-    throw Exception('Réponse PASV non reconnue: $response');
+    throw Exception(l10n.ftpPasvUnrecognized(response));
   }
 
   List<RemoteFile> _parseMlsdListing(String rawListing, String currentPath) {

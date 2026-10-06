@@ -1,0 +1,1149 @@
+{
+  "@@locale": "fr",
+  "resetVaultTitle": "Réinitialiser le coffre ?",
+  "resetVaultBody": "Si vous avez perdu votre phrase de récupération, la réinitialisation créera un nouveau coffre vierge. Les données protégées de vos autres appareils devront être synchronisées à nouveau.",
+  "reset": "Réinitialiser",
+  "confirmSecretPhrase": "Confirmer la phrase secrète",
+  "secretPhraseWrittenDownBody": "Avez-vous bien noté votre phrase secrète dans un endroit sûr ?\n\nElle est indispensable pour restaurer vos données ou synchroniser un nouvel appareil. ComicStream ne la conserve pas et ne pourra jamais la récupérer pour vous.",
+  "yourSecretPhrase": "Votre phrase secrète :",
+  "phraseNotedContinue": "J’ai bien noté, continuer",
+  "changeSecretPhrase": "Modifier la phrase secrète",
+  "changeSecretPhraseBody": "Définissez une nouvelle phrase secrète (16 caractères minimum) pour sécuriser votre synchronisation.",
+  "newSecretPhrase": "Nouvelle phrase secrète",
+  "min16Characters": "16 caractères minimum",
+  "showPhrase": "Afficher la phrase",
+  "hidePhrase": "Masquer la phrase",
+  "confirmNewPhrase": "Confirmer la nouvelle phrase",
+  "phraseTooShort": "La phrase doit comporter au moins 16 caractères.",
+  "phrasesDoNotMatch": "Les deux phrases ne correspondent pas.",
+  "confirmChangeTitle": "Confirmer le changement ?",
+  "confirmChangeBody": "Votre coffre va être mis à jour avec cette nouvelle phrase secrète.\nAssurez-vous de l’avoir bien notée :",
+  "confirmAndSave": "Confirmer et enregistrer",
+  "secretPhraseUpdated": "Phrase secrète mise à jour avec succès.",
+  "operationDone": "Opération terminée.",
+  "cannotContinue": "Impossible de continuer : {error}",
+  "@cannotContinue": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "dateAtTime": "{date} à {time}",
+  "@dateAtTime": {
+    "placeholders": {
+      "date": {},
+      "time": {}
+    }
+  },
+  "syncConflict": "Conflit de synchronisation",
+  "syncConflictBody": "Deux versions de « {label} » ont été modifiées.",
+  "@syncConflictBody": {
+    "placeholders": {
+      "label": {}
+    }
+  },
+  "thisDeviceValue": "Cet appareil : {formatConflictDate}",
+  "@thisDeviceValue": {
+    "placeholders": {
+      "formatConflictDate": {}
+    }
+  },
+  "syncServerValue": "Serveur de synchronisation : {formatConflictDate}",
+  "@syncServerValue": {
+    "placeholders": {
+      "formatConflictDate": {}
+    }
+  },
+  "thisDeviceSummary": "Cet appareil : {localSummary}",
+  "@thisDeviceSummary": {
+    "placeholders": {
+      "localSummary": {}
+    }
+  },
+  "serverSummary": "Serveur : {remoteSummary}",
+  "@serverSummary": {
+    "placeholders": {
+      "remoteSummary": {}
+    }
+  },
+  "chooseReferenceVersion": "Choisissez la version de référence. Elle sera ensuite synchronisée sur vos autres appareils.",
+  "fetchFromServer": "Récupérer du serveur",
+  "sendToServer": "Envoyer vers le serveur",
+  "later": "Plus tard",
+  "thisDeviceName": "Nom de cet appareil",
+  "deviceNameHint": "Ex. Tablette ou Téléphone",
+  "deviceNameSavedOnServer": "Nom de l’appareil enregistré sur le serveur.",
+  "deviceNameSavedLocally": "Nom enregistré sur cet appareil. Il sera envoyé à la prochaine synchronisation.",
+  "cannotPrepareSync": "Impossible de préparer la synchronisation : {error}",
+  "@cannotPrepareSync": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "whichBackupToUse": "Quelle sauvegarde utiliser ?",
+  "whichBackupBody": "Le choix devient la référence partagée. Les autres appareils la recevront à leur prochaine synchronisation.",
+  "notBackedUpYet": "Pas encore sauvegardé",
+  "backedUpAt": "Sauvegardé {formatConflictDate}",
+  "@backedUpAt": {
+    "placeholders": {
+      "formatConflictDate": {}
+    }
+  },
+  "accountAndSync": "Compte et synchronisation",
+  "syncUnavailableNoFirebase": "La synchronisation sera disponible après la configuration du projet Firebase. Le lecteur et vos données locales continuent de fonctionner normalement.",
+  "accountConnected": "Compte connecté",
+  "vaultUnlockedE2e": "Coffre déverrouillé. Vos données sont chiffrées de bout en bout.",
+  "vaultLockedOrNew": "Coffre verrouillé ou non initialisé.",
+  "unlockVault": "Déverrouiller le coffre",
+  "initEncryptedVault": "Initialiser votre coffre chiffré",
+  "unlockVaultBody": "Un coffre chiffré est associé à ce compte. Saisissez votre phrase de récupération pour déverrouiller la synchronisation sur cet appareil.",
+  "initVaultBody": "Pour protéger vos mots de passe de serveurs et vos données, choisissez une phrase secrète (16 caractères minimum). Elle est indispensable pour restaurer vos données sur un nouvel appareil.",
+  "recoveryPhrase": "Phrase de récupération",
+  "secretPhraseMin16": "Phrase secrète (16 caractères minimum)",
+  "enterRecoveryPhrase": "Veuillez saisir votre phrase de récupération.",
+  "secretPhraseTooShort": "La phrase secrète doit comporter au moins 16 caractères.",
+  "secretPhrasesDoNotMatch": "Les phrases secrètes ne correspondent pas.",
+  "unlockSync": "Déverrouiller la synchronisation",
+  "createAndEnableVault": "Créer et activer le coffre",
+  "forgotPhraseReset": "Phrase oubliée ? Réinitialiser le coffre",
+  "vaultUnlocked": "Coffre déverrouillé",
+  "syncActiveE2e": "La synchronisation est active et protégée par chiffrement de bout en bout.",
+  "syncing": "Synchronisation…",
+  "changePhrase": "Modifier la phrase",
+  "shownWhenChoosingBackup": "Affiché lors du choix d’une sauvegarde",
+  "signOut": "Se déconnecter",
+  "createAccount": "Créer un compte",
+  "signIn": "Se connecter",
+  "passwordMin12": "Mot de passe (12 caractères minimum)",
+  "showPassword": "Afficher le mot de passe",
+  "hidePassword": "Masquer le mot de passe",
+  "createTheAccount": "Créer le compte",
+  "alreadyHaveAccount": "J’ai déjà un compte",
+  "continueWithGoogle": "Continuer avec Google",
+  "recoveryPhraseRequiredNote": "La phrase de récupération est indispensable pour restaurer les mots de passe de serveurs sur un nouvel appareil. Elle n’est jamais sauvegardée par ComicStream.",
+  "androidCertNotAllowed": "Certificat Android non autorisé : {hashes}",
+  "@androidCertNotAllowed": {
+    "placeholders": {
+      "hashes": {}
+    }
+  },
+  "pendingConflicts": "{count, plural, =1{1 modification attend votre choix.} other{{count} modifications attendent votre choix.}}",
+  "@pendingConflicts": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "upToDate": "ComicStream est à jour ({fullVersion}) !",
+  "@upToDate": {
+    "placeholders": {
+      "fullVersion": {}
+    }
+  },
+  "updateCheckError": "Erreur lors de la vérification de la mise à jour",
+  "clearCacheTitle": "Vider le cache ?",
+  "clearCacheBody": "Les couvertures seront rechargées automatiquement.",
+  "coverCacheCleared": "Cache des couvertures vidé avec succès !",
+  "deleteAllTitle": "Tout supprimer ?",
+  "deleteAllBody": "Cette action supprimera toutes les BDs et mangas téléchargés en local pour libérer de l'espace. Vos paramètres de serveurs seront conservés.",
+  "allLocalFilesDeleted": "Tous les fichiers locaux ont été supprimés.",
+  "eraseAll": "Tout effacer",
+  "commandCopied": "Commande copiée !",
+  "localServerGuide": "Guide Serveur Local",
+  "guideOption1": "Option 1 : Serveur WebDAV Docker (Recommandé)",
+  "guideOption1Body": "Lancez un serveur WebDAV léger avec Docker en 1 ligne en pointant vers votre dossier de BDs :",
+  "guideOption2": "Option 2 : Script Python prêt à l'emploi",
+  "guideOption2Body": "Un serveur Python dédié est fourni dans le dossier `server_example/comic_server.py`. Pour le lancer :",
+  "guideOption3": "Option 3 : NAS Synology / TrueNAS / Nextcloud",
+  "guideOption3Body": "Activez simplement le service WebDAV dans le panneau d'administration de votre NAS (port 5005 par défaut sur Synology) et entrez vos identifiants dans l'application.",
+  "settings": "Paramètres",
+  "accountAndSyncShort": "Compte & synchronisation",
+  "accountAndSyncSubtitle": "Serveurs, progression et réglages chiffrés",
+  "appearanceTheme": "Apparence & Thème",
+  "appTheme": "Thème de l'application",
+  "readerPreferences": "Préférences du lecteur",
+  "defaultReadingMode": "Mode de lecture par défaut",
+  "readingModeComic": "BD / Franco-Belge (Gauche à Droite)",
+  "readingModeManga": "Manga (Droite à Gauche)",
+  "readingModeWebtoon": "Webtoon (Défilement vertical)",
+  "keepScreenOn": "Garder l'écran actif en lecture",
+  "showPageNumber": "Afficher le numéro de page",
+  "autoConvertPdf": "Convertir automatiquement les PDF en CBZ",
+  "autoConvertPdfBody": "Transforme chaque PDF téléchargé en archive BD ultra-fluide pour tablette.",
+  "comicRenderQuality": "Qualité de rendu BD",
+  "qualityAutoLong": "Automatique (Détecte l'écran + 35% de netteté)",
+  "qualitySuperLong": "Super-échantillonné (2600px - Zoom net)",
+  "qualityUltraLong": "Ultra HD (3500px - Définition max)",
+  "qualityStandardLong": "Standard 1:1 (1900px - Rapide)",
+  "qualityAuto": "Auto (Écran + 35%)",
+  "qualityHigh": "Élevée (2600px)",
+  "qualityStandard": "Standard 1:1",
+  "ebooksEpub": "E-Books & EPUB",
+  "fontSize": "Taille de la police",
+  "justifiedText": "Texte justifié",
+  "storageCache": "Stockage & Cache",
+  "spaceUsedByBooks": "Espace occupé par les livres :",
+  "booksDownloadedCount": "{length} livre(s) téléchargé(s)",
+  "@booksDownloadedCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "clearCache": "Vider cache",
+  "updates": "Mises à jour",
+  "checkForUpdate": "Rechercher une mise à jour",
+  "installedVersion": "Version installée : {fullVersion}",
+  "@installedVersion": {
+    "placeholders": {
+      "fullVersion": {}
+    }
+  },
+  "check": "Vérifier",
+  "seeStoreListing": "Voir la fiche officielle de ComicStream",
+  "helpSetup": "Aide & Configuration",
+  "howToSetupLocalServer": "Comment configurer mon serveur local ?",
+  "helpSetupSubtitle": "Docker, Python, NAS Synology, TrueNAS...",
+  "appTagline": "Lecteur de BD, Comics & Mangas Cloud",
+  "deleteBookTitle": "Supprimer ce livre ?",
+  "deleteBookBody": "Voulez-vous supprimer \"{title}\" de votre stockage local ?",
+  "@deleteBookBody": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "resumeAtChapter": "« {title} » était déjà commencé. Reprendre au chapitre {currentPage1} ?",
+  "@resumeAtChapter": {
+    "placeholders": {
+      "title": {},
+      "currentPage1": {}
+    }
+  },
+  "resumeAtPage": "« {title} » était déjà commencé. Reprendre à la page {currentPage1} ?",
+  "@resumeAtPage": {
+    "placeholders": {
+      "title": {},
+      "currentPage1": {}
+    }
+  },
+  "myLibrary": "Ma Bibliothèque",
+  "comicsCount": "{length} BD",
+  "@comicsCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "syncInProgress": "Synchronisation en cours",
+  "sortBy": "Trier par",
+  "lastRead": "Dernière lecture",
+  "titleAz": "Titre (A-Z)",
+  "dateAdded": "Date d'ajout",
+  "seriesCount": "Séries ({length})",
+  "@seriesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "volumesCount": "Tomes ({length})",
+  "@volumesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "searchLibraryHint": "Rechercher une série, un tome, un auteur...",
+  "recentlyOpened": "Récemment ouverts",
+  "myCollectionsCount": "Mes Collections & Séries ({length})",
+  "@myCollectionsCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "backToSeries": "Retour aux séries",
+  "seriesProgress": "{completedBooks}/{totalBooks} tomes lus • {progressPercent}%",
+  "@seriesProgress": {
+    "placeholders": {
+      "completedBooks": {},
+      "totalBooks": {},
+      "progressPercent": {}
+    }
+  },
+  "checkNewVolumes": "Vérifier les nouveaux tomes sur le serveur",
+  "nextVolumeToRead": "TOME SUIVANT À LIRE",
+  "nextVolumeOnServer": "TOME SUIVANT SUR LE SERVEUR",
+  "download": "Télécharger",
+  "downloadStarted": "📥 Téléchargement lancé : {name}",
+  "@downloadStarted": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "readNow": "Lire direct",
+  "searchingNextVolumes": "Recherche des tomes suivants sur le serveur distant...",
+  "downloadedVolumesCount": "Tomes téléchargés ({totalBooks})",
+  "@downloadedVolumesCount": {
+    "placeholders": {
+      "totalBooks": {}
+    }
+  },
+  "serverVolumesCount": "Tomes disponibles sur le serveur ({length})",
+  "@serverVolumesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "downloadAllCount": "Tout télécharger ({length})",
+  "@downloadAllCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "volumesQueued": "📥 {length} tomes ajoutés à la file de téléchargement",
+  "@volumesQueued": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "downloadingName": "📥 Téléchargement : {name}",
+  "@downloadingName": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "libraryFilters": "Filtres de la bibliothèque",
+  "allCount": "Tous ({length})",
+  "@allCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "inProgress": "En cours",
+  "unread": "Non lus",
+  "epubNovels": "EPUB / Romans",
+  "finished": "Terminés",
+  "continueReading": "CONTINUER LA LECTURE",
+  "libraryEmpty": "Votre bibliothèque est vide",
+  "libraryEmptyBody": "Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur votre téléphone.",
+  "exploreServers": "Explorer mes serveurs",
+  "importFromPhone": "Importer depuis ce téléphone",
+  "noSearchResults": "Aucun résultat pour cette recherche",
+  "noSearchResultsBody": "Essayez un autre mot-clé ou réinitialisez les filtres.",
+  "chapterProgressPercent": "Chapitre {current}/{total} ({percent}%)",
+  "@chapterProgressPercent": {
+    "placeholders": {
+      "current": {},
+      "total": {},
+      "percent": {}
+    }
+  },
+  "pageProgressPercent": "Page {current}/{total} ({percent}%)",
+  "@pageProgressPercent": {
+    "placeholders": {
+      "current": {},
+      "total": {},
+      "percent": {}
+    }
+  },
+  "chapterOfTotal": "Chapitre {current} sur {total}",
+  "@chapterOfTotal": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "pageOfTotal": "Page {current} sur {total}",
+  "@pageOfTotal": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "setupServer": "Configurer un serveur",
+  "connectionSucceeded": "Connexion réussie à {name} !",
+  "@connectionSucceeded": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "connectionFailed": "Échec de la connexion à {name}",
+  "@connectionFailed": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteServerTitle": "Supprimer ce serveur ?",
+  "deleteServerBody": "Voulez-vous vraiment supprimer \"{name}\" de vos sources distantes ?",
+  "@deleteServerBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "exportConfiguration": "Exporter la configuration",
+  "exportConfigurationBody": "Voici le fichier de configuration JSON contenant vos profils serveurs :",
+  "copyJson": "Copier JSON",
+  "configurationCopied": "✅ Configuration copiée dans le presse-papiers !",
+  "importConfiguration": "Importer une configuration",
+  "chooseJsonFile": "Choisir un fichier .json",
+  "fileReadError": "Erreur lors de la lecture du fichier : {e}",
+  "@fileReadError": {
+    "placeholders": {
+      "e": {}
+    }
+  },
+  "orPasteJson": "Ou collez le JSON ici :",
+  "serversImported": "✅ {count} serveur(s) importé(s) avec succès !",
+  "@serversImported": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "baseLocationSet": "✅ Emplacement de base défini sur : {currentPath}",
+  "@baseLocationSet": {
+    "placeholders": {
+      "currentPath": {}
+    }
+  },
+  "myServers": "Mes Serveurs",
+  "addServer": "Ajouter un serveur",
+  "howToSetupServer": "Comment configurer un serveur",
+  "exportConfigurations": "Exporter les configurations",
+  "testConnection": "Tester la connexion",
+  "filterFolderHint": "Filtrer ce dossier...",
+  "closeSearch": "Fermer la recherche",
+  "folderOptions": "Options du dossier",
+  "setFolderAsRoot": "Définir ce dossier comme racine",
+  "switchServer": "Changer de serveur",
+  "parentFolder": "Dossier parent",
+  "everythingCount": "Tout ({length})",
+  "@everythingCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "downloadAllTitle": "Tout télécharger ?",
+  "downloadAllBody": "{length} tomes vont être téléchargés en arrière-plan.",
+  "@downloadAllBody": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "volumesQueuedCount": "📥 {length} tome(s) ajouté(s) à la file de téléchargement",
+  "@volumesQueuedCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "foldersSeriesCount": "Dossiers & Séries ({length})",
+  "@foldersSeriesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "booksComicsCount": "Livres & BD ({length})",
+  "@booksComicsCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "downloadingNamePlain": "Téléchargement : {name}",
+  "@downloadingNamePlain": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "folderEmpty": "Ce dossier est vide",
+  "folderEmptyBody": "Aucun livre ou sous-dossier trouvé dans cet emplacement.",
+  "cannotConnectServer": "Connexion impossible au serveur",
+  "checkServerReachable": "Vérifiez que le serveur est accessible sur {baseUrl}.",
+  "@checkServerReachable": {
+    "placeholders": {
+      "baseUrl": {}
+    }
+  },
+  "editSettings": "Modifier les paramètres",
+  "retry": "Réessayer",
+  "googleTokenMissing": "Jeton d’authentification Google introuvable.",
+  "googleSignInUnavailable": "La connexion Google n’est pas disponible sur cet appareil.",
+  "recoveryPhraseTooShort": "La phrase de récupération doit comporter au moins 16 caractères.",
+  "signInRequired": "Connexion requise",
+  "noSyncVaultFound": "Aucun coffre de synchronisation trouvé.",
+  "vaultMustBeUnlocked": "Le coffre doit être déverrouillé pour modifier la phrase secrète.",
+  "recoveryPhraseRequiredHere": "Phrase de récupération requise sur cet appareil.",
+  "serverConfigurations": "Configurations de serveurs",
+  "readingSettings": "Paramètres de lecture",
+  "deviceNameLength": "Le nom doit contenir entre 1 et 40 caractères.",
+  "deviceDefaultName": "Appareil {substring}",
+  "@deviceDefaultName": {
+    "placeholders": {
+      "substring": {}
+    }
+  },
+  "otherDevice": "Autre appareil",
+  "remoteProgressGone": "Cette progression distante n’existe plus.",
+  "thisDeviceNamed": "Cet appareil — {currentName}",
+  "@thisDeviceNamed": {
+    "placeholders": {
+      "currentName": {}
+    }
+  },
+  "deviceBackupNotFound": "La sauvegarde de cet appareil est introuvable.",
+  "googleDataNotFound": "Les données Google à résoudre sont introuvables.",
+  "localProgressGone": "La progression locale correspondante n’existe plus.",
+  "unknownSyncDocument": "Document de synchronisation inconnu",
+  "readingSettingsShort": "Réglages de lecture",
+  "yes": "oui",
+  "no": "non",
+  "chapterSlash": "Chapitre {current}/{total}",
+  "@chapterSlash": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "pageSlash": "Page {current}/{total}",
+  "@pageSlash": {
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "progressSummary": "{location} · Favori : {favorite} · {bookmarks}",
+  "@progressSummary": {
+    "placeholders": {
+      "location": {},
+      "favorite": {},
+      "bookmarks": {}
+    }
+  },
+  "bookmarksCount": "{count, plural, =0{0 marque-page} =1{1 marque-page} other{{count} marque-pages}}",
+  "@bookmarksCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "serverProfilesCount": "{count, plural, =0{0 profil de serveur} =1{1 profil de serveur} other{{count} profils de serveur}}",
+  "@serverProfilesCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "ftpInvalidServer": "Serveur FTP invalide: {banner}",
+  "@ftpInvalidServer": {
+    "placeholders": {
+      "banner": {}
+    }
+  },
+  "ftpCredentialsRefused": "Identifiants FTP refusés: {passResp}",
+  "@ftpCredentialsRefused": {
+    "placeholders": {
+      "passResp": {}
+    }
+  },
+  "ftpUsernameRefused": "Identifiant FTP refusé: {userResp}",
+  "@ftpUsernameRefused": {
+    "placeholders": {
+      "userResp": {}
+    }
+  },
+  "ftpPassiveFailed": "Mode passif FTP échoué: {pasvResp}",
+  "@ftpPassiveFailed": {
+    "placeholders": {
+      "pasvResp": {}
+    }
+  },
+  "ftpDownloadFailed": "Impossible de télécharger le fichier FTP: {retrResp}",
+  "@ftpDownloadFailed": {
+    "placeholders": {
+      "retrResp": {}
+    }
+  },
+  "ftpIdleTimeout": "Délai d'inactivité FTP dépassé",
+  "ftpPasvUnrecognized": "Réponse PASV non reconnue: {response}",
+  "@ftpPasvUnrecognized": {
+    "placeholders": {
+      "response": {}
+    }
+  },
+  "guideHeroTitle": "Lisez les BD de votre ordinateur ou NAS",
+  "guideHeroBody": "Un serveur rend votre collection accessible depuis le téléphone, sans tout copier. Comptez environ 2 minutes.",
+  "howItWorks": "Comment faire",
+  "guideStep1Title": "Partagez votre dossier de BD",
+  "guideStep1Body": "Sur votre NAS ou ordinateur, activez un partage WebDAV, FTP ou HTTP qui pointe vers le dossier contenant vos fichiers CBZ, CBR, PDF ou EPUB. Les exemples ci-dessous détaillent chaque cas.",
+  "guideStep2Title": "Notez son adresse",
+  "guideStep2Body": "Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Le téléphone doit être connecté au même réseau Wi-Fi.",
+  "guideStep3Title": "Remplissez le formulaire",
+  "guideStep3Body": "Touchez « Ajouter un serveur », choisissez le type, puis saisissez l’hôte, le port, le chemin du dossier et, si besoin, l’identifiant et le mot de passe.",
+  "guideStep4Title": "Testez puis enregistrez",
+  "guideStep4Body": "« Tester » vérifie la connexion. Une fois validé, « Enregistrer » ouvre directement le serveur pour parcourir et télécharger vos livres.",
+  "configurationExamples": "Exemples de configuration",
+  "webdavSubtitle": "Recommandé · NAS Synology, QNAP, Nextcloud",
+  "host": "Hôte",
+  "webdavPorts": "5005 (Synology), 80 ou 443",
+  "webdavCredentials": "ceux de votre compte NAS",
+  "webdavTip": "Sur Synology : installez « WebDAV Server » depuis le Centre de paquets et activez HTTP ou HTTPS.",
+  "httpSubtitle": "Le plus simple depuis un ordinateur",
+  "computerIp": "IP de l’ordinateur",
+  "httpTip": "Dans le dossier de vos BD, lancez « python3 -m http.server 8080 », ou le script server_example/comic_server.py fourni avec ComicStream.",
+  "ftpSubtitle": "Box internet, anciens NAS",
+  "ftpCredentials": "compte FTP de la box ou du NAS",
+  "ftpTip": "Le FTP n’est pas chiffré : réservez-le à votre réseau domestique.",
+  "cannotConnectTitle": "Ça ne se connecte pas ?",
+  "tipSameWifi": "Vérifiez que le téléphone et le serveur sont sur le même Wi-Fi.",
+  "tipUseIp": "Essayez l’adresse IP plutôt qu’un nom (nas.local).",
+  "tipFirewall": "Vérifiez que le pare-feu de l’ordinateur autorise le port choisi.",
+  "tipVpn": "Hors de chez vous, passez par un VPN (WireGuard, Tailscale…) plutôt que d’exposer le serveur sur Internet.",
+  "importExistingConfiguration": "Importer une configuration existante",
+  "waiting": "En attente...",
+  "downloadingEllipsis": "Téléchargement...",
+  "cancelled": "Annulé",
+  "extractingFinalizing": "Extraction et finalisation...",
+  "convertingHd": "Conversion BD HD en cours...",
+  "secondsRemaining": " ~ {approxSec}s restantes",
+  "@secondsRemaining": {
+    "placeholders": {
+      "approxSec": {}
+    }
+  },
+  "convertingHdProgress": "Conversion HD ({currentPage}/{totalPages} pages){etaText}",
+  "@convertingHdProgress": {
+    "placeholders": {
+      "currentPage": {},
+      "totalPages": {},
+      "etaText": {}
+    }
+  },
+  "finishedStatus": "Terminé",
+  "failed": "Échec",
+  "networkTimeout": "Délai d'attente dépassé (timeout réseau)",
+  "invalidCertificate": "Certificat de sécurité invalide (serveur auto-signé ?)",
+  "fileNotFound404": "Fichier introuvable sur le serveur (404)",
+  "accessDenied": "Accès refusé (identifiants incorrects)",
+  "cannotReachServerLost": "Impossible de joindre le serveur (connexion perdue)",
+  "downloadCancelled": "Téléchargement annulé",
+  "networkInterrupted": "Connexion réseau interrompue",
+  "notEnoughStorage": "Espace de stockage insuffisant sur l'appareil",
+  "networkError": "Erreur de connexion réseau",
+  "localFileAccessError": "Erreur d'accès au fichier local",
+  "serverError": "Erreur serveur",
+  "serverErrorCode": "Erreur serveur ({code})",
+  "@serverErrorCode": {
+    "placeholders": {
+      "code": {}
+    }
+  },
+  "endOfBookReached": "Vous êtes arrivé à la fin du livre !",
+  "loadingBook": "Chargement du livre...",
+  "cannotLoadBook": "Impossible de charger ce livre",
+  "fileMaybeCorrupted": "Le format du fichier est peut-être corrompu ou non supporté.",
+  "backToLibrary": "Retour à la bibliothèque",
+  "epubProgressShort": "{value}% • Chap. {currentChapterIndex1}/{length}",
+  "@epubProgressShort": {
+    "placeholders": {
+      "value": {},
+      "currentChapterIndex1": {},
+      "length": {}
+    }
+  },
+  "tableOfContents": "Table des matières",
+  "customizeReading": "Personnaliser la lecture",
+  "chapterXOfY": "Chapitre {currentChapterIndex1} / {length}",
+  "@chapterXOfY": {
+    "placeholders": {
+      "currentChapterIndex1": {},
+      "length": {}
+    }
+  },
+  "endOfChapter": "Fin du Chapitre {currentChapterIndex1}",
+  "@endOfChapter": {
+    "placeholders": {
+      "currentChapterIndex1": {}
+    }
+  },
+  "nextChapterUpper": "CHAPITRE SUIVANT",
+  "bookFinished": "Vous avez terminé ce livre !",
+  "tableOfContentsTitle": "Table des Matières",
+  "searchChapterHint": "Rechercher un chapitre...",
+  "noChapterFound": "Aucun chapitre trouvé pour \"{tocSearchQuery}\"",
+  "@noChapterFound": {
+    "placeholders": {
+      "tocSearchQuery": {}
+    }
+  },
+  "bookCustomization": "Personnalisation du livre",
+  "themeColorsUpper": "THÈME & COULEURS",
+  "sepia": "Sépia",
+  "textSizeUpper": "TAILLE DU TEXTE",
+  "fontUpper": "POLICE DE CARACTÈRES",
+  "serifBook": "Serif (Livre)",
+  "bookMarginsUpper": "MARGES DU LIVRE",
+  "narrow": "Étroite",
+  "connectionFailedCheck": "❌ Échec de connexion. Vérifiez l'adresse IP, le port et les identifiants.",
+  "connectionOkFolderValid": "✅ Connexion réussie et dossier validé !",
+  "folderMissingOnServer": "❌ Le serveur répond, mais le dossier \"{path}\" n'existe pas sur le serveur.",
+  "@folderMissingOnServer": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "checkingFolder": "Vérification du dossier sur le serveur...",
+  "cannotReachServerCheck": "❌ Impossible de joindre le serveur. Vérifiez les paramètres.",
+  "cannotSaveFolderMissing": "❌ Impossible d'enregistrer : le dossier \"{path}\" n'existe pas sur le serveur.",
+  "@cannotSaveFolderMissing": {
+    "placeholders": {
+      "path": {}
+    }
+  },
+  "deleteProfileBody": "Êtes-vous sûr de vouloir supprimer le profil \"{name}\" ?",
+  "@deleteProfileBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "serverDeleted": "🗑️ Serveur \"{serverName}\" supprimé.",
+  "@serverDeleted": {
+    "placeholders": {
+      "serverName": {}
+    }
+  },
+  "addLocalServer": "Ajouter un serveur local",
+  "editServer": "Modifier le serveur",
+  "deleteThisServer": "Supprimer ce serveur",
+  "serverName": "Nom du serveur",
+  "serverNameHint": "Ex: NAS Salon, PC Bureau...",
+  "enterName": "Veuillez saisir un nom",
+  "ftpPort21": "FTP (Port 21)",
+  "hostIp": "Hôte / IP",
+  "hostHint": "ex. 192.168.1.100 ou nas.local",
+  "hostRequired": "IP ou domaine requis",
+  "rootPath": "Chemin racine (Path)",
+  "secureConnectionHttps": "Connexion sécurisée (HTTPS)",
+  "authenticationOptional": "Authentification (Optionnel)",
+  "usernameLabel": "Identifiant / Nom d'utilisateur",
+  "password": "Mot de passe",
+  "allFilesAccessRequired": "L’accès à tous les fichiers est nécessaire pour analyser le téléphone.",
+  "noCompatibleBookFound": "Aucun livre compatible trouvé sur le téléphone.",
+  "alreadyPresentOrSkipped": " · {skipped} déjà présent(s) ou ignoré(s)",
+  "@alreadyPresentOrSkipped": {
+    "placeholders": {
+      "skipped": {}
+    }
+  },
+  "booksAddedCount": "{imported} livre(s) ajouté(s){skipped}",
+  "@booksAddedCount": {
+    "placeholders": {
+      "imported": {},
+      "skipped": {}
+    }
+  },
+  "importFailed": "Import impossible : {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "permissionNotGranted": "Autorisation non accordée : aucun fichier n’a été analysé.",
+  "scanPhoneTitle": "Analyser les livres du téléphone ?",
+  "scanPhoneBody": "ComicStream demandera l’accès aux fichiers uniquement pour repérer les BD, PDF et EPUB. Vous choisirez ensuite les fichiers à importer ; rien n’est copié sans confirmation.",
+  "notNow": "Pas maintenant",
+  "deviceFiles": "Fichiers de l’appareil",
+  "addComicsFromDevice": "Ajouter des BD depuis cet appareil",
+  "addComicsFromDeviceBody": "Analysez tous les fichiers compatibles du téléphone, puis choisissez les livres à garder.",
+  "scanningFiles": "Analyse des fichiers…",
+  "scanPhone": "Scanner le téléphone",
+  "addedFilesCount": "Fichiers ajoutés ({length})",
+  "@addedFilesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "noFileAdded": "Aucun fichier ajouté",
+  "scanPhoneToFindBooks": "Analysez le téléphone pour trouver vos livres.",
+  "formatPageProgress": "{formatString} · Page {currentPage1}/{totalPages}",
+  "@formatPageProgress": {
+    "placeholders": {
+      "formatString": {},
+      "currentPage1": {},
+      "totalPages": {}
+    }
+  },
+  "pageXOfY": "Page {currentPage1} sur {totalPages}",
+  "@pageXOfY": {
+    "placeholders": {
+      "currentPage1": {},
+      "totalPages": {}
+    }
+  },
+  "removeFromFavorites": "Retirer des favoris",
+  "addToFavorites": "Ajouter aux favoris",
+  "pageGrid": "Grille des pages",
+  "comicLtrShort": "BD (G->D)",
+  "mangaRtlShort": "Manga (D->G)",
+  "readingDirection": "Sens de lecture",
+  "comicLtr": "BD (G à D)",
+  "mangaRtl": "Manga (D à G)",
+  "imageFit": "Ajustement de l'image",
+  "screen": "Écran",
+  "background": "Arrière-plan",
+  "keepScreenAwake": "Garder l'écran allumé",
+  "selectedCount": "{length} sélectionné(s)",
+  "@selectedCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "removeAll": "Tout retirer",
+  "addAll": "Tout ajouter",
+  "alreadyImported": "Déjà importé",
+  "booksFoundCount": "{count, plural, =1{1 livre} other{{count} livres}}",
+  "@booksFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "sizeGb": "{value} Go",
+  "@sizeGb": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "sizeMb": "{value} Mo",
+  "@sizeMb": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "sizeKb": "{value} Ko",
+  "@sizeKb": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "decimalSeparator": ",",
+  "convertToCbz": "Convertir en BD (CBZ)",
+  "markAsUnread": "Marquer comme non lu",
+  "markAsRead": "Marquer comme lu",
+  "deleteFromDevice": "Supprimer de l'appareil",
+  "finishedUpper": "TERMINÉ",
+  "cbzBenefits": "Avantages du format CBZ :",
+  "cbzBenefit1": "• Rendu beaucoup plus rapide et fluide",
+  "cbzBenefit2": "• Mode Manga (sens droit-à-gauche) disponible",
+  "cbzBenefit3": "• Mode Webtoon (défilement continu) fluide",
+  "cbzBenefit4": "• Moins de consommation mémoire et batterie",
+  "converting": "Conversion en cours...",
+  "conversionSucceeded": "Conversion réussie !",
+  "conversionSucceededBody": "Votre BD est disponible au format CBZ haute définition.",
+  "readAsCbz": "Lire en mode BD (CBZ)",
+  "pleaseWait": "Veuillez patienter...",
+  "downloads": "Téléchargements",
+  "noDownloadInProgress": "Aucun téléchargement en cours",
+  "noDownloadInProgressBody": "Les fichiers que vous téléchargez depuis votre serveur local apparaîtront ici avec leur progression.",
+  "inProgressCount": "En cours ({length})",
+  "@inProgressCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "historyCount": "Historique ({length})",
+  "@historyCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "doneWithSize": "Terminé • {formatBytes}",
+  "@doneWithSize": {
+    "placeholders": {
+      "formatBytes": {}
+    }
+  },
+  "deleteFromStorage": "Supprimer du stockage",
+  "failedWithReason": "Échec : {reason}",
+  "@failedWithReason": {
+    "placeholders": {
+      "reason": {}
+    }
+  },
+  "weeksAgo": "Il y a {weeks} sem.",
+  "@weeksAgo": {
+    "placeholders": {
+      "weeks": {}
+    }
+  },
+  "daysAgo": "Il y a {inDays} jours",
+  "@daysAgo": {
+    "placeholders": {
+      "inDays": {}
+    }
+  },
+  "hoursAgo": "Il y a {inHours} h",
+  "@hoursAgo": {
+    "placeholders": {
+      "inHours": {}
+    }
+  },
+  "minutesAgo": "Il y a {inMinutes} min",
+  "@minutesAgo": {
+    "placeholders": {
+      "inMinutes": {}
+    }
+  },
+  "justNow": "À l'instant",
+  "pdfNotFound": "Fichier PDF introuvable : {pdfFilePath}",
+  "@pdfNotFound": {
+    "placeholders": {
+      "pdfFilePath": {}
+    }
+  },
+  "pdfHasNoPage": "Le fichier PDF ne contient aucune page.",
+  "conversionInit": "Initialisation de la conversion ({totalPages} pages)...",
+  "@conversionInit": {
+    "placeholders": {
+      "totalPages": {}
+    }
+  },
+  "renderingPagesRange": "Rendu HD pages {i1} à {currentBatchEnd} / {totalPages}...",
+  "@renderingPagesRange": {
+    "placeholders": {
+      "i1": {},
+      "currentBatchEnd": {},
+      "totalPages": {}
+    }
+  },
+  "renderingPage": "Rendu HD page {i1} / {totalPages}...",
+  "@renderingPage": {
+    "placeholders": {
+      "i1": {},
+      "totalPages": {}
+    }
+  },
+  "assemblingCbz": "Assemblage ultra-rapide de l'archive CBZ...",
+  "noPageGenerated": "Aucune page n'a pu être générée depuis le PDF.",
+  "cbzEncodingFailed": "Échec de l'encodage de l'archive CBZ.",
+  "finalizingCover": "Finalisation et extraction de la couverture...",
+  "conversionDone": "Conversion terminée avec succès !",
+  "cbzNotFound": "Fichier CBZ introuvable sur l'appareil.",
+  "noValidImageInCbz": "Aucune image valide trouvée dans cette archive CBZ.",
+  "cbzReadError": "Erreur de lecture ({sizeMb} Mo): {e}\n\nLe fichier est peut-être corrompu ou le téléchargement est incomplet.",
+  "@cbzReadError": {
+    "placeholders": {
+      "sizeMb": {},
+      "e": {}
+    }
+  },
+  "pagesCount": "Pages ({length})",
+  "@pagesCount": {
+    "placeholders": {
+      "length": {}
+    }
+  },
+  "loadingVolume": "Chargement du tome...",
+  "volumeFinished": "Tome terminé ! 🎉",
+  "nextVolumeWithTitle": "Passer au Tome suivant ➔\n{title}",
+  "@nextVolumeWithTitle": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "bookSyncUnavailable": "Synchronisation de ce livre indisponible. Lecture locale conservée : {error}",
+  "@bookSyncUnavailable": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "progressFoundElsewhere": "Progression trouvée sur un autre appareil",
+  "otherPositionOnDevice": "« {remoteDeviceName} » possède une autre position pour ce livre.",
+  "@otherPositionOnDevice": {
+    "placeholders": {
+      "remoteDeviceName": {}
+    }
+  },
+  "thisDevice": "Cet appareil",
+  "keepHere": "Conserver ici",
+  "continueFromDevice": "Continuer depuis {remoteDeviceName}",
+  "@continueFromDevice": {
+    "placeholders": {
+      "remoteDeviceName": {}
+    }
+  },
+  "downloadFailed": "Échec du téléchargement",
+  "convertingHdCbz": "Conversion HD en CBZ (Mode BD)...",
+  "downloadingYourComic": "Téléchargement de votre BD...",
+  "networkErrorOccurred": "Une erreur réseau est survenue.",
+  "convertingHdInProgress": "Conversion HD en cours...",
+  "deleteFromDeviceTitle": "Supprimer de l'appareil ?",
+  "deleteDownloadedFileBody": "Voulez-vous supprimer le fichier téléchargé en local de \"{name}\" pour libérer de l'espace ?\n\nLe fichier reste toujours accessible et téléchargeable depuis votre serveur.",
+  "@deleteDownloadedFileBody": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deletedFromDevice": "\"{name}\" a été supprimé de votre tablette.",
+  "@deletedFromDevice": {
+    "placeholders": {
+      "name": {}
+    }
+  },
+  "deleteLocalCopy": "Supprimer du local",
+  "downloadForOffline": "Télécharger pour lecture hors-ligne",
+  "updateAvailable": "Mise à jour disponible !",
+  "whatsNew": "Nouveautés & Changements :",
+  "defaultReleaseNotes": "Améliorations de performances et corrections de bugs.",
+  "downloadApk": "Télécharger APK",
+  "almostDone": "Presque terminé...",
+  "secondsLeft": "~ {seconds} s restantes",
+  "@secondsLeft": {
+    "placeholders": {
+      "seconds": {}
+    }
+  },
+  "itemsCount": "{itemCount} éléments",
+  "@itemsCount": {
+    "placeholders": {
+      "itemCount": {}
+    }
+  },
+  "readOfTotal": "{completedBooks}/{totalBooks} lu(s)",
+  "@readOfTotal": {
+    "placeholders": {
+      "completedBooks": {},
+      "totalBooks": {}
+    }
+  },
+  "emptyServerResponse": "Réponse vide du serveur",
+  "chapterN": "Chapitre {length1}",
+  "@chapterN": {
+    "placeholders": {
+      "length1": {}
+    }
+  },
+  "chapterNIdx": "Chapitre {idx1}",
+  "@chapterNIdx": {
+    "placeholders": {
+      "idx1": {}
+    }
+  },
+  "pdfNotFoundOnDevice": "Fichier PDF introuvable sur l'appareil.",
+  "convertToCbzComicMode": "Convertir en CBZ (Mode BD)",
+  "pressAgainToExit": "Appuyez à nouveau pour quitter ComicStream",
+  "downloadsTabShort": "Télécharg.",
+  "settingsTab": "Réglages",
+  "invalidJsonFormat": "Format JSON invalide",
+  "cannotLoadFolder": "Impossible de charger le dossier: {e}",
+  "@cannotLoadFolder": {
+    "placeholders": {
+      "e": {}
+    }
+  },
+  "newUpdateAvailable": "Nouvelle mise à jour disponible.",
+  "unknownEncryptionVersion": "Version de chiffrement inconnue",
+  "speedMb": "{value} Mo/s",
+  "@speedMb": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "speedKb": "{value} Ko/s",
+  "@speedKb": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "minutesSecondsLeft": "~ {minutes} min {seconds} s",
+  "@minutesSecondsLeft": {
+    "placeholders": {
+      "minutes": {},
+      "seconds": {}
+    }
+  },
+  "volumeCountPlural": "{count, plural, =1{1 tome} other{{count} tomes}}",
+  "@volumeCountPlural": {
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
+  },
+  "chapterSlashPercent": "Chapitre {current}/{total} · {percent} %",
+  "@chapterSlashPercent": {
+    "placeholders": {
+      "current": {},
+      "total": {},
+      "percent": {}
+    }
+  },
+  "labelLocationDate": "{label} : {location}\n{date} à {time}",
+  "@labelLocationDate": {
+    "placeholders": {
+      "label": {},
+      "location": {},
+      "date": {},
+      "time": {}
+    }
+  },
+  "cancel": "Annuler",
+  "edit": "Modifier",
+  "continueLabel": "Continuer",
+  "save": "Enregistrer",
+  "view": "Voir",
+  "synchronize": "Synchroniser",
+  "back": "Retour",
+  "none": "Aucun",
+  "all": "Tout",
+  "importAction": "Importer",
+  "everyone": "Tous",
+  "clean": "Nettoyer",
+  "read": "Lire",
+  "dark": "Sombre",
+  "mint": "Menthe",
+  "light": "Clair",
+  "standard": "Standard",
+  "large": "Large",
+  "libraryTab": "Biblio",
+  "serverTab": "Serveur",
+  "filesTab": "Fichiers",
+  "delete": "Supprimer",
+  "resume": "Reprendre",
+  "progress": "Progression",
+  "favorites": "Favoris",
+  "close": "Fermer",
+  "options": "Options",
+  "search": "Rechercher",
+  "refresh": "Actualiser",
+  "root": "Racine",
+  "empty": "Vider",
+  "font": "Police",
+  "lineSpacing": "Interligne",
+  "compact": "Compact",
+  "normal": "Normal",
+  "relaxed": "Relaxed",
+  "margin": "Marge",
+  "narrowShort": "Etroit",
+  "yesterday": "Hier",
+  "today": "Aujourd'hui",
+  "folder": "Dossier",
+  "convert": "Convertir",
+  "width": "Largeur",
+  "height": "Hauteur",
+  "black": "Noir",
+  "grey": "Gris",
+  "white": "Blanc",
+  "downloaded": "Téléchargé",
+  "serverDefaultName": "Serveur",
+  "test": "Tester",
+  "type": "Type",
+  "port": "Port",
+  "path": "Chemin",
+  "credentials": "Identifiants",
+  "ignore": "Ignorer",
+  "noneLower": "aucun",
+  "serverUpper": "SERVEUR",
+  "bookUpper": "LIVRE",
+  "resumeUpper": "REPRENDRE",
+  "currentUpper": "ACTUEL",
+  "lineSpacingUpper": "INTERLIGNE",
+  "alignmentUpper": "ALIGNEMENT",
+  "comicsFilter": "BD"
+}

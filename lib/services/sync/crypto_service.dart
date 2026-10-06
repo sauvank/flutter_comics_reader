@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import '../../l10n/l10n.dart';
 
 /// AES-GCM envelope used before data leaves the device.
 ///
@@ -34,7 +35,7 @@ class CryptoService {
     required SecretKey key,
     required Map<String, dynamic> envelope,
   }) async {
-    if (envelope['v'] != '1') throw const FormatException('Version de chiffrement inconnue');
+    if (envelope['v'] != '1') throw FormatException(l10n.unknownEncryptionVersion);
     final box = SecretBox(
       base64Url.decode(envelope['ciphertext'] as String),
       nonce: base64Url.decode(envelope['nonce'] as String),

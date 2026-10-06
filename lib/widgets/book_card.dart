@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/book_item.dart';
 import '../utils/format_utils.dart';
 import 'pdf_to_cbz_dialog.dart';
+import '../l10n/l10n.dart';
 
 class BookCard extends StatelessWidget {
   final BookItem book;
@@ -133,8 +134,8 @@ class BookCard extends StatelessWidget {
                           constraints:
                               const BoxConstraints(minWidth: 36, minHeight: 36),
                           tooltip: book.isFavorite
-                              ? 'Retirer des favoris'
-                              : 'Ajouter aux favoris',
+                              ? l10n.removeFromFavorites
+                              : l10n.addToFavorites,
                           padding: EdgeInsets.zero,
                           icon: Container(
                             padding: const EdgeInsets.all(5),
@@ -197,20 +198,20 @@ class BookCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(book.isFavorite
-                                    ? 'Retirer des favoris'
-                                    : 'Ajouter aux favoris'),
+                                    ? l10n.removeFromFavorites
+                                    : l10n.addToFavorites),
                               ],
                             ),
                           ),
                           if (book.format == BookFormat.pdf)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'convert',
                               child: Row(
                                 children: [
                                   Icon(Icons.transform_rounded,
                                       size: 18, color: Color(0xFF8B5CF6)),
                                   SizedBox(width: 8),
-                                  Text('Convertir en BD (CBZ)'),
+                                  Text(l10n.convertToCbz),
                                 ],
                               ),
                             ),
@@ -227,19 +228,19 @@ class BookCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(book.isCompleted
-                                    ? 'Marquer comme non lu'
-                                    : 'Marquer comme lu'),
+                                    ? l10n.markAsUnread
+                                    : l10n.markAsRead),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
                                 Icon(Icons.delete_outline,
                                     size: 18, color: Colors.redAccent),
                                 SizedBox(width: 8),
-                                Text('Supprimer de l\'appareil',
+                                Text(l10n.deleteFromDevice,
                                     style: TextStyle(color: Colors.redAccent)),
                               ],
                             ),
@@ -262,14 +263,14 @@ class BookCard extends StatelessWidget {
                               color: Colors.green.shade700,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(Icons.check,
                                     size: 12, color: Colors.white),
                                 SizedBox(width: 4),
                                 Text(
-                                  'TERMINÉ',
+                                  l10n.finishedUpper,
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 9,
@@ -316,8 +317,10 @@ class BookCard extends StatelessWidget {
                       if (book.totalPages > 0)
                         Text(
                           book.format == BookFormat.epub
-                              ? 'Chapitre ${book.currentPage + 1}/${book.totalPages}'
-                              : 'Page ${book.currentPage + 1}/${book.totalPages}',
+                              ? l10n.chapterSlash(
+                                  book.currentPage + 1, book.totalPages)
+                              : l10n.pageSlash(
+                                  book.currentPage + 1, book.totalPages),
                           style: TextStyle(
                             fontSize: 11,
                             color: theme.colorScheme.onSurfaceVariant,

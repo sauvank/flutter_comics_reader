@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 
 class FolderCard extends StatelessWidget {
   final String name;
@@ -89,7 +90,7 @@ class FolderCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          itemCount != null ? '$itemCount éléments' : 'Dossier',
+                          itemCount != null ? l10n.itemsCount(itemCount!) : l10n.folder,
                           style: TextStyle(
                             fontSize: 12,
                             color: theme.colorScheme.onSurfaceVariant.withAlpha(180),
@@ -110,7 +111,7 @@ class FolderCard extends StatelessWidget {
                     size: 20,
                   ),
                   onPressed: onToggleFavorite,
-                  tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                  tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
                   visualDensity: VisualDensity.compact,
                 ),
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/server_profile.dart';
 import '../providers/server_provider.dart';
+import '../l10n/l10n.dart';
 
 class ServerFormDialog extends StatefulWidget {
   final ServerProfile? server;
@@ -97,7 +98,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   ServerProfile _buildProfile() {
     return ServerProfile(
       id: widget.server?.id ?? const Uuid().v4(),
-      name: _nameController.text.trim().isEmpty ? 'Serveur' : _nameController.text.trim(),
+      name: _nameController.text.trim().isEmpty ? l10n.serverDefaultName : _nameController.text.trim(),
       host: _hostController.text.trim(),
       port: int.tryParse(_portController.text.trim()) ?? (_serverType == ServerType.ftp ? 21 : _isHttps ? 443 : 80),
       path: _pathController.text.trim().isEmpty ? '/' : _pathController.text.trim().replaceAll('\\', '/'),
@@ -127,7 +128,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
       setState(() {
         _isTesting = false;
         _testSuccess = false;
-        _testResult = '❌ Échec de connexion. Vérifiez l\'adresse IP, le port et les identifiants.';
+        _testResult = l10n.connectionFailedCheck;
       });
       return;
     }
@@ -140,8 +141,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
       _isTesting = false;
       _testSuccess = pathExists;
       _testResult = pathExists
-          ? '✅ Connexion réussie et dossier validé !'
-          : '❌ Le serveur répond, mais le dossier "${server.path}" n\'existe pas sur le serveur.';
+          ? l10n.connectionOkFolderValid
+          : l10n.folderMissingOnServer(server.path);
     });
   }
 
@@ -155,7 +156,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     if (server.path != '/' && server.path.isNotEmpty) {
       setState(() {
         _isTesting = true;
-        _testResult = 'Vérification du dossier sur le serveur...';
+        _testResult = l10n.checkingFolder;
         _testSuccess = null;
       });
 
@@ -165,7 +166,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
         setState(() {
           _isTesting = false;
           _testSuccess = false;
-          _testResult = '❌ Impossible de joindre le serveur. Vérifiez les paramètres.';
+          _testResult = l10n.cannotReachServerCheck;
         });
         return;
       }
@@ -176,7 +177,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
         setState(() {
           _isTesting = false;
           _testSuccess = false;
-          _testResult = '❌ Impossible d\'enregistrer : le dossier "${server.path}" n\'existe pas sur le serveur.';
+          _testResult = l10n.cannotSaveFolderMissing(server.path);
         });
         return;
       }
@@ -190,17 +191,17 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer ce serveur ?'),
-        content: Text('Êtes-vous sûr de vouloir supprimer le profil "${widget.server?.name}" ?'),
+        title: Text(l10n.deleteServerTitle),
+        content: Text(l10n.deleteProfileBody(widget.server?.name ?? '')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -213,7 +214,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('🗑️ Serveur "$serverName" supprimé.'),
+            content: Text(l10n.serverDeleted(serverName)),
             backgroundColor: Colors.red.shade800,
           ),
         );
@@ -253,14 +254,14 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        widget.server == null ? 'Ajouter un serveur local' : 'Modifier le serveur',
+                        widget.server == null ? l10n.addLocalServer : l10n.editServer,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (widget.server != null)
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                        tooltip: 'Supprimer ce serveur',
+                        tooltip: l10n.deleteThisServer,
                         onPressed: _confirmDelete,
                       ),
                     IconButton(
@@ -274,18 +275,18 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 // Server Name
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nom du serveur',
+                  decoration: InputDecoration(
+                    labelText: l10n.serverName,
                     prefixIcon: Icon(Icons.label_outline),
-                    hintText: 'Ex: NAS Salon, PC Bureau...',
+                    hintText: l10n.serverNameHint,
                   ),
-                  validator: (val) => val == null || val.trim().isEmpty ? 'Veuillez saisir un nom' : null,
+                  validator: (val) => val == null || val.trim().isEmpty ? l10n.enterName : null,
                 ),
                 const SizedBox(height: 14),
 
                 // Server Type Selector
                 SegmentedButton<ServerType>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: ServerType.webdav,
                       label: Text('WebDAV'),
@@ -293,7 +294,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     ),
                     ButtonSegment(
                       value: ServerType.ftp,
-                      label: Text('FTP (Port 21)'),
+                      label: Text(l10n.ftpPort21),
                       icon: Icon(Icons.swap_horizontal_circle_outlined, size: 16),
                     ),
                     ButtonSegment(
@@ -325,12 +326,12 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                       child: TextFormField(
                         controller: _hostController,
                         onChanged: _onHostChanged,
-                        decoration: const InputDecoration(
-                          labelText: 'Hôte / IP',
+                        decoration: InputDecoration(
+                          labelText: l10n.hostIp,
                           prefixIcon: Icon(Icons.router_outlined),
-                          hintText: 'ex. 192.168.1.100 ou nas.local',
+                          hintText: l10n.hostHint,
                         ),
-                        validator: (val) => val == null || val.trim().isEmpty ? 'IP ou domaine requis' : null,
+                        validator: (val) => val == null || val.trim().isEmpty ? l10n.hostRequired : null,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -353,8 +354,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 // Path
                 TextFormField(
                   controller: _pathController,
-                  decoration: const InputDecoration(
-                    labelText: 'Chemin racine (Path)',
+                  decoration: InputDecoration(
+                    labelText: l10n.rootPath,
                     prefixIcon: Icon(Icons.folder_open_outlined),
                     hintText: '/webdav ou /comics ou /',
                   ),
@@ -363,7 +364,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
 
                 // HTTPS switch
                 SwitchListTile(
-                  title: const Text('Connexion sécurisée (HTTPS)', style: TextStyle(fontSize: 14)),
+                  title: Text(l10n.secureConnectionHttps, style: TextStyle(fontSize: 14)),
                   value: _isHttps,
                   onChanged: (val) => setState(() => _isHttps = val),
                   contentPadding: EdgeInsets.zero,
@@ -371,15 +372,15 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 const Divider(height: 24),
 
                 // Credentials section
-                const Text(
-                  'Authentification (Optionnel)',
+                Text(
+                  l10n.authenticationOptional,
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _userController,
-                  decoration: const InputDecoration(
-                    labelText: 'Identifiant / Nom d\'utilisateur',
+                  decoration: InputDecoration(
+                    labelText: l10n.usernameLabel,
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                 ),
@@ -388,7 +389,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                   controller: _passController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe',
+                    labelText: l10n.password,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
@@ -447,7 +448,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sensors, size: 18),
-                        label: const Text('Tester'),
+                        label: Text(l10n.test),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -459,7 +460,7 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                       child: FilledButton.icon(
                         onPressed: _save,
                         icon: const Icon(Icons.save_rounded, size: 18),
-                        label: const Text('Enregistrer'),
+                        label: Text(l10n.save),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

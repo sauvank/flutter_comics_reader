@@ -12,6 +12,7 @@ import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import '../widgets/server_form_dialog.dart';
 import '../widgets/server_setup_guide.dart';
+import '../l10n/l10n.dart';
 
 class ServerScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -35,7 +36,7 @@ class _ServerScreenState extends State<ServerScreen> {
   void _openSetupGuide() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (guideContext) => Scaffold(
-        appBar: AppBar(title: const Text('Configurer un serveur')),
+        appBar: AppBar(title: Text(l10n.setupServer)),
         body: ServerSetupGuide(
           onAddServer: () {
             Navigator.of(guideContext).pop();
@@ -102,8 +103,8 @@ class _ServerScreenState extends State<ServerScreen> {
               Expanded(
                 child: Text(
                   success
-                      ? 'Connexion réussie à ${server.name} !'
-                      : 'Échec de la connexion à ${server.name}',
+                      ? l10n.connectionSucceeded(server.name)
+                      : l10n.connectionFailed(server.name),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -119,13 +120,13 @@ class _ServerScreenState extends State<ServerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer ce serveur ?'),
+        title: Text(l10n.deleteServerTitle),
         content: Text(
-            'Voulez-vous vraiment supprimer "${server.name}" de vos sources distantes ?'),
+            l10n.deleteServerBody(server.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -133,7 +134,7 @@ class _ServerScreenState extends State<ServerScreen> {
               Navigator.pop(ctx);
               context.read<ServerProvider>().deleteServer(server.id);
             },
-            child: const Text('Supprimer'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -147,11 +148,11 @@ class _ServerScreenState extends State<ServerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.file_upload_outlined),
             SizedBox(width: 8),
-            Text('Exporter la configuration'),
+            Text(l10n.exportConfiguration),
           ],
         ),
         content: SizedBox(
@@ -160,8 +161,8 @@ class _ServerScreenState extends State<ServerScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Voici le fichier de configuration JSON contenant vos profils serveurs :',
+              Text(
+                l10n.exportConfigurationBody,
                 style: TextStyle(fontSize: 13),
               ),
               const SizedBox(height: 12),
@@ -194,18 +195,18 @@ class _ServerScreenState extends State<ServerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Fermer'),
+            child: Text(l10n.close),
           ),
           FilledButton.icon(
             icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copier JSON'),
+            label: Text(l10n.copyJson),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: jsonStr));
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
+                SnackBar(
                   content:
-                      Text('✅ Configuration copiée dans le presse-papiers !'),
+                      Text(l10n.configurationCopied),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -222,11 +223,11 @@ class _ServerScreenState extends State<ServerScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.file_download_outlined),
             SizedBox(width: 8),
-            Text('Importer une configuration'),
+            Text(l10n.importConfiguration),
           ],
         ),
         content: SizedBox(
@@ -237,7 +238,7 @@ class _ServerScreenState extends State<ServerScreen> {
             children: [
               OutlinedButton.icon(
                 icon: const Icon(Icons.folder_open_rounded),
-                label: const Text('Choisir un fichier .json'),
+                label: Text(l10n.chooseJsonFile),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(40),
                 ),
@@ -256,7 +257,7 @@ class _ServerScreenState extends State<ServerScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                               content: Text(
-                                  'Erreur lors de la lecture du fichier : $e')),
+                                  l10n.fileReadError(e))),
                         );
                       }
                     }
@@ -264,7 +265,7 @@ class _ServerScreenState extends State<ServerScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              const Text('Ou collez le JSON ici :',
+              Text(l10n.orPasteJson,
                   style: TextStyle(fontSize: 12)),
               const SizedBox(height: 6),
               TextField(
@@ -284,7 +285,7 @@ class _ServerScreenState extends State<ServerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
@@ -298,12 +299,12 @@ class _ServerScreenState extends State<ServerScreen> {
               nav.pop();
               messenger.showSnackBar(
                 SnackBar(
-                  content: Text('✅ $count serveur(s) importé(s) avec succès !'),
+                  content: Text(l10n.serversImported(count)),
                   backgroundColor: Colors.green,
                 ),
               );
             },
-            child: const Text('Importer'),
+            child: Text(l10n.importAction),
           ),
         ],
       ),
@@ -317,7 +318,7 @@ class _ServerScreenState extends State<ServerScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              '✅ Emplacement de base défini sur : ${serverProvider.currentPath}'),
+              l10n.baseLocationSet(serverProvider.currentPath)),
           backgroundColor: Colors.green,
         ),
       );
@@ -355,7 +356,7 @@ class _ServerScreenState extends State<ServerScreen> {
                   color: theme.colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Mes Serveurs'),
+            Text(l10n.myServers),
             if (servers.isNotEmpty) ...[
               const SizedBox(width: 8),
               Container(
@@ -379,12 +380,12 @@ class _ServerScreenState extends State<ServerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle_outline_rounded),
-            tooltip: 'Ajouter un serveur',
+            tooltip: l10n.addServer,
             onPressed: _openAddServerDialog,
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
-            tooltip: 'Options',
+            tooltip: l10n.options,
             onSelected: (value) {
               if (value == 'guide') {
                 _openSetupGuide();
@@ -395,33 +396,33 @@ class _ServerScreenState extends State<ServerScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'guide',
                 child: Row(
                   children: [
                     Icon(Icons.help_outline_rounded, size: 20),
                     SizedBox(width: 10),
-                    Text('Comment configurer un serveur'),
+                    Text(l10n.howToSetupServer),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'export',
                 child: Row(
                   children: [
                     Icon(Icons.file_upload_outlined, size: 20),
                     SizedBox(width: 10),
-                    Text('Exporter les configurations'),
+                    Text(l10n.exportConfigurations),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'import',
                 child: Row(
                   children: [
                     Icon(Icons.file_download_outlined, size: 20),
                     SizedBox(width: 10),
-                    Text('Importer une configuration'),
+                    Text(l10n.importConfiguration),
                   ],
                 ),
               ),
@@ -551,7 +552,7 @@ class _ServerScreenState extends State<ServerScreen> {
                 // Action Menu
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert_rounded),
-                  tooltip: 'Options',
+                  tooltip: l10n.options,
                   onSelected: (value) {
                     if (value == 'edit') {
                       _openEditServerDialog(server);
@@ -562,34 +563,34 @@ class _ServerScreenState extends State<ServerScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
                           Icon(Icons.edit_outlined, size: 18),
                           SizedBox(width: 8),
-                          Text('Modifier'),
+                          Text(l10n.edit),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'test',
                       child: Row(
                         children: [
                           Icon(Icons.network_check_rounded, size: 18),
                           SizedBox(width: 8),
-                          Text('Tester la connexion'),
+                          Text(l10n.testConnection),
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
                           Icon(Icons.delete_outline_rounded,
                               size: 18, color: Colors.redAccent),
                           SizedBox(width: 8),
-                          Text('Supprimer',
+                          Text(l10n.delete,
                               style: TextStyle(color: Colors.redAccent)),
                         ],
                       ),
@@ -642,7 +643,7 @@ class _ServerScreenState extends State<ServerScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          tooltip: 'Retour',
+          tooltip: l10n.back,
           onPressed: () {
             if (serverProvider.canNavigateUp) {
               serverProvider.navigateUp();
@@ -657,7 +658,7 @@ class _ServerScreenState extends State<ServerScreen> {
                 autofocus: true,
                 style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
-                  hintText: 'Filtrer ce dossier...',
+                  hintText: l10n.filterFolderHint,
                   border: InputBorder.none,
                   hintStyle:
                       TextStyle(color: theme.colorScheme.onSurfaceVariant),
@@ -688,7 +689,7 @@ class _ServerScreenState extends State<ServerScreen> {
         actions: [
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search),
-            tooltip: _isSearching ? 'Fermer la recherche' : 'Rechercher',
+            tooltip: _isSearching ? l10n.closeSearch : l10n.search,
             onPressed: () {
               setState(() {
                 if (_isSearching) {
@@ -703,12 +704,12 @@ class _ServerScreenState extends State<ServerScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Actualiser',
+            tooltip: l10n.refresh,
             onPressed: () => serverProvider.fetchRemoteFiles(),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
-            tooltip: 'Options du dossier',
+            tooltip: l10n.folderOptions,
             onSelected: (value) {
               if (value == 'set_root') {
                 _saveCurrentPathAsRoot();
@@ -717,23 +718,23 @@ class _ServerScreenState extends State<ServerScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'set_root',
                 child: Row(
                   children: [
                     Icon(Icons.bookmark_add_outlined, size: 18),
                     SizedBox(width: 8),
-                    Text('Définir ce dossier comme racine'),
+                    Text(l10n.setFolderAsRoot),
                   ],
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'switch_server',
                 child: Row(
                   children: [
                     Icon(Icons.dns_outlined, size: 18),
                     SizedBox(width: 8),
-                    Text('Changer de serveur'),
+                    Text(l10n.switchServer),
                   ],
                 ),
               ),
@@ -762,7 +763,7 @@ class _ServerScreenState extends State<ServerScreen> {
                     constraints:
                         const BoxConstraints(minWidth: 32, minHeight: 32),
                     onPressed: () => serverProvider.navigateUp(),
-                    tooltip: 'Dossier parent',
+                    tooltip: l10n.parentFolder,
                   ),
                 InkWell(
                   onTap: () => serverProvider.navigateToRoot(),
@@ -775,7 +776,7 @@ class _ServerScreenState extends State<ServerScreen> {
                         Icon(Icons.home_rounded,
                             size: 16, color: theme.colorScheme.primary),
                         const SizedBox(width: 4),
-                        const Text('Racine',
+                        Text(l10n.root,
                             style: TextStyle(
                                 fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
@@ -825,23 +826,23 @@ class _ServerScreenState extends State<ServerScreen> {
                     ),
                     icon: const Icon(Icons.download_for_offline_outlined,
                         size: 16),
-                    label: Text('Tout (${undownloadedBooks.length})',
+                    label: Text(l10n.everythingCount(undownloadedBooks.length),
                         style: const TextStyle(fontSize: 11)),
                     onPressed: () async {
                       if (undownloadedBooks.length > 3) {
                         final confirm = await showDialog<bool>(
                           context: context,
                           builder: (ctx) => AlertDialog(
-                            title: const Text('Tout télécharger ?'),
+                            title: Text(l10n.downloadAllTitle),
                             content: Text(
-                                '${undownloadedBooks.length} tomes vont être téléchargés en arrière-plan.'),
+                                l10n.downloadAllBody(undownloadedBooks.length)),
                             actions: [
                               TextButton(
                                   onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Annuler')),
+                                  child: Text(l10n.cancel)),
                               FilledButton(
                                   onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('Télécharger')),
+                                  child: Text(l10n.download)),
                             ],
                           ),
                         );
@@ -855,7 +856,7 @@ class _ServerScreenState extends State<ServerScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                                '📥 ${undownloadedBooks.length} tome(s) ajouté(s) à la file de téléchargement'),
+                                l10n.volumesQueuedCount(undownloadedBooks.length)),
                           ),
                         );
                       }
@@ -891,7 +892,7 @@ class _ServerScreenState extends State<ServerScreen> {
                                               color: theme.colorScheme.primary),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Dossiers & Séries (${folders.length})',
+                                            l10n.foldersSeriesCount(folders.length),
                                             style: const TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold),
@@ -948,7 +949,7 @@ class _ServerScreenState extends State<ServerScreen> {
                                               color: theme.colorScheme.primary),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Livres & BD (${books.length})',
+                                            l10n.booksComicsCount(books.length),
                                             style: const TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold),
@@ -1015,7 +1016,7 @@ class _ServerScreenState extends State<ServerScreen> {
                                                       const SizedBox(width: 10),
                                                       Expanded(
                                                         child: Text(
-                                                          'Téléchargement : ${file.name}',
+                                                          l10n.downloadingNamePlain(file.name),
                                                           maxLines: 1,
                                                           overflow: TextOverflow
                                                               .ellipsis,
@@ -1031,7 +1032,7 @@ class _ServerScreenState extends State<ServerScreen> {
                                                               .onNavigateTab !=
                                                           null
                                                       ? SnackBarAction(
-                                                          label: 'Voir',
+                                                          label: l10n.view,
                                                           textColor: theme
                                                               .colorScheme
                                                               .primary,
@@ -1068,11 +1069,11 @@ class _ServerScreenState extends State<ServerScreen> {
             Icon(Icons.folder_open_outlined,
                 size: 56, color: Colors.grey.shade600),
             const SizedBox(height: 16),
-            const Text('Ce dossier est vide',
+            Text(l10n.folderEmpty,
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Aucun livre ou sous-dossier trouvé dans cet emplacement.',
+              l10n.folderEmptyBody,
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
@@ -1093,11 +1094,11 @@ class _ServerScreenState extends State<ServerScreen> {
             const Icon(Icons.wifi_off_rounded,
                 size: 56, color: Colors.redAccent),
             const SizedBox(height: 16),
-            const Text('Connexion impossible au serveur',
+            Text(l10n.cannotConnectServer,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(
-              'Vérifiez que le serveur est accessible sur ${server.baseUrl}.',
+              l10n.checkServerReachable(server.baseUrl),
               textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
@@ -1109,14 +1110,14 @@ class _ServerScreenState extends State<ServerScreen> {
                 OutlinedButton.icon(
                   onPressed: () => _openEditServerDialog(server),
                   icon: const Icon(Icons.edit, size: 16),
-                  label: const Text('Modifier les paramètres'),
+                  label: Text(l10n.editSettings),
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
                   onPressed: () =>
                       context.read<ServerProvider>().fetchRemoteFiles(),
                   icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text('Réessayer'),
+                  label: Text(l10n.retry),
                 ),
               ],
             ),

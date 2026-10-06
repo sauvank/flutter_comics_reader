@@ -14,6 +14,7 @@ import '../widgets/synced_reader_gate.dart';
 import '../utils/cbz_page_layout.dart';
 import 'epub_reader_screen.dart';
 import 'pdf_reader_screen.dart';
+import '../l10n/l10n.dart';
 
 class CbzReaderScreen extends StatefulWidget {
   final BookItem book;
@@ -298,7 +299,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       if (!await file.exists()) {
         if (!mounted) return;
         setState(() {
-          _errorMessage = 'Fichier CBZ introuvable sur l\'appareil.';
+          _errorMessage = l10n.cbzNotFound;
           _isLoading = false;
         });
         return;
@@ -339,7 +340,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
       if (pages.isEmpty) {
         setState(() {
-          _errorMessage = 'Aucune image valide trouvée dans cette archive CBZ.';
+          _errorMessage = l10n.noValidImageInCbz;
           _isLoading = false;
         });
         return;
@@ -372,7 +373,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       final sizeMb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
       setState(() {
         _errorMessage =
-            'Erreur de lecture ($sizeMb Mo): $e\n\nLe fichier est peut-être corrompu ou le téléchargement est incomplet.';
+            l10n.cbzReadError(sizeMb, e);
         _isLoading = false;
       });
     }
@@ -532,7 +533,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Pages (${_pages.length})',
+                        l10n.pagesCount(_pages.length),
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -711,7 +712,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
               const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
               const SizedBox(height: 16),
               Text(
-                'Chargement du tome...',
+                l10n.loadingVolume,
                 style: TextStyle(color: Colors.white.withAlpha(200)),
               ),
             ],
@@ -739,7 +740,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Retour'),
+                  child: Text(l10n.back),
                 ),
               ],
             ),
@@ -1006,8 +1007,8 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                 color: Color(0xFF10B981), size: 40),
           ),
           const SizedBox(height: 14),
-          const Text(
-            'Tome terminé ! 🎉',
+          Text(
+            l10n.volumeFinished,
             style: TextStyle(
                 color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
@@ -1021,7 +1022,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
           if (nextBook != null)
             FilledButton.icon(
               icon: const Icon(Icons.skip_next_rounded),
-              label: Text('Passer au Tome suivant ➔\n${nextBook.title}',
+              label: Text(l10n.nextVolumeWithTitle(nextBook.title),
                   textAlign: TextAlign.center),
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6),
@@ -1052,7 +1053,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
           else
             OutlinedButton.icon(
               icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              label: const Text('Retour à la bibliothèque',
+              label: Text(l10n.backToLibrary,
                   style: TextStyle(color: Colors.white)),
               onPressed: () => Navigator.of(context).pop(),
             ),

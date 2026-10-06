@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants/app_version.dart';
 import '../models/update_info.dart';
 import '../widgets/update_dialog.dart';
+import '../l10n/l10n.dart';
 
 class UpdateService {
   static final UpdateService _instance = UpdateService._internal();
@@ -62,7 +63,7 @@ class UpdateService {
       final data = response.data as Map<String, dynamic>;
       final tagName = data['tag_name'] as String? ?? '';
       final htmlUrl = data['html_url'] as String? ?? AppVersion.githubReleasesUrl;
-      final body = data['body'] as String? ?? 'Nouvelle mise à jour disponible.';
+      final body = data['body'] as String? ?? l10n.newUpdateAvailable;
       final publishedAtStr = data['published_at'] as String?;
       final publishedAt = publishedAtStr != null ? DateTime.tryParse(publishedAtStr) : null;
 

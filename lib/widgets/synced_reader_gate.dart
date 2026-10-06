@@ -5,6 +5,7 @@ import '../services/database_service.dart';
 import '../services/sync/firebase_bootstrap.dart';
 import '../services/sync/sync_models.dart';
 import '../services/sync/sync_service.dart';
+import '../l10n/l10n.dart';
 
 typedef SyncedReaderBuilder = Widget Function(BookItem book);
 
@@ -115,7 +116,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Synchronisation de ce livre indisponible. Lecture locale conservée : $error'),
+              l10n.bookSyncUnavailable(error)),
         ),
       );
     } finally {
@@ -128,13 +129,13 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Progression trouvée sur un autre appareil'),
+        title: Text(l10n.progressFoundElsewhere),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '« ${proposal.remoteDeviceName} » possède une autre position pour ce livre.',
+              l10n.otherPositionOnDevice(proposal.remoteDeviceName),
             ),
             const SizedBox(height: 16),
             _PositionLine(
@@ -147,7 +148,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
             ),
             const SizedBox(height: 8),
             _PositionLine(
-              label: 'Cet appareil',
+              label: l10n.thisDevice,
               page: proposal.localPage,
               totalPages: proposal.localTotalPages,
               chapterProgress: proposal.localChapterProgress,
@@ -160,17 +161,17 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
           TextButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(BookProgressChoice.ignore),
-            child: const Text('Ignorer'),
+            child: Text(l10n.ignore),
           ),
           OutlinedButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(BookProgressChoice.keepLocal),
-            child: const Text('Conserver ici'),
+            child: Text(l10n.keepHere),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(BookProgressChoice.useRemote),
-            child: Text('Continuer depuis ${proposal.remoteDeviceName}'),
+            child: Text(l10n.continueFromDevice(proposal.remoteDeviceName)),
           ),
         ],
       ),
@@ -216,8 +217,9 @@ class _PositionLine extends StatelessWidget {
     final date = material.formatMediumDate(local);
     final time = material.formatTimeOfDay(TimeOfDay.fromDateTime(local));
     final location = isEpub
-        ? 'Chapitre ${page + 1}/$totalPages · ${(chapterProgress * 100).round()} %'
-        : 'Page ${page + 1}/$totalPages';
-    return Text('$label : $location\n$date à $time');
+        ? l10n.chapterSlashPercent(
+            page + 1, totalPages, (chapterProgress * 100).round())
+        : l10n.pageSlash(page + 1, totalPages);
+    return Text(l10n.labelLocationDate(label, location, date, time));
   }
 }

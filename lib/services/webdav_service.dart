@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import '../models/remote_file.dart';
 import '../models/server_profile.dart';
+import '../l10n/l10n.dart';
 
 class WebDavService {
   final Dio _dio;
@@ -393,7 +394,7 @@ class WebDavService {
 
         final responseBody = response.data;
         if (responseBody == null) {
-          throw Exception('Réponse vide du serveur');
+          throw Exception(l10n.emptyServerResponse);
         }
 
         final isPartial = response.statusCode == 206;

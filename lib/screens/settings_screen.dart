@@ -10,6 +10,7 @@ import '../utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import '../widgets/reader_controls.dart';
 import 'account/account_screen.dart';
+import '../l10n/l10n.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -42,7 +43,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 const Icon(Icons.check_circle_rounded, color: Colors.greenAccent, size: 20),
                 const SizedBox(width: 10),
-                Text('ComicStream est à jour (${AppVersion.fullVersion}) !'),
+                Text(l10n.upToDate(AppVersion.fullVersion)),
               ],
             ),
           ),
@@ -52,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur lors de la vérification de la mise à jour')),
+        SnackBar(content: Text(l10n.updateCheckError)),
       );
     } finally {
       if (mounted) {
@@ -67,11 +68,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Vider le cache ?'),
-        content: const Text('Les couvertures seront rechargées automatiquement.'),
+        title: Text(l10n.clearCacheTitle),
+        content: Text(l10n.clearCacheBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Vider')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(l10n.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(l10n.empty)),
         ],
       ),
     );
@@ -89,7 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cache des couvertures vidé avec succès !')),
+        SnackBar(content: Text(l10n.coverCacheCleared)),
       );
     }
   }
@@ -98,14 +99,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Tout supprimer ?'),
-        content: const Text(
-          'Cette action supprimera toutes les BDs et mangas téléchargés en local pour libérer de l\'espace. Vos paramètres de serveurs seront conservés.',
+        title: Text(l10n.deleteAllTitle),
+        content: Text(
+          l10n.deleteAllBody,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -126,11 +127,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (context.mounted) {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tous les fichiers locaux ont été supprimés.')),
+                  SnackBar(content: Text(l10n.allLocalFilesDeleted)),
                 );
               }
             },
-            child: const Text('Tout effacer'),
+            child: Text(l10n.eraseAll),
           ),
         ],
       ),
@@ -164,7 +165,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: commandText));
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Commande copiée !'), duration: Duration(seconds: 1)),
+                  SnackBar(content: Text(l10n.commandCopied), duration: Duration(seconds: 1)),
                 );
               },
             ),
@@ -193,43 +194,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Icon(Icons.help_outline_rounded, color: theme.colorScheme.primary),
                 const SizedBox(width: 10),
-                const Text('Guide Serveur Local', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(l10n.localServerGuide, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Spacer(),
                 IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(ctx).pop()),
               ],
             ),
             const Divider(height: 24),
             Text(
-              'Option 1 : Serveur WebDAV Docker (Recommandé)',
+              l10n.guideOption1,
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
             ),
             const SizedBox(height: 6),
             Text(
-              'Lancez un serveur WebDAV léger avec Docker en 1 ligne en pointant vers votre dossier de BDs :',
+              l10n.guideOption1Body,
               style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             buildCommandBox('docker run -d -p 8080:80 -v /chemin/vers/vos/bds:/var/webdav/public bytemark/webdav'),
             const SizedBox(height: 18),
-            const Text(
-              'Option 2 : Script Python prêt à l\'emploi',
+            Text(
+              l10n.guideOption2,
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF06B6D4)),
             ),
             const SizedBox(height: 6),
             Text(
-              'Un serveur Python dédié est fourni dans le dossier `server_example/comic_server.py`. Pour le lancer :',
+              l10n.guideOption2Body,
               style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 8),
             buildCommandBox('python3 server_example/comic_server.py --port 8080 --dir ~/Comics'),
             const SizedBox(height: 18),
-            const Text(
-              'Option 3 : NAS Synology / TrueNAS / Nextcloud',
+            Text(
+              l10n.guideOption3,
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.amber),
             ),
             const SizedBox(height: 6),
             Text(
-              'Activez simplement le service WebDAV dans le panneau d\'administration de votre NAS (port 5005 par défaut sur Synology) et entrez vos identifiants dans l\'application.',
+              l10n.guideOption3Body,
               style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
@@ -258,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Icon(Icons.settings_rounded, color: theme.colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 10),
-            const Text('Paramètres'),
+            Text(l10n.settings),
           ],
         ),
       ),
@@ -268,20 +269,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
-          _buildSectionHeader('Compte & synchronisation', theme),
+          _buildSectionHeader(l10n.accountAndSyncShort, theme),
           Container(
             decoration: BoxDecoration(color: theme.colorScheme.surfaceContainer, borderRadius: BorderRadius.circular(14)),
             child: ListTile(
               leading: const Icon(Icons.cloud_sync_outlined),
-              title: const Text('Compte et synchronisation'),
-              subtitle: const Text('Serveurs, progression et réglages chiffrés', style: TextStyle(fontSize: 12)),
+              title: Text(l10n.accountAndSync),
+              subtitle: Text(l10n.accountAndSyncSubtitle, style: TextStyle(fontSize: 12)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
             ),
           ),
           const SizedBox(height: 18),
           // Theme Section
-          _buildSectionHeader('Apparence & Thème', theme),
+          _buildSectionHeader(l10n.appearanceTheme, theme),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -291,13 +292,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Thème de l\'application', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(l10n.appTheme, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 SegmentedButton<AppThemeMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: AppThemeMode.dark,
-                      label: Text('Sombre'),
+                      label: Text(l10n.dark),
                       icon: Icon(Icons.dark_mode_outlined, size: 16),
                     ),
                     ButtonSegment(
@@ -307,7 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     ButtonSegment(
                       value: AppThemeMode.light,
-                      label: Text('Clair'),
+                      label: Text(l10n.light),
                       icon: Icon(Icons.light_mode_outlined, size: 16),
                     ),
                   ],
@@ -320,7 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 18),
 
           // Reading Preferences Section
-          _buildSectionHeader('Préférences du lecteur', theme),
+          _buildSectionHeader(l10n.readerPreferences, theme),
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -330,13 +331,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.menu_book_rounded),
-                  title: const Text('Mode de lecture par défaut'),
+                  title: Text(l10n.defaultReadingMode),
                   subtitle: Text(
                     readerSettings.readingMode == ReadingMode.leftToRight
-                        ? 'BD / Franco-Belge (Gauche à Droite)'
+                        ? l10n.readingModeComic
                         : readerSettings.readingMode == ReadingMode.rightToLeft
-                            ? 'Manga (Droite à Gauche)'
-                            : 'Webtoon (Défilement vertical)',
+                            ? l10n.readingModeManga
+                            : l10n.readingModeWebtoon,
                     style: const TextStyle(fontSize: 12),
                   ),
                   trailing: const Icon(Icons.chevron_right),
@@ -351,23 +352,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 SwitchListTile(
                   secondary: const Icon(Icons.screen_lock_portrait_outlined),
-                  title: const Text('Garder l\'écran actif en lecture'),
+                  title: Text(l10n.keepScreenOn),
                   value: readerSettings.keepScreenOn,
                   onChanged: (val) => readerSettings.setKeepScreenOn(val),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 SwitchListTile(
                   secondary: const Icon(Icons.pin_outlined),
-                  title: const Text('Afficher le numéro de page'),
+                  title: Text(l10n.showPageNumber),
                   value: readerSettings.showPageNumbers,
                   onChanged: (val) => readerSettings.setShowPageNumbers(val),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 SwitchListTile(
                   secondary: const Icon(Icons.auto_fix_high_rounded, color: Color(0xFF8B5CF6)),
-                  title: const Text('Convertir automatiquement les PDF en CBZ'),
-                  subtitle: const Text(
-                    'Transforme chaque PDF téléchargé en archive BD ultra-fluide pour tablette.',
+                  title: Text(l10n.autoConvertPdf),
+                  subtitle: Text(
+                    l10n.autoConvertPdfBody,
                     style: TextStyle(fontSize: 12),
                   ),
                   value: readerSettings.autoConvertPdfToCbz,
@@ -377,29 +378,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
                     leading: const Icon(Icons.high_quality_rounded, color: Color(0xFF8B5CF6)),
-                    title: const Text('Qualité de rendu BD'),
+                    title: Text(l10n.comicRenderQuality),
                     subtitle: Text(
                       readerSettings.pdfRenderQuality == PdfRenderQuality.autoAdaptive
-                          ? 'Automatique (Détecte l\'écran + 35% de netteté)'
+                          ? l10n.qualityAutoLong
                           : readerSettings.pdfRenderQuality == PdfRenderQuality.highSuperSampled
-                              ? 'Super-échantillonné (2600px - Zoom net)'
+                              ? l10n.qualitySuperLong
                               : readerSettings.pdfRenderQuality == PdfRenderQuality.ultraHd
-                                  ? 'Ultra HD (3500px - Définition max)'
-                                  : 'Standard 1:1 (1900px - Rapide)',
+                                  ? l10n.qualityUltraLong
+                                  : l10n.qualityStandardLong,
                       style: const TextStyle(fontSize: 12),
                     ),
                     trailing: DropdownButton<PdfRenderQuality>(
                       value: readerSettings.pdfRenderQuality,
                       underline: const SizedBox.shrink(),
                       borderRadius: BorderRadius.circular(12),
-                      items: const [
+                      items: [
                         DropdownMenuItem(
                           value: PdfRenderQuality.autoAdaptive,
-                          child: Text('Auto (Écran + 35%)', style: TextStyle(fontSize: 12)),
+                          child: Text(l10n.qualityAuto, style: TextStyle(fontSize: 12)),
                         ),
                         DropdownMenuItem(
                           value: PdfRenderQuality.highSuperSampled,
-                          child: Text('Élevée (2600px)', style: TextStyle(fontSize: 12)),
+                          child: Text(l10n.qualityHigh, style: TextStyle(fontSize: 12)),
                         ),
                         DropdownMenuItem(
                           value: PdfRenderQuality.ultraHd,
@@ -407,7 +408,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         DropdownMenuItem(
                           value: PdfRenderQuality.screenMatch,
-                          child: Text('Standard 1:1', style: TextStyle(fontSize: 12)),
+                          child: Text(l10n.qualityStandard, style: TextStyle(fontSize: 12)),
                         ),
                       ],
                       onChanged: (val) {
@@ -424,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 18),
           
           // E-Books & EPUB Section
-          _buildSectionHeader('E-Books & EPUB', theme),
+          _buildSectionHeader(l10n.ebooksEpub, theme),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -434,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Taille de la police', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(l10n.fontSize, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 Slider(
                   value: readerSettings.epubFontSize,
                   min: 12,
@@ -444,7 +445,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (val) => readerSettings.setEpubFontSize(val),
                 ),
                 const Divider(height: 24),
-                const Text('Police', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(l10n.font, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 SegmentedButton<EpubFontFamily>(
                   segments: const [
@@ -456,12 +457,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onSelectionChanged: (set) => readerSettings.setEpubFontFamily(set.first),
                 ),
                 const Divider(height: 24),
-                const Text('Interligne', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(l10n.lineSpacing, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   children: EpubLineHeight.values.map((val) {
-                    final label = val == EpubLineHeight.compact ? 'Compact' : val == EpubLineHeight.normal ? 'Normal' : 'Relaxed';
+                    final label = val == EpubLineHeight.compact ? l10n.compact : val == EpubLineHeight.normal ? l10n.normal : l10n.relaxed;
                     return ChoiceChip(
                       label: Text(label),
                       selected: readerSettings.epubLineHeight == val,
@@ -470,12 +471,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   }).toList(),
                 ),
                 const Divider(height: 24),
-                const Text('Marge', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(l10n.margin, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   children: EpubMargin.values.map((val) {
-                    final label = val == EpubMargin.narrow ? 'Etroit' : val == EpubMargin.normal ? 'Normal' : 'Large';
+                    final label = val == EpubMargin.narrow ? l10n.narrowShort : val == EpubMargin.normal ? l10n.normal : l10n.large;
                     return ChoiceChip(
                       label: Text(label),
                       selected: readerSettings.epubMargin == val,
@@ -486,7 +487,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 24),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Texte justifié', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  title: Text(l10n.justifiedText, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                   value: readerSettings.epubTextAlign == EpubTextAlign.justify,
                   onChanged: (val) => readerSettings.setEpubTextAlign(val ? EpubTextAlign.justify : EpubTextAlign.left),
                 ),
@@ -496,7 +497,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 18),
 
           // Storage Section
-          _buildSectionHeader('Stockage & Cache', theme),
+          _buildSectionHeader(l10n.storageCache, theme),
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -509,7 +510,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Espace occupé par les livres :', style: TextStyle(fontSize: 14)),
+                    Text(l10n.spaceUsedByBooks, style: TextStyle(fontSize: 14)),
                     Text(
                       FormatUtils.formatBytes(library.totalStorageBytes),
                       style: TextStyle(
@@ -522,7 +523,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${library.books.length} livre(s) téléchargé(s)',
+                  l10n.booksDownloadedCount(library.books.length),
                   style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
                 const Divider(height: 20),
@@ -532,7 +533,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: OutlinedButton.icon(
                         onPressed: () => _clearCoversCache(context),
                         icon: const Icon(Icons.cleaning_services, size: 16),
-                        label: const Text('Vider cache', style: TextStyle(fontSize: 12)),
+                        label: Text(l10n.clearCache, style: TextStyle(fontSize: 12)),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -541,7 +542,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         style: FilledButton.styleFrom(foregroundColor: Colors.redAccent),
                         onPressed: () => _confirmDeleteAll(context),
                         icon: const Icon(Icons.delete_sweep_rounded, size: 16),
-                        label: const Text('Tout effacer', style: TextStyle(fontSize: 12)),
+                        label: Text(l10n.eraseAll, style: TextStyle(fontSize: 12)),
                       ),
                     ),
                   ],
@@ -552,7 +553,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 18),
 
           // Updates Section
-          _buildSectionHeader('Mises à jour', theme),
+          _buildSectionHeader(l10n.updates, theme),
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -567,9 +568,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Icon(Icons.system_update_rounded, color: theme.colorScheme.primary, size: 22),
               ),
-              title: const Text('Rechercher une mise à jour'),
+              title: Text(l10n.checkForUpdate),
               subtitle: Text(
-                'Version installée : ${AppVersion.fullVersion}',
+                l10n.installedVersion(AppVersion.fullVersion),
                 style: const TextStyle(fontSize: 12),
               ),
               trailing: _isCheckingUpdate
@@ -584,7 +585,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text('Vérifier', style: TextStyle(fontSize: 12)),
+                      child: Text(l10n.check, style: TextStyle(fontSize: 12)),
                     ),
               onTap: _isCheckingUpdate ? null : () => _checkUpdateManual(),
             ),
@@ -605,7 +606,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: const Icon(Icons.shop_two_rounded, color: Color(0xFF10B981), size: 22),
               ),
               title: const Text('Google Play Store'),
-              subtitle: const Text('Voir la fiche officielle de ComicStream', style: TextStyle(fontSize: 12)),
+              subtitle: Text(l10n.seeStoreListing, style: TextStyle(fontSize: 12)),
               trailing: const Icon(Icons.open_in_new_rounded, size: 18),
               onTap: () => UpdateService().launchPlayStore(),
             ),
@@ -613,7 +614,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 18),
 
           // Guide & Help
-          _buildSectionHeader('Aide & Configuration', theme),
+          _buildSectionHeader(l10n.helpSetup, theme),
           Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainer,
@@ -621,8 +622,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               leading: const Icon(Icons.help_center_outlined, color: Color(0xFF06B6D4)),
-              title: const Text('Comment configurer mon serveur local ?'),
-              subtitle: const Text('Docker, Python, NAS Synology, TrueNAS...', style: TextStyle(fontSize: 12)),
+              title: Text(l10n.howToSetupLocalServer),
+              subtitle: Text(l10n.helpSetupSubtitle, style: TextStyle(fontSize: 12)),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _showServerGuide(context),
             ),
@@ -658,7 +659,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Lecteur de BD, Comics & Mangas Cloud',
+                  l10n.appTagline,
                   style: TextStyle(fontSize: 11, color: theme.colorScheme.outline),
                 ),
               ],

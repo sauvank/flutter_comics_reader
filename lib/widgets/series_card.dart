@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/series_item.dart';
+import '../l10n/l10n.dart';
 
 class SeriesCard extends StatelessWidget {
   final SeriesItem series;
@@ -116,7 +117,7 @@ class SeriesCard extends StatelessWidget {
                             const Icon(Icons.auto_stories_rounded, color: Colors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
-                              '${series.totalBooks} ${series.totalBooks > 1 ? 'tomes' : 'tome'}',
+                              l10n.volumeCountPlural(series.totalBooks),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -187,8 +188,8 @@ class SeriesCard extends StatelessWidget {
                       children: [
                         Text(
                           series.completedBooks > 0
-                              ? '${series.completedBooks}/${series.totalBooks} lu(s)'
-                              : '${series.totalBooks} ${series.totalBooks > 1 ? 'tomes' : 'tome'}',
+                              ? l10n.readOfTotal(series.completedBooks, series.totalBooks)
+                              : l10n.volumeCountPlural(series.totalBooks),
                           style: TextStyle(
                             fontSize: 11,
                             color: theme.colorScheme.onSurfaceVariant,

@@ -10,6 +10,7 @@ import 'services/database_service.dart';
 import 'services/reader_settings_service.dart';
 import 'services/sync/firebase_bootstrap.dart';
 import 'utils/text_scale.dart';
+import 'l10n/l10n.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +61,10 @@ class ComicStreamApp extends StatelessWidget {
         builder: (context, themeProvider, _) {
           return MaterialApp(
             title: 'ComicStream',
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localeListResolutionCallback: (locales, _) =>
+                resolveAppLocale(locales),
             debugShowCheckedModeBanner: false,
             theme: themeProvider.currentTheme,
             home: const HomeScreen(),

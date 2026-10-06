@@ -10,6 +10,7 @@ import '../../services/sync/sync_service.dart';
 import '../../services/sync/firebase_bootstrap.dart';
 import '../../services/sync/sync_models.dart';
 import '../../services/android_signing_certificate_service.dart';
+import '../../l10n/l10n.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -88,18 +89,17 @@ class _AccountScreenState extends State<AccountScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Réinitialiser le coffre ?'),
-        content: const Text(
-          'Si vous avez perdu votre phrase de récupération, la réinitialisation créera un nouveau coffre vierge. '
-          'Les données protégées de vos autres appareils devront être synchronisées à nouveau.',
+        title: Text(l10n.resetVaultTitle),
+        content: Text(
+          l10n.resetVaultBody,
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Annuler')),
+              child: Text(l10n.cancel)),
           FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Réinitialiser')),
+              child: Text(l10n.reset)),
         ],
       ),
     );
@@ -113,24 +113,22 @@ class _AccountScreenState extends State<AccountScreen> {
           context: context,
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
-            title: const Row(
+            title: Row(
               children: [
                 Icon(Icons.warning_amber_rounded, color: Colors.amber),
                 SizedBox(width: 8),
-                Expanded(child: Text('Confirmer la phrase secrète')),
+                Expanded(child: Text(l10n.confirmSecretPhrase)),
               ],
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Avez-vous bien noté votre phrase secrète dans un endroit sûr ?\n\n'
-                  'Elle est indispensable pour restaurer vos données ou synchroniser un nouvel appareil. '
-                  'ComicStream ne la conserve pas et ne pourra jamais la récupérer pour vous.',
+                Text(
+                  l10n.secretPhraseWrittenDownBody,
                 ),
                 const SizedBox(height: 12),
-                const Text('Votre phrase secrète :',
+                Text(l10n.yourSecretPhrase,
                     style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Container(
@@ -153,11 +151,11 @@ class _AccountScreenState extends State<AccountScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Modifier'),
+                child: Text(l10n.edit),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
-                child: const Text('J’ai bien noté, continuer'),
+                child: Text(l10n.phraseNotedContinue),
               ),
             ],
           ),
@@ -177,22 +175,22 @@ class _AccountScreenState extends State<AccountScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Modifier la phrase secrète'),
+          title: Text(l10n.changeSecretPhrase),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Définissez une nouvelle phrase secrète (16 caractères minimum) pour sécuriser votre synchronisation.',
+                Text(
+                  l10n.changeSecretPhraseBody,
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: newPhraseController,
                   obscureText: obscureNew,
                   decoration: InputDecoration(
-                    labelText: 'Nouvelle phrase secrète',
-                    helperText: '16 caractères minimum',
+                    labelText: l10n.newSecretPhrase,
+                    helperText: l10n.min16Characters,
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -200,8 +198,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       onPressed: () =>
                           setDialogState(() => obscureNew = !obscureNew),
                       tooltip: obscureNew
-                          ? 'Afficher la phrase'
-                          : 'Masquer la phrase',
+                          ? l10n.showPhrase
+                          : l10n.hidePhrase,
                     ),
                   ),
                 ),
@@ -210,7 +208,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   controller: confirmPhraseController,
                   obscureText: obscureConfirm,
                   decoration: InputDecoration(
-                    labelText: 'Confirmer la nouvelle phrase',
+                    labelText: l10n.confirmNewPhrase,
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(obscureConfirm
@@ -219,8 +217,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       onPressed: () => setDialogState(
                           () => obscureConfirm = !obscureConfirm),
                       tooltip: obscureConfirm
-                          ? 'Afficher la phrase'
-                          : 'Masquer la phrase',
+                          ? l10n.showPhrase
+                          : l10n.hidePhrase,
                     ),
                   ),
                 ),
@@ -238,7 +236,7 @@ class _AccountScreenState extends State<AccountScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(null),
-              child: const Text('Annuler'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () {
@@ -246,17 +244,17 @@ class _AccountScreenState extends State<AccountScreen> {
                 final confirm = confirmPhraseController.text.trim();
                 if (phrase.length < 16) {
                   setDialogState(() => errorText =
-                      'La phrase doit comporter au moins 16 caractères.');
+                      l10n.phraseTooShort);
                   return;
                 }
                 if (phrase != confirm) {
                   setDialogState(() =>
-                      errorText = 'Les deux phrases ne correspondent pas.');
+                      errorText = l10n.phrasesDoNotMatch);
                   return;
                 }
                 Navigator.of(ctx).pop(phrase);
               },
-              child: const Text('Continuer'),
+              child: Text(l10n.continueLabel),
             ),
           ],
         ),
@@ -271,14 +269,13 @@ class _AccountScreenState extends State<AccountScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Confirmer le changement ?'),
+          title: Text(l10n.confirmChangeTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Votre coffre va être mis à jour avec cette nouvelle phrase secrète.\n'
-                'Assurez-vous de l’avoir bien notée :',
+              Text(
+                l10n.confirmChangeBody,
               ),
               const SizedBox(height: 12),
               Container(
@@ -301,11 +298,11 @@ class _AccountScreenState extends State<AccountScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Modifier'),
+              child: Text(l10n.edit),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Confirmer et enregistrer'),
+              child: Text(l10n.confirmAndSave),
             ),
           ],
         ),
@@ -316,8 +313,8 @@ class _AccountScreenState extends State<AccountScreen> {
           await _sync.updateRecoveryPhrase(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Phrase secrète mise à jour avec succès.')),
+              SnackBar(
+                  content: Text(l10n.secretPhraseUpdated)),
             );
           }
         });
@@ -331,7 +328,7 @@ class _AccountScreenState extends State<AccountScreen> {
       await action();
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Opération terminée.')));
+            .showSnackBar(SnackBar(content: Text(l10n.operationDone)));
       }
     } catch (error) {
       if (error is GoogleSignInException &&
@@ -342,11 +339,11 @@ class _AccountScreenState extends State<AccountScreen> {
           error.code == 'web-context-canceled') {
         return;
       }
-      var message = 'Impossible de continuer : $error';
+      var message = l10n.cannotContinue(error);
       if (error.toString().contains('invalid-cert-hash')) {
         final hashes = await AndroidSigningCertificateService.currentSha1();
         if (hashes.isNotEmpty) {
-          message = 'Certificat Android non autorisé : ${hashes.join(', ')}';
+          message = l10n.androidCertNotAllowed(hashes.join(', '));
         }
       }
       if (mounted) {
@@ -363,7 +360,7 @@ class _AccountScreenState extends State<AccountScreen> {
     final date = MaterialLocalizations.of(context).formatMediumDate(local);
     final time = MaterialLocalizations.of(context)
         .formatTimeOfDay(TimeOfDay.fromDateTime(local));
-    return '$date à $time';
+    return l10n.dateAtTime(date, time);
   }
 
   Future<bool> _resolveConflicts(List<SyncConflict> conflicts) async {
@@ -373,25 +370,25 @@ class _AccountScreenState extends State<AccountScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('Conflit de synchronisation'),
+          title: Text(l10n.syncConflict),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Deux versions de « ${conflict.label} » ont été modifiées.'),
+              Text(l10n.syncConflictBody(conflict.label)),
               const SizedBox(height: 12),
               Text(
-                  'Cet appareil : ${_formatConflictDate(conflict.localUpdatedAt)}'),
+                  l10n.thisDeviceValue(_formatConflictDate(conflict.localUpdatedAt))),
               const SizedBox(height: 4),
               Text(
-                  'Serveur de synchronisation : ${_formatConflictDate(conflict.remoteUpdatedAt)}'),
+                  l10n.syncServerValue(_formatConflictDate(conflict.remoteUpdatedAt))),
               const SizedBox(height: 12),
-              Text('Cet appareil : ${conflict.localSummary}'),
+              Text(l10n.thisDeviceSummary(conflict.localSummary)),
               const SizedBox(height: 4),
-              Text('Serveur : ${conflict.remoteSummary}'),
+              Text(l10n.serverSummary(conflict.remoteSummary)),
               const SizedBox(height: 12),
-              const Text(
-                'Choisissez la version de référence. Elle sera ensuite synchronisée sur vos autres appareils.',
+              Text(
+                l10n.chooseReferenceVersion,
               ),
               const SizedBox(height: 12),
               SizedBox(
@@ -400,7 +397,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   onPressed: () =>
                       Navigator.of(ctx).pop(SyncConflictResolution.keepRemote),
                   icon: const Icon(Icons.arrow_downward_rounded),
-                  label: const Text('Récupérer du serveur'),
+                  label: Text(l10n.fetchFromServer),
                 ),
               ),
               const SizedBox(height: 8),
@@ -410,7 +407,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   onPressed: () =>
                       Navigator.of(ctx).pop(SyncConflictResolution.keepLocal),
                   icon: const Icon(Icons.arrow_upward_rounded),
-                  label: const Text('Envoyer vers le serveur'),
+                  label: Text(l10n.sendToServer),
                 ),
               ),
             ],
@@ -418,7 +415,7 @@ class _AccountScreenState extends State<AccountScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Plus tard'),
+              child: Text(l10n.later),
             ),
           ],
         ),
@@ -455,26 +452,26 @@ class _AccountScreenState extends State<AccountScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Nom de cet appareil'),
+        title: Text(l10n.thisDeviceName),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLength: 40,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(
-            hintText: 'Ex. Tablette ou Téléphone',
+          decoration: InputDecoration(
+            hintText: l10n.deviceNameHint,
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () =>
                 Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Enregistrer'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -487,8 +484,8 @@ class _AccountScreenState extends State<AccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result == DeviceRenameResult.synced
-                ? 'Nom de l’appareil enregistré sur le serveur.'
-                : 'Nom enregistré sur cet appareil. Il sera envoyé à la prochaine synchronisation.'),
+                ? l10n.deviceNameSavedOnServer
+                : l10n.deviceNameSavedLocally),
           ),
         );
       }
@@ -507,7 +504,7 @@ class _AccountScreenState extends State<AccountScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text('Impossible de préparer la synchronisation : $error')),
+                  Text(l10n.cannotPrepareSync(error))),
         );
       }
       return;
@@ -522,10 +519,10 @@ class _AccountScreenState extends State<AccountScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const ListTile(
-                title: Text('Quelle sauvegarde utiliser ?'),
+              ListTile(
+                title: Text(l10n.whichBackupToUse),
                 subtitle: Text(
-                  'Le choix devient la référence partagée. Les autres appareils la recevront à leur prochaine synchronisation.',
+                  l10n.whichBackupBody,
                 ),
               ),
               for (final backup in backups)
@@ -535,10 +532,10 @@ class _AccountScreenState extends State<AccountScreen> {
                       : Icons.devices_other),
                   title: Text(backup.label),
                   subtitle: Text(backup.updatedAt == null
-                      ? 'Pas encore sauvegardé'
-                      : 'Sauvegardé ${_formatConflictDate(backup.updatedAt!)}'),
+                      ? l10n.notBackedUpYet
+                      : l10n.backedUpAt(_formatConflictDate(backup.updatedAt!))),
                   trailing: backup.isCurrentDevice
-                      ? const Text('ACTUEL')
+                      ? Text(l10n.currentUpper)
                       : const Icon(Icons.chevron_right),
                   onTap: () => Navigator.of(sheetContext).pop(backup),
                 ),
@@ -576,11 +573,11 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     if (!FirebaseBootstrap.isAvailable) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Compte et synchronisation')),
-        body: const Padding(
+        appBar: AppBar(title: Text(l10n.accountAndSync)),
+        body: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-              'La synchronisation sera disponible après la configuration du projet Firebase. Le lecteur et vos données locales continuent de fonctionner normalement.'),
+              l10n.syncUnavailableNoFirebase),
         ),
       );
     }
@@ -593,7 +590,7 @@ class _AccountScreenState extends State<AccountScreen> {
           WidgetsBinding.instance.addPostFrameCallback((_) => _checkVault());
         }
         return Scaffold(
-          appBar: AppBar(title: const Text('Compte et synchronisation')),
+          appBar: AppBar(title: Text(l10n.accountAndSync)),
           body: ListView(
             padding: const EdgeInsets.all(20),
             children: [
@@ -605,11 +602,11 @@ class _AccountScreenState extends State<AccountScreen> {
                         : Icons.lock_outline,
                     color: _hasLocalVault == true ? Colors.green : Colors.amber,
                   ),
-                  title: Text(user.email ?? 'Compte connecté'),
+                  title: Text(user.email ?? l10n.accountConnected),
                   subtitle: Text(
                     _hasLocalVault == true
-                        ? 'Coffre déverrouillé. Vos données sont chiffrées de bout en bout.'
-                        : 'Coffre verrouillé ou non initialisé.',
+                        ? l10n.vaultUnlockedE2e
+                        : l10n.vaultLockedOrNew,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -641,8 +638,8 @@ class _AccountScreenState extends State<AccountScreen> {
                               Expanded(
                                 child: Text(
                                   _hasRemoteVault == true
-                                      ? 'Déverrouiller le coffre'
-                                      : 'Initialiser votre coffre chiffré',
+                                      ? l10n.unlockVault
+                                      : l10n.initEncryptedVault,
                                   style:
                                       Theme.of(context).textTheme.titleMedium,
                                 ),
@@ -652,8 +649,8 @@ class _AccountScreenState extends State<AccountScreen> {
                           const SizedBox(height: 8),
                           Text(
                             _hasRemoteVault == true
-                                ? 'Un coffre chiffré est associé à ce compte. Saisissez votre phrase de récupération pour déverrouiller la synchronisation sur cet appareil.'
-                                : 'Pour protéger vos mots de passe de serveurs et vos données, choisissez une phrase secrète (16 caractères minimum). Elle est indispensable pour restaurer vos données sur un nouvel appareil.',
+                                ? l10n.unlockVaultBody
+                                : l10n.initVaultBody,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                           const SizedBox(height: 16),
@@ -662,8 +659,8 @@ class _AccountScreenState extends State<AccountScreen> {
                             obscureText: _obscurePhrase,
                             decoration: InputDecoration(
                               labelText: _hasRemoteVault == true
-                                  ? 'Phrase de récupération'
-                                  : 'Phrase secrète (16 caractères minimum)',
+                                  ? l10n.recoveryPhrase
+                                  : l10n.secretPhraseMin16,
                               border: const OutlineInputBorder(),
                               suffixIcon: IconButton(
                                 icon: Icon(_obscurePhrase
@@ -672,8 +669,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                 onPressed: () => setState(
                                     () => _obscurePhrase = !_obscurePhrase),
                                 tooltip: _obscurePhrase
-                                    ? 'Afficher la phrase'
-                                    : 'Masquer la phrase',
+                                    ? l10n.showPhrase
+                                    : l10n.hidePhrase,
                               ),
                             ),
                           ),
@@ -683,7 +680,7 @@ class _AccountScreenState extends State<AccountScreen> {
                               controller: _confirmPhrase,
                               obscureText: _obscureConfirmPhrase,
                               decoration: InputDecoration(
-                                labelText: 'Confirmer la phrase secrète',
+                                labelText: l10n.confirmSecretPhrase,
                                 border: const OutlineInputBorder(),
                                 suffixIcon: IconButton(
                                   icon: Icon(_obscureConfirmPhrase
@@ -693,8 +690,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                       _obscureConfirmPhrase =
                                           !_obscureConfirmPhrase),
                                   tooltip: _obscureConfirmPhrase
-                                      ? 'Afficher la phrase'
-                                      : 'Masquer la phrase',
+                                      ? l10n.showPhrase
+                                      : l10n.hidePhrase,
                                 ),
                               ),
                             ),
@@ -710,7 +707,7 @@ class _AccountScreenState extends State<AccountScreen> {
                                         if (_hasRemoteVault == true) {
                                           if (phrase.isEmpty) {
                                             throw ArgumentError(
-                                                'Veuillez saisir votre phrase de récupération.');
+                                                l10n.enterRecoveryPhrase);
                                           }
                                           await _sync.restoreVault(phrase);
                                         } else {
@@ -718,11 +715,11 @@ class _AccountScreenState extends State<AccountScreen> {
                                               _confirmPhrase.text.trim();
                                           if (phrase.length < 16) {
                                             throw ArgumentError(
-                                                'La phrase secrète doit comporter au moins 16 caractères.');
+                                                l10n.secretPhraseTooShort);
                                           }
                                           if (phrase != confirm) {
                                             throw ArgumentError(
-                                                'Les phrases secrètes ne correspondent pas.');
+                                                l10n.secretPhrasesDoNotMatch);
                                           }
                                           final confirmed =
                                               await _showConfirmCreationDialog(
@@ -739,8 +736,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                   : Icons.vpn_key),
                               label: Text(
                                 _hasRemoteVault == true
-                                    ? 'Déverrouiller la synchronisation'
-                                    : 'Créer et activer le coffre',
+                                    ? l10n.unlockSync
+                                    : l10n.createAndEnableVault,
                               ),
                             ),
                           ),
@@ -749,8 +746,8 @@ class _AccountScreenState extends State<AccountScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: _busy ? null : _showResetVaultDialog,
-                                child: const Text(
-                                    'Phrase oubliée ? Réinitialiser le coffre'),
+                                child: Text(
+                                    l10n.forgotPhraseReset),
                               ),
                             ),
                           ],
@@ -767,15 +764,15 @@ class _AccountScreenState extends State<AccountScreen> {
                         leading: Icon(Icons.warning_amber_rounded,
                             color:
                                 Theme.of(context).colorScheme.onErrorContainer),
-                        title: const Text('Conflit de synchronisation'),
+                        title: Text(l10n.syncConflict),
                         subtitle: Text(
-                          '${automaticSync.conflicts.length} modification${automaticSync.conflicts.length > 1 ? 's' : ''} attend${automaticSync.conflicts.length > 1 ? 'ent' : ''} votre choix.',
+                          l10n.pendingConflicts(automaticSync.conflicts.length),
                         ),
                         trailing: FilledButton(
                           onPressed: _syncing
                               ? null
                               : () => _resolveAutomaticConflicts(automaticSync),
-                          child: const Text('Voir'),
+                          child: Text(l10n.view),
                         ),
                       ),
                     ),
@@ -793,14 +790,14 @@ class _AccountScreenState extends State<AccountScreen> {
                                   color: Colors.green),
                               const SizedBox(width: 8),
                               Text(
-                                'Coffre déverrouillé',
+                                l10n.vaultUnlocked,
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'La synchronisation est active et protégée par chiffrement de bout en bout.',
+                          Text(
+                            l10n.syncActiveE2e,
                           ),
                           const SizedBox(height: 16),
                           if (_syncing) ...[
@@ -822,15 +819,15 @@ class _AccountScreenState extends State<AccountScreen> {
                                       )
                                     : const Icon(Icons.sync),
                                 label: Text(_syncing
-                                    ? 'Synchronisation…'
-                                    : 'Synchroniser'),
+                                    ? l10n.syncing
+                                    : l10n.synchronize),
                               );
                               final recoveryButton = OutlinedButton.icon(
                                 onPressed: _busy
                                     ? null
                                     : _showEditRecoveryPhraseDialog,
                                 icon: const Icon(Icons.key),
-                                label: const Text('Modifier la phrase'),
+                                label: Text(l10n.changePhrase),
                               );
                               if (constraints.maxWidth < 520) {
                                 return Column(
@@ -856,12 +853,12 @@ class _AccountScreenState extends State<AccountScreen> {
                           ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.devices_other_outlined),
-                            title: const Text('Nom de cet appareil'),
-                            subtitle: const Text(
-                                'Affiché lors du choix d’une sauvegarde'),
+                            title: Text(l10n.thisDeviceName),
+                            subtitle: Text(
+                                l10n.shownWhenChoosingBackup),
                             trailing: OutlinedButton(
                               onPressed: _busy ? null : _showDeviceNameDialog,
-                              child: const Text('Modifier'),
+                              child: Text(l10n.edit),
                             ),
                           ),
                         ],
@@ -880,10 +877,10 @@ class _AccountScreenState extends State<AccountScreen> {
                               _hasRemoteVault = null;
                             });
                           }),
-                  child: const Text('Se déconnecter'),
+                  child: Text(l10n.signOut),
                 ),
               ] else ...[
-                Text(_createMode ? 'Créer un compte' : 'Se connecter',
+                Text(_createMode ? l10n.createAccount : l10n.signIn,
                     style: Theme.of(context).textTheme.headlineSmall),
                 const SizedBox(height: 12),
                 TextField(
@@ -896,7 +893,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   controller: _password,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Mot de passe (12 caractères minimum)',
+                    labelText: l10n.passwordMin12,
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(_obscurePassword
@@ -905,8 +902,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       onPressed: () =>
                           setState(() => _obscurePassword = !_obscurePassword),
                       tooltip: _obscurePassword
-                          ? 'Afficher le mot de passe'
-                          : 'Masquer le mot de passe',
+                          ? l10n.showPassword
+                          : l10n.hidePassword,
                     ),
                   ),
                 ),
@@ -916,7 +913,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     controller: _recovery,
                     obscureText: _obscureRecovery,
                     decoration: InputDecoration(
-                      labelText: 'Phrase secrète (16 caractères minimum)',
+                      labelText: l10n.secretPhraseMin16,
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(_obscureRecovery
@@ -925,8 +922,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         onPressed: () => setState(
                             () => _obscureRecovery = !_obscureRecovery),
                         tooltip: _obscureRecovery
-                            ? 'Afficher la phrase'
-                            : 'Masquer la phrase',
+                            ? l10n.showPhrase
+                            : l10n.hidePhrase,
                       ),
                     ),
                   ),
@@ -935,7 +932,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     controller: _confirmRecovery,
                     obscureText: _obscureConfirmRecovery,
                     decoration: InputDecoration(
-                      labelText: 'Confirmer la phrase secrète',
+                      labelText: l10n.confirmSecretPhrase,
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
                         icon: Icon(_obscureConfirmRecovery
@@ -944,8 +941,8 @@ class _AccountScreenState extends State<AccountScreen> {
                         onPressed: () => setState(() =>
                             _obscureConfirmRecovery = !_obscureConfirmRecovery),
                         tooltip: _obscureConfirmRecovery
-                            ? 'Afficher la phrase'
-                            : 'Masquer la phrase',
+                            ? l10n.showPhrase
+                            : l10n.hidePhrase,
                       ),
                     ),
                   ),
@@ -960,11 +957,11 @@ class _AccountScreenState extends State<AccountScreen> {
                               final confirm = _confirmRecovery.text.trim();
                               if (phrase.length < 16) {
                                 throw ArgumentError(
-                                    'La phrase secrète doit comporter au moins 16 caractères.');
+                                    l10n.secretPhraseTooShort);
                               }
                               if (phrase != confirm) {
                                 throw ArgumentError(
-                                    'Les phrases secrètes ne correspondent pas.');
+                                    l10n.secretPhrasesDoNotMatch);
                               }
                               final confirmed =
                                   await _showConfirmCreationDialog(phrase);
@@ -978,14 +975,14 @@ class _AccountScreenState extends State<AccountScreen> {
                             }
                             await _checkVault();
                           }),
-                  child: Text(_createMode ? 'Créer le compte' : 'Se connecter'),
+                  child: Text(_createMode ? l10n.createTheAccount : l10n.signIn),
                 ),
                 TextButton(
                   onPressed: _busy
                       ? null
                       : () => setState(() => _createMode = !_createMode),
                   child: Text(
-                      _createMode ? 'J’ai déjà un compte' : 'Créer un compte'),
+                      _createMode ? l10n.alreadyHaveAccount : l10n.createAccount),
                 ),
                 const Divider(height: 32),
                 OutlinedButton.icon(
@@ -996,12 +993,12 @@ class _AccountScreenState extends State<AccountScreen> {
                             await _checkVault();
                           }),
                   icon: const Icon(Icons.g_mobiledata),
-                  label: const Text('Continuer avec Google'),
+                  label: Text(l10n.continueWithGoogle),
                 ),
               ],
               const SizedBox(height: 24),
-              const Text(
-                  'La phrase de récupération est indispensable pour restaurer les mots de passe de serveurs sur un nouvel appareil. Elle n’est jamais sauvegardée par ComicStream.'),
+              Text(
+                  l10n.recoveryPhraseRequiredNote),
             ],
           ),
         );

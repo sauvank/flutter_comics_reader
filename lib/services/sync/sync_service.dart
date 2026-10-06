@@ -18,6 +18,7 @@ import 'crypto_service.dart';
 import 'firebase_bootstrap.dart';
 import 'sync_models.dart';
 import 'vault_service.dart';
+import '../../l10n/l10n.dart';
 
 /// Determines whether a book has a stable, private identity for progress
 /// synchronization. Content hashes cover both server downloads and files
@@ -109,7 +110,7 @@ class SyncService {
       final account = await _googleSignIn.authenticate();
       final auth = account.authentication;
       if (auth.idToken == null) {
-        throw StateError('Jeton d’authentification Google introuvable.');
+        throw StateError(l10n.googleTokenMissing);
       }
       final credential = GoogleAuthProvider.credential(
         idToken: auth.idToken,
@@ -119,7 +120,7 @@ class SyncService {
 
     if (kIsWeb) return _auth.signInWithPopup(GoogleAuthProvider());
     throw UnsupportedError(
-        'La connexion Google n’est pas disponible sur cet appareil.');
+        l10n.googleSignInUnavailable);
   }
 
   Future<void> sendPasswordReset(String email) =>
@@ -146,10 +147,10 @@ class SyncService {
   Future<void> createVault(String recoveryPhrase) async {
     if (recoveryPhrase.trim().length < 16) {
       throw ArgumentError(
-          'La phrase de récupération doit comporter au moins 16 caractères.');
+          l10n.recoveryPhraseTooShort);
     }
     final currentUser = user;
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     final master = await _vault.createLocalVault();
     final recovery = await _vault.recoveryKey(recoveryPhrase);
     final envelope = await _crypto.encryptJson(
@@ -167,12 +168,12 @@ class SyncService {
   /// Restores the encrypted key on an additional device using the phrase.
   Future<void> restoreVault(String recoveryPhrase) async {
     final currentUser = user;
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     final snapshot =
         await _firestore.doc('users/${currentUser.uid}/private/vault').get();
     final data = snapshot.data();
     if (data == null) {
-      throw StateError('Aucun coffre de synchronisation trouvé.');
+      throw StateError(l10n.noSyncVaultFound);
     }
     final salt = data['salt'] as String;
     final recovery = await _vault.recoveryKey(recoveryPhrase, salt: salt);
@@ -189,14 +190,14 @@ class SyncService {
   Future<void> updateRecoveryPhrase(String newRecoveryPhrase) async {
     if (newRecoveryPhrase.trim().length < 16) {
       throw ArgumentError(
-          'La phrase de récupération doit comporter au moins 16 caractères.');
+          l10n.recoveryPhraseTooShort);
     }
     final currentUser = user;
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     final master = await _vault.readLocalKey();
     if (master == null) {
       throw StateError(
-          'Le coffre doit être déverrouillé pour modifier la phrase secrète.');
+          l10n.vaultMustBeUnlocked);
     }
     final salt = await _vault.generateNewRecoverySalt();
     final recovery = await _vault.recoveryKey(newRecoveryPhrase, salt: salt);
@@ -234,9 +235,9 @@ class SyncService {
   Future<List<SyncConflict>> _syncNow() async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     if (key == null) {
-      throw StateError('Phrase de récupération requise sur cet appareil.');
+      throw StateError(l10n.recoveryPhraseRequiredHere);
     }
     final conflicts = <SyncConflict>[];
     final root = _firestore
@@ -245,9 +246,9 @@ class SyncService {
         .collection('private');
 
     await _syncDocument(root.doc('servers'), 'servers', await _serversPayload(),
-        key, conflicts, 'Configurations de serveurs');
+        key, conflicts, l10n.serverConfigurations);
     await _syncDocument(root.doc('settings'), 'settings',
-        await _settingsPayload(), key, conflicts, 'Paramètres de lecture');
+        await _settingsPayload(), key, conflicts, l10n.readingSettings);
     for (final book in await _database.getBooks()) {
       final fingerprintedBook = await _ensureFingerprint(book);
       if (!hasProgressIdentity(fingerprintedBook)) continue;
@@ -283,7 +284,7 @@ class SyncService {
   Future<DeviceRenameResult> renameCurrentDevice(String name) async {
     final normalized = name.trim();
     if (normalized.isEmpty || normalized.length > 40) {
-      throw ArgumentError('Le nom doit contenir entre 1 et 40 caractères.');
+      throw ArgumentError(l10n.deviceNameLength);
     }
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_deviceNameKey, normalized);
@@ -348,7 +349,7 @@ class SyncService {
         candidates.add(_DeviceProgressCandidate(
           deviceId: snapshot.id,
           deviceName: payload['sourceDeviceName'] as String? ??
-              'Appareil ${snapshot.id.substring(0, 4).toUpperCase()}',
+              l10n.deviceDefaultName(snapshot.id.substring(0, 4).toUpperCase()),
           payload: payload,
           updatedAt: updatedAt,
         ));
@@ -382,7 +383,7 @@ class SyncService {
             // document even when newer fields identify its source device.
             deviceId: _legacyDeviceId,
             deviceName:
-                payload['sourceDeviceName'] as String? ?? 'Autre appareil',
+                payload['sourceDeviceName'] as String? ?? l10n.otherDevice,
             payload: payload,
             updatedAt: updatedAt,
           ));
@@ -421,9 +422,9 @@ class SyncService {
       BookSyncProposal proposal, BookProgressChoice choice) async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     if (key == null) {
-      throw StateError('Phrase de récupération requise sur cet appareil.');
+      throw StateError(l10n.recoveryPhraseRequiredHere);
     }
     final root = _firestore
         .collection('users')
@@ -441,7 +442,7 @@ class SyncService {
               .doc(proposal.remoteDeviceId);
       final snapshot = await reference.get();
       if (!snapshot.exists) {
-        throw StateError('Cette progression distante n’existe plus.');
+        throw StateError(l10n.remoteProgressGone);
       }
       remote = await _crypto.decryptJson(
         key: key,
@@ -471,9 +472,9 @@ class SyncService {
   Future<List<SyncDeviceBackup>> listDeviceBackups() async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     if (key == null) {
-      throw StateError('Phrase de récupération requise sur cet appareil.');
+      throw StateError(l10n.recoveryPhraseRequiredHere);
     }
     final root = _firestore
         .collection('users')
@@ -484,7 +485,7 @@ class SyncService {
     final backups = <SyncDeviceBackup>[
       SyncDeviceBackup(
         id: currentId,
-        label: 'Cet appareil — $currentName',
+        label: l10n.thisDeviceNamed(currentName),
         isCurrentDevice: true,
       ),
     ];
@@ -507,7 +508,7 @@ class SyncService {
       if (snapshot.id == currentId) {
         backups[0] = SyncDeviceBackup(
           id: currentId,
-          label: 'Cet appareil — $currentName',
+          label: l10n.thisDeviceNamed(currentName),
           isCurrentDevice: true,
           updatedAt: updatedAt,
         );
@@ -517,7 +518,7 @@ class SyncService {
         id: snapshot.id,
         label: payload['deviceName'] as String? ??
             snapshot.data()['label'] as String? ??
-            'Autre appareil',
+            l10n.otherDevice,
         isCurrentDevice: false,
         updatedAt: updatedAt,
       ));
@@ -539,9 +540,9 @@ class SyncService {
   Future<void> restoreDeviceBackup(String deviceId) async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     if (key == null) {
-      throw StateError('Phrase de récupération requise sur cet appareil.');
+      throw StateError(l10n.recoveryPhraseRequiredHere);
     }
     final root = _firestore
         .collection('users')
@@ -551,7 +552,7 @@ class SyncService {
         root.doc('deviceBackups').collection('devices').doc(deviceId);
     final snapshot = await reference.get();
     if (!snapshot.exists) {
-      throw StateError('La sauvegarde de cet appareil est introuvable.');
+      throw StateError(l10n.deviceBackupNotFound);
     }
     final backup = await _crypto.decryptJson(
       key: key,
@@ -595,9 +596,9 @@ class SyncService {
   ) async {
     final currentUser = user;
     final key = await _vault.readLocalKey();
-    if (currentUser == null) throw StateError('Connexion requise');
+    if (currentUser == null) throw StateError(l10n.signInRequired);
     if (key == null) {
-      throw StateError('Phrase de récupération requise sur cet appareil.');
+      throw StateError(l10n.recoveryPhraseRequiredHere);
     }
 
     final root = _firestore
@@ -618,7 +619,7 @@ class SyncService {
     } else {
       final snapshot = await reference.get();
       if (!snapshot.exists) {
-        throw StateError('Les données Google à résoudre sont introuvables.');
+        throw StateError(l10n.googleDataNotFound);
       }
       chosen = await _crypto.decryptJson(
         key: key,
@@ -645,10 +646,10 @@ class SyncService {
           return _progressPayload(fingerprintedBook);
         }
       }
-      throw StateError('La progression locale correspondante n’existe plus.');
+      throw StateError(l10n.localProgressGone);
     }
     throw ArgumentError.value(
-        documentId, 'documentId', 'Document de synchronisation inconnu');
+        documentId, 'documentId', l10n.unknownSyncDocument);
   }
 
   Future<void> _syncDocument(
@@ -767,18 +768,19 @@ class SyncService {
       final isEpub = payload['format'] == BookFormat.epub.name;
       final bookmarks = payload['bookmarks'];
       final bookmarkCount = bookmarks is List ? bookmarks.length : 0;
-      final favorite = payload['isFavorite'] == true ? 'oui' : 'non';
-      final location =
-          isEpub ? 'Chapitre ${page + 1}/$total' : 'Page $page/$total';
-      return '$location · Favori : $favorite · '
-          '$bookmarkCount marque-page${bookmarkCount > 1 ? 's' : ''}';
+      final favorite = payload['isFavorite'] == true ? l10n.yes : l10n.no;
+      final location = isEpub
+          ? l10n.chapterSlash(page + 1, total)
+          : l10n.pageSlash(page, total);
+      return l10n.progressSummary(
+          location, favorite, l10n.bookmarksCount(bookmarkCount));
     }
     if (documentId == 'servers') {
       final servers = payload['servers'];
       final count = servers is List ? servers.length : 0;
-      return '$count profil${count > 1 ? 's' : ''} de serveur';
+      return l10n.serverProfilesCount(count);
     }
-    return 'Réglages de lecture';
+    return l10n.readingSettingsShort;
   }
 
   Future<void> _write(
@@ -922,7 +924,7 @@ class SyncService {
   }
 
   String _deviceLabel(String deviceId) =>
-      'Appareil ${deviceId.substring(0, 4).toUpperCase()}';
+      l10n.deviceDefaultName(deviceId.substring(0, 4).toUpperCase());
 
   Future<Map<String, dynamic>> _serversPayload() async => {
         'updatedAt': (await _database.getSyncDomainUpdatedAt('servers'))

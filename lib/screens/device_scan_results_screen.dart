@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 
 import '../models/book_item.dart';
 import '../services/scan_cover_service.dart';
+import '../l10n/l10n.dart';
 
 /// A book found on the device during a scan, not imported yet.
 class ScannedBook {
@@ -185,15 +186,13 @@ class _DeviceScanResultsScreenState extends State<DeviceScanResultsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.books.length > 1
-            ? '${widget.books.length} livres'
-            : '${widget.books.length} livre'),
+        title: Text(l10n.booksFoundCount(widget.books.length)),
         actions: [
           TextButton(
             onPressed: selectable.isEmpty
                 ? null
                 : () => _setAll(selectable, !allSelected),
-            child: Text(allSelected ? 'Aucun' : 'Tout'),
+            child: Text(allSelected ? l10n.none : l10n.all),
           ),
           const SizedBox(width: 8),
         ],
@@ -231,7 +230,7 @@ class _DeviceScanResultsScreenState extends State<DeviceScanResultsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${_selected.length} sélectionné(s)',
+                      l10n.selectedCount(_selected.length),
                       style: theme.textTheme.titleMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
@@ -253,7 +252,7 @@ class _DeviceScanResultsScreenState extends State<DeviceScanResultsScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                 ),
                 icon: const Icon(Icons.download_rounded),
-                label: const Text('Importer'),
+                label: Text(l10n.importAction),
               ),
             ],
           ),
@@ -263,9 +262,9 @@ class _DeviceScanResultsScreenState extends State<DeviceScanResultsScreen> {
   }
 
   Widget _buildFilters() {
-    const labels = {
-      _ScanFilter.all: 'Tous',
-      _ScanFilter.comics: 'BD',
+    final labels = {
+      _ScanFilter.all: l10n.everyone,
+      _ScanFilter.comics: l10n.comicsFilter,
       _ScanFilter.epub: 'EPUB',
       _ScanFilter.pdf: 'PDF',
     };
@@ -337,7 +336,7 @@ class _DeviceScanResultsScreenState extends State<DeviceScanResultsScreen> {
               if (selectable.isNotEmpty)
                 TextButton(
                   onPressed: () => _setAll(selectable, !allSelected),
-                  child: Text(allSelected ? 'Tout retirer' : 'Tout ajouter'),
+                  child: Text(allSelected ? l10n.removeAll : l10n.addAll),
                 ),
             ],
           ),
@@ -439,8 +438,8 @@ class _ScanBookTile extends StatelessWidget {
                             child: Container(
                               color: Colors.black.withValues(alpha: 0.75),
                               padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: const Text(
-                                'Déjà importé',
+                              child: Text(
+                                l10n.alreadyImported,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: Colors.white,
@@ -577,12 +576,12 @@ class _FormatBadge extends StatelessWidget {
 }
 
 String _formatSize(int bytes) {
-  if (bytes <= 0) return '0 Mo';
+  String decimal(double value) =>
+      value.toStringAsFixed(1).replaceAll('.', l10n.decimalSeparator);
+  if (bytes <= 0) return l10n.sizeMb(0);
   final mb = bytes / (1024 * 1024);
-  if (mb >= 1024) {
-    return '${(mb / 1024).toStringAsFixed(1).replaceAll('.', ',')} Go';
-  }
-  if (mb >= 10) return '${mb.round()} Mo';
-  if (mb >= 0.1) return '${mb.toStringAsFixed(1).replaceAll('.', ',')} Mo';
-  return '${(bytes / 1024).ceil()} Ko';
+  if (mb >= 1024) return l10n.sizeGb(decimal(mb / 1024));
+  if (mb >= 10) return l10n.sizeMb(mb.round());
+  if (mb >= 0.1) return l10n.sizeMb(decimal(mb));
+  return l10n.sizeKb((bytes / 1024).ceil());
 }

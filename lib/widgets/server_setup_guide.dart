@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 
 /// Step-by-step guide shown in the Server tab while no server is configured.
 class ServerSetupGuide extends StatelessWidget {
@@ -32,7 +33,7 @@ class ServerSetupGuide extends StatelessWidget {
                   size: 36, color: scheme.onPrimaryContainer),
               const SizedBox(height: 12),
               Text(
-                'Lisez les BD de votre ordinateur ou NAS',
+                l10n.guideHeroTitle,
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: scheme.onPrimaryContainer,
@@ -40,94 +41,94 @@ class ServerSetupGuide extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Un serveur rend votre collection accessible depuis le téléphone, sans tout copier. Comptez environ 2 minutes.',
+                l10n.guideHeroBody,
                 style: TextStyle(color: scheme.onPrimaryContainer),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: onAddServer,
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Ajouter un serveur'),
+                label: Text(l10n.addServer),
               ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        Text('Comment faire',
+        Text(l10n.howItWorks,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
-        const _Step(
+        _Step(
           number: 1,
-          title: 'Partagez votre dossier de BD',
+          title: l10n.guideStep1Title,
           body:
-              'Sur votre NAS ou ordinateur, activez un partage WebDAV, FTP ou HTTP qui pointe vers le dossier contenant vos fichiers CBZ, CBR, PDF ou EPUB. Les exemples ci-dessous détaillent chaque cas.',
+              l10n.guideStep1Body,
         ),
-        const _Step(
+        _Step(
           number: 2,
-          title: 'Notez son adresse',
+          title: l10n.guideStep2Title,
           body:
-              'Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Le téléphone doit être connecté au même réseau Wi-Fi.',
+              l10n.guideStep2Body,
         ),
-        const _Step(
+        _Step(
           number: 3,
-          title: 'Remplissez le formulaire',
+          title: l10n.guideStep3Title,
           body:
-              'Touchez « Ajouter un serveur », choisissez le type, puis saisissez l’hôte, le port, le chemin du dossier et, si besoin, l’identifiant et le mot de passe.',
+              l10n.guideStep3Body,
         ),
-        const _Step(
+        _Step(
           number: 4,
-          title: 'Testez puis enregistrez',
+          title: l10n.guideStep4Title,
           body:
-              '« Tester » vérifie la connexion. Une fois validé, « Enregistrer » ouvre directement le serveur pour parcourir et télécharger vos livres.',
+              l10n.guideStep4Body,
           isLast: true,
         ),
         const SizedBox(height: 16),
-        Text('Exemples de configuration',
+        Text(l10n.configurationExamples,
             style: theme.textTheme.titleMedium
                 ?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        const _Example(
+        _Example(
           icon: Icons.cloud_outlined,
           title: 'WebDAV',
-          subtitle: 'Recommandé · NAS Synology, QNAP, Nextcloud',
+          subtitle: l10n.webdavSubtitle,
           fields: [
-            ('Type', 'WebDAV'),
-            ('Hôte', '192.168.1.100'),
-            ('Port', '5005 (Synology), 80 ou 443'),
-            ('Chemin', '/comics ou /remote.php/dav/files/user'),
-            ('Identifiants', 'ceux de votre compte NAS'),
+            (l10n.type, 'WebDAV'),
+            (l10n.host, '192.168.1.100'),
+            (l10n.port, l10n.webdavPorts),
+            (l10n.path, '/comics ou /remote.php/dav/files/user'),
+            (l10n.credentials, l10n.webdavCredentials),
           ],
           tip:
-              'Sur Synology : installez « WebDAV Server » depuis le Centre de paquets et activez HTTP ou HTTPS.',
+              l10n.webdavTip,
         ),
-        const _Example(
+        _Example(
           icon: Icons.public_rounded,
           title: 'HTTP',
-          subtitle: 'Le plus simple depuis un ordinateur',
+          subtitle: l10n.httpSubtitle,
           fields: [
-            ('Type', 'HTTP'),
-            ('Hôte', 'IP de l’ordinateur'),
-            ('Port', '8080'),
-            ('Chemin', '/'),
-            ('Identifiants', 'aucun'),
+            (l10n.type, 'HTTP'),
+            (l10n.host, l10n.computerIp),
+            (l10n.port, '8080'),
+            (l10n.path, '/'),
+            (l10n.credentials, l10n.noneLower),
           ],
           tip:
-              'Dans le dossier de vos BD, lancez « python3 -m http.server 8080 », ou le script server_example/comic_server.py fourni avec ComicStream.',
+              l10n.httpTip,
         ),
-        const _Example(
+        _Example(
           icon: Icons.swap_vert_rounded,
           title: 'FTP',
-          subtitle: 'Box internet, anciens NAS',
+          subtitle: l10n.ftpSubtitle,
           fields: [
-            ('Type', 'FTP'),
-            ('Hôte', '192.168.1.100'),
-            ('Port', '21'),
-            ('Chemin', '/comics'),
-            ('Identifiants', 'compte FTP de la box ou du NAS'),
+            (l10n.type, 'FTP'),
+            (l10n.host, '192.168.1.100'),
+            (l10n.port, '21'),
+            (l10n.path, '/comics'),
+            (l10n.credentials, l10n.ftpCredentials),
           ],
           tip:
-              'Le FTP n’est pas chiffré : réservez-le à votre réseau domestique.',
+              l10n.ftpTip,
         ),
         const SizedBox(height: 16),
         Card(
@@ -143,21 +144,21 @@ class ServerSetupGuide extends StatelessWidget {
                         color: scheme.primary, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text('Ça ne se connecte pas ?',
+                      child: Text(l10n.cannotConnectTitle,
                           style: theme.textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                const _Bullet(
-                    'Vérifiez que le téléphone et le serveur sont sur le même Wi-Fi.'),
-                const _Bullet(
-                    'Essayez l’adresse IP plutôt qu’un nom (nas.local).'),
-                const _Bullet(
-                    'Vérifiez que le pare-feu de l’ordinateur autorise le port choisi.'),
-                const _Bullet(
-                    'Hors de chez vous, passez par un VPN (WireGuard, Tailscale…) plutôt que d’exposer le serveur sur Internet.'),
+                _Bullet(
+                    l10n.tipSameWifi),
+                _Bullet(
+                    l10n.tipUseIp),
+                _Bullet(
+                    l10n.tipFirewall),
+                _Bullet(
+                    l10n.tipVpn),
               ],
             ),
           ),
@@ -166,7 +167,7 @@ class ServerSetupGuide extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onImportConfiguration,
           icon: const Icon(Icons.file_download_outlined),
-          label: const Text('Importer une configuration existante'),
+          label: Text(l10n.importExistingConfiguration),
         ),
       ],
     );

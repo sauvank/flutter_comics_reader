@@ -1,3 +1,5 @@
+import '../l10n/l10n.dart';
+
 enum DownloadStatus {
   pending,
   downloading,
@@ -81,25 +83,25 @@ class DownloadTask {
     if (speedBytesPerSec <= 0) return '';
     final mbps = speedBytesPerSec / (1024 * 1024);
     if (mbps >= 1.0) {
-      return '${mbps.toStringAsFixed(1)} Mo/s';
+      return l10n.speedMb(mbps.toStringAsFixed(1));
     }
     final kbps = speedBytesPerSec / 1024;
-    return '${kbps.toStringAsFixed(0)} Ko/s';
+    return l10n.speedKb(kbps.toStringAsFixed(0));
   }
 
   String? get etaString {
     if (status == DownloadStatus.converting) {
-      return statusDescription ?? 'Conversion HD en cours...';
+      return statusDescription ?? l10n.convertingHdInProgress;
     }
     if (speedBytesPerSec <= 0 || totalBytes <= 0 || receivedBytes >= totalBytes) {
       return null;
     }
     final remainingBytes = totalBytes - receivedBytes;
     final seconds = (remainingBytes / speedBytesPerSec).round();
-    if (seconds <= 0) return 'Presque terminé...';
-    if (seconds < 60) return '~ $seconds s restantes';
+    if (seconds <= 0) return l10n.almostDone;
+    if (seconds < 60) return l10n.secondsLeft(seconds);
     final mins = seconds ~/ 60;
     final secs = seconds % 60;
-    return '~ ${mins}m ${secs.toString().padLeft(2, '0')}s';
+    return l10n.minutesSecondsLeft(mins, secs.toString().padLeft(2, '0'));
   }
 }

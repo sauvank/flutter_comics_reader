@@ -11,6 +11,7 @@ import '../models/server_profile.dart';
 import 'cbz_service.dart';
 
 import 'webdav_service.dart';
+import '../l10n/l10n.dart';
 
 class RemoteCoverService {
   static final RemoteCoverService _instance = RemoteCoverService._internal();
@@ -407,7 +408,7 @@ class RemoteCoverService {
       final port = (p1 * 256) + p2;
       return _FtpEndpoint(fallbackHost.isNotEmpty ? fallbackHost : ip, port);
     }
-    throw Exception('Réponse PASV non reconnue: $response');
+    throw Exception(l10n.ftpPasvUnrecognized(response));
   }
 }
 

@@ -19,6 +19,7 @@ import '../services/reader_settings_service.dart';
 import '../services/remote_cover_service.dart';
 import '../services/webdav_service.dart';
 import 'library_provider.dart';
+import '../l10n/l10n.dart';
 
 class DownloadProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -109,7 +110,7 @@ class DownloadProvider extends ChangeNotifier {
       downloadUrl: '${server.baseUrl}${remoteFile.path}',
       status: DownloadStatus.pending,
       totalBytes: remoteFile.size,
-      statusDescription: 'En attente...',
+      statusDescription: l10n.waiting,
       createdAt: DateTime.now(),
     );
 
@@ -165,7 +166,7 @@ class DownloadProvider extends ChangeNotifier {
     _cancelTokens[task.id] = cancelToken;
 
     _updateTaskStatus(task.id, DownloadStatus.downloading,
-        statusDescription: 'Téléchargement...');
+        statusDescription: l10n.downloadingEllipsis);
 
     final booksDir = await _db.getBooksDirectory();
     final extension = p.extension(task.fileName);
@@ -221,7 +222,7 @@ class DownloadProvider extends ChangeNotifier {
 
       if (cancelToken.isCancelled) {
         _updateTaskStatus(task.id, DownloadStatus.cancelled,
-            statusDescription: 'Annulé');
+            statusDescription: l10n.cancelled);
         return;
       }
 
@@ -229,7 +230,7 @@ class DownloadProvider extends ChangeNotifier {
         task.id,
         DownloadStatus.downloading,
         progress: 1.0,
-        statusDescription: 'Extraction et finalisation...',
+        statusDescription: l10n.extractingFinalizing,
       );
 
       // Post-processing: extract cover and metadata, and auto-convert PDF if option is enabled
@@ -245,7 +246,7 @@ class DownloadProvider extends ChangeNotifier {
           task.id,
           DownloadStatus.converting,
           progress: 0.85,
-          statusDescription: 'Conversion BD HD en cours...',
+          statusDescription: l10n.convertingHd,
         );
 
         final cbzPath = p.join(booksDir.path, '${task.bookId}.cbz');
@@ -260,14 +261,14 @@ class DownloadProvider extends ChangeNotifier {
           final mappedProgress = 0.85 + (prog.progress * 0.15);
           final remainingPages = prog.totalPages - prog.currentPage;
           final approxSec = (remainingPages * 0.25).round();
-          final etaText = approxSec > 0 ? ' ~ ${approxSec}s restantes' : '';
+          final etaText = approxSec > 0 ? l10n.secondsRemaining(approxSec) : '';
 
           _updateTaskStatus(
             task.id,
             DownloadStatus.converting,
             progress: mappedProgress,
             statusDescription:
-                'Conversion HD (${prog.currentPage}/${prog.totalPages} pages)$etaText',
+                l10n.convertingHdProgress(prog.currentPage, prog.totalPages, etaText),
           );
         }
 
@@ -401,17 +402,17 @@ class DownloadProvider extends ChangeNotifier {
         task.id,
         DownloadStatus.completed,
         progress: 1.0,
-        statusDescription: 'Terminé',
+        statusDescription: l10n.finishedStatus,
       );
     } catch (e) {
       if (cancelToken.isCancelled) {
         _updateTaskStatus(task.id, DownloadStatus.cancelled,
-            statusDescription: 'Annulé');
+            statusDescription: l10n.cancelled);
       } else {
         debugPrint('Download failed for ${task.fileName}: $e');
         final cleanMsg = _formatDownloadError(e);
         _updateTaskStatus(task.id, DownloadStatus.failed,
-            errorMessage: cleanMsg, statusDescription: 'Échec');
+            errorMessage: cleanMsg, statusDescription: l10n.failed);
       }
     } finally {
       _cancelTokens.remove(task.id);
@@ -425,20 +426,20 @@ class DownloadProvider extends ChangeNotifier {
         case DioExceptionType.connectionTimeout:
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
-          return 'Délai d\'attente dépassé (timeout réseau)';
+          return l10n.networkTimeout;
         case DioExceptionType.badCertificate:
-          return 'Certificat de sécurité invalide (serveur auto-signé ?)';
+          return l10n.invalidCertificate;
         case DioExceptionType.badResponse:
           final code = error.response?.statusCode;
-          if (code == 404) return 'Fichier introuvable sur le serveur (404)';
+          if (code == 404) return l10n.fileNotFound404;
           if (code == 401 || code == 403) {
-            return 'Accès refusé (identifiants incorrects)';
+            return l10n.accessDenied;
           }
-          return 'Erreur serveur${code != null ? ' ($code)' : ''}';
+          return code != null ? l10n.serverErrorCode(code) : l10n.serverError;
         case DioExceptionType.connectionError:
-          return 'Impossible de joindre le serveur (connexion perdue)';
+          return l10n.cannotReachServerLost;
         case DioExceptionType.cancel:
-          return 'Téléchargement annulé';
+          return l10n.downloadCancelled;
         case DioExceptionType.unknown:
         default:
           if (error.error != null) {
@@ -447,24 +448,24 @@ class DownloadProvider extends ChangeNotifier {
                 inner.contains('network') ||
                 inner.contains('broken pipe') ||
                 inner.contains('connection reset')) {
-              return 'Connexion réseau interrompue';
+              return l10n.networkInterrupted;
             }
             if (inner.contains('space') || inner.contains('enospc')) {
-              return 'Espace de stockage insuffisant sur l\'appareil';
+              return l10n.notEnoughStorage;
             }
           }
-          return 'Erreur de connexion réseau';
+          return l10n.networkError;
       }
     }
     if (error is SocketException) {
-      return 'Connexion réseau interrompue';
+      return l10n.networkInterrupted;
     }
     if (error is FileSystemException) {
       final msg = error.message.toLowerCase();
       if (msg.contains('no space') || msg.contains('enospc')) {
-        return 'Espace de stockage insuffisant sur l\'appareil';
+        return l10n.notEnoughStorage;
       }
-      return 'Erreur d\'accès au fichier local';
+      return l10n.localFileAccessError;
     }
     return error.toString();
   }
@@ -474,7 +475,7 @@ class DownloadProvider extends ChangeNotifier {
     final token = _cancelTokens[taskId];
     token?.cancel();
     _updateTaskStatus(taskId, DownloadStatus.cancelled,
-        statusDescription: 'Annulé');
+        statusDescription: l10n.cancelled);
     _processQueue();
   }
 
@@ -505,7 +506,7 @@ class DownloadProvider extends ChangeNotifier {
     );
 
     _updateTaskStatus(taskId, DownloadStatus.pending,
-        progress: 0.0, statusDescription: 'En attente...');
+        progress: 0.0, statusDescription: l10n.waiting);
     _pendingQueue[taskId] = (server: server, file: remoteFile, task: task);
     _processQueue();
   }

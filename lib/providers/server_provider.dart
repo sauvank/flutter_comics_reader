@@ -6,6 +6,7 @@ import '../services/database_service.dart';
 import '../services/ftp_service.dart';
 import '../services/http_server_service.dart';
 import '../services/webdav_service.dart';
+import '../l10n/l10n.dart';
 
 class ServerProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -146,7 +147,7 @@ class ServerProvider extends ChangeNotifier {
           list = [decoded];
         }
       } else {
-        throw const FormatException('Format JSON invalide');
+        throw FormatException(l10n.invalidJsonFormat);
       }
 
       int count = 0;
@@ -284,7 +285,7 @@ class ServerProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Impossible de charger le dossier: $e';
+      _errorMessage = l10n.cannotLoadFolder(e);
       notifyListeners();
     }
   }

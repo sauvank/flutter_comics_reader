@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/update_info.dart';
 import '../services/update_service.dart';
+import '../l10n/l10n.dart';
 
 class UpdateDialog extends StatelessWidget {
   final UpdateInfo info;
@@ -43,8 +44,8 @@ class UpdateDialog extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Mise à jour disponible !',
+                        Text(
+                          l10n.updateAvailable,
                           style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
@@ -67,8 +68,8 @@ class UpdateDialog extends StatelessWidget {
               const SizedBox(height: 18),
 
               // Release Notes Box
-              const Text(
-                'Nouveautés & Changements :',
+              Text(
+                l10n.whatsNew,
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -86,7 +87,7 @@ class UpdateDialog extends StatelessWidget {
                   child: Text(
                     info.releaseNotes.trim().isNotEmpty
                         ? info.releaseNotes
-                        : 'Améliorations de performances et corrections de bugs.',
+                        : l10n.defaultReleaseNotes,
                     style: TextStyle(
                       fontSize: 12.5,
                       height: 1.4,
@@ -106,11 +107,11 @@ class UpdateDialog extends StatelessWidget {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Plus tard'),
+                    child: Text(l10n.later),
                   ),
                   OutlinedButton.icon(
                     icon: const Icon(Icons.download_rounded, size: 18),
-                    label: const Text('Télécharger APK'),
+                    label: Text(l10n.downloadApk),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

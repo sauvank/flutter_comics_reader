@@ -8,6 +8,7 @@
 - [x] Vidéo de présentation Full HD en français, miniature et script de rendu reproductible.
 - [ ] Remplacer les images de la fiche dans Play Console avec le lot validé.
 - [ ] Publier la vidéo puis l’associer à la fiche Google Play.
+- [ ] Enquêter sur la perte de la liste des serveurs observée sur émulateur après une erreur « bad base-64 » du stockage sécurisé (piste : `getServers` renvoie `[]` sur erreur, puis la synchronisation réécrit la liste).
 
 Bienvenue sur la feuille de route du lecteur de BD / Manga **ComicStream**.  
 Ce document détaille les phases de développement pour enrichir l'expérience sur tablette et serveur local.
@@ -20,6 +21,7 @@ L’import depuis l’appareil analyse désormais récursivement tout le stockag
 partagé après autorisation explicite, et présente les livres détectés dans une
 grille de couvertures groupée par dossier afin de choisir ceux à conserver.
 L’onglet Serveur guide la configuration d’un premier serveur.
+L’interface est disponible en six langues (FR, EN, ES, DE, IT, PT) et suit la langue du téléphone.
 
 ---
 

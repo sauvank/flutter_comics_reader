@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/reader_settings_service.dart';
+import '../l10n/l10n.dart';
 
 class ReaderTopBar extends StatelessWidget {
   final bool visible;
@@ -78,7 +79,7 @@ class ReaderTopBar extends StatelessWidget {
                           ),
                           if (totalPages > 0)
                             Text(
-                              'Page ${currentPage + 1} sur $totalPages',
+                              l10n.pageXOfY(currentPage + 1, totalPages),
                               style: TextStyle(
                                 color: Colors.white.withAlpha(180),
                                 fontSize: 12,
@@ -102,12 +103,12 @@ class ReaderTopBar extends StatelessWidget {
                           color: isFavorite ? Colors.redAccent : Colors.white,
                         ),
                         onPressed: onToggleFavorite,
-                        tooltip: isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris',
+                        tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
                       ),
                     IconButton(
                       icon: const Icon(Icons.tune_rounded, color: Colors.white),
                       onPressed: onOpenSettings,
-                      tooltip: 'Paramètres de lecture',
+                      tooltip: l10n.readingSettings,
                     ),
                   ],
                 ),
@@ -231,7 +232,7 @@ class ReaderBottomBar extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.grid_view_rounded, color: Colors.white),
                           onPressed: onOpenThumbnails,
-                          tooltip: 'Grille des pages',
+                          tooltip: l10n.pageGrid,
                         ),
                       ],
                     ),
@@ -259,9 +260,9 @@ class ReaderBottomBar extends StatelessWidget {
   String _getReadingModeLabel(ReadingMode mode) {
     switch (mode) {
       case ReadingMode.leftToRight:
-        return 'BD (G->D)';
+        return l10n.comicLtrShort;
       case ReadingMode.rightToLeft:
-        return 'Manga (D->G)';
+        return l10n.mangaRtlShort;
       case ReadingMode.vertical:
         return 'Webtoon';
     }
@@ -299,24 +300,24 @@ class ReaderSettingsSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Paramètres de lecture',
+            Text(
+              l10n.readingSettings,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 18),
 
             // Sens de lecture
-            const Text('Sens de lecture', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.readingDirection, style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             SegmentedButton<ReadingMode>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ReadingMode.leftToRight,
-                  label: Text('BD (G à D)'),
+                  label: Text(l10n.comicLtr),
                 ),
                 ButtonSegment(
                   value: ReadingMode.rightToLeft,
-                  label: Text('Manga (D à G)'),
+                  label: Text(l10n.mangaRtl),
                 ),
                 ButtonSegment(
                   value: ReadingMode.vertical,
@@ -329,21 +330,21 @@ class ReaderSettingsSheet extends StatelessWidget {
             const SizedBox(height: 18),
 
             // Mode d'ajustement
-            const Text('Ajustement de l\'image', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.imageFit, style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             SegmentedButton<FitMode>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: FitMode.fitWidth,
-                  label: Text('Largeur'),
+                  label: Text(l10n.width),
                 ),
                 ButtonSegment(
                   value: FitMode.fitHeight,
-                  label: Text('Hauteur'),
+                  label: Text(l10n.height),
                 ),
                 ButtonSegment(
                   value: FitMode.fitScreen,
-                  label: Text('Écran'),
+                  label: Text(l10n.screen),
                 ),
               ],
               selected: {settings.fitMode},
@@ -352,24 +353,24 @@ class ReaderSettingsSheet extends StatelessWidget {
             const SizedBox(height: 18),
 
             // Couleur d'arrière-plan
-            const Text('Arrière-plan', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.background, style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildColorOption(context, ReaderBgColor.black, Colors.black, 'Noir'),
+                _buildColorOption(context, ReaderBgColor.black, Colors.black, l10n.black),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.darkGray, const Color(0xFF222222), 'Gris'),
+                _buildColorOption(context, ReaderBgColor.darkGray, const Color(0xFF222222), l10n.grey),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.sepia, const Color(0xFFF4ECD8), 'Sépia'),
+                _buildColorOption(context, ReaderBgColor.sepia, const Color(0xFFF4ECD8), l10n.sepia),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.white, Colors.white, 'Blanc'),
+                _buildColorOption(context, ReaderBgColor.white, Colors.white, l10n.white),
               ],
             ),
             const SizedBox(height: 14),
 
             // Keep screen on switch
             SwitchListTile(
-              title: const Text('Garder l\'écran allumé', style: TextStyle(fontSize: 14)),
+              title: Text(l10n.keepScreenAwake, style: TextStyle(fontSize: 14)),
               value: settings.keepScreenOn,
               onChanged: (val) => settings.setKeepScreenOn(val),
               contentPadding: EdgeInsets.zero,

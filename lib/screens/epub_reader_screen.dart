@@ -11,6 +11,7 @@ import '../models/book_item.dart';
 import '../providers/library_provider.dart';
 import '../services/epub_service.dart';
 import '../services/reader_settings_service.dart';
+import '../l10n/l10n.dart';
 
 class EpubReaderScreen extends StatefulWidget {
   final BookItem book;
@@ -235,8 +236,8 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
       } else {
         HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vous êtes arrivé à la fin du livre !'),
+          SnackBar(
+            content: Text(l10n.endOfBookReached),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
           ),
@@ -357,7 +358,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                       const CircularProgressIndicator(color: Color(0xFF8B5CF6)),
                       const SizedBox(height: 16),
                       Text(
-                        'Chargement du livre...',
+                        l10n.loadingBook,
                         style: TextStyle(color: textColor.withAlpha(180)),
                       ),
                     ],
@@ -374,7 +375,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                 size: 64, color: textColor.withAlpha(120)),
                             const SizedBox(height: 16),
                             Text(
-                              'Impossible de charger ce livre',
+                              l10n.cannotLoadBook,
                               style: TextStyle(
                                   color: textColor,
                                   fontSize: 18,
@@ -383,7 +384,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Le format du fichier est peut-être corrompu ou non supporté.',
+                              l10n.fileMaybeCorrupted,
                               style: TextStyle(
                                   color: textColor.withAlpha(150),
                                   fontSize: 14),
@@ -393,7 +394,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                             FilledButton.icon(
                               onPressed: _loadEpub,
                               icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Réessayer'),
+                              label: Text(l10n.retry),
                               style: FilledButton.styleFrom(
                                   backgroundColor: const Color(0xFF8B5CF6)),
                             ),
@@ -401,7 +402,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                             OutlinedButton.icon(
                               onPressed: () => Navigator.of(context).pop(),
                               icon: const Icon(Icons.arrow_back_rounded),
-                              label: const Text('Retour à la bibliothèque'),
+                              label: Text(l10n.backToLibrary),
                             ),
                           ],
                         ),
@@ -519,7 +520,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                   ),
                                   const SizedBox(width: 12),
                                   Text(
-                                    '${(_totalProgress * 100).toInt()}% • Chap. ${_currentChapterIndex + 1}/${_chapters.length}',
+                                    l10n.epubProgressShort((_totalProgress * 100).toInt(), _currentChapterIndex + 1, _chapters.length),
                                     style: TextStyle(
                                       color: textColor.withAlpha(110),
                                       fontSize: 11,
@@ -587,7 +588,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                           onPressed: () => _scaffoldKey
                                               .currentState
                                               ?.openDrawer(),
-                                          tooltip: 'Table des matières',
+                                          tooltip: l10n.tableOfContents,
                                         ),
                                         IconButton(
                                           icon: const Icon(
@@ -595,7 +596,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                               color: Colors.white),
                                           onPressed: () => _showSettingsModal(
                                               context, settings),
-                                          tooltip: 'Personnaliser la lecture',
+                                          tooltip: l10n.customizeReading,
                                         ),
                                       ],
                                     ),
@@ -643,7 +644,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'Chapitre ${_currentChapterIndex + 1} / ${_chapters.length}',
+                                                    l10n.chapterXOfY(_currentChapterIndex + 1, _chapters.length),
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 13,
@@ -758,7 +759,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Fin du Chapitre ${_currentChapterIndex + 1}',
+            l10n.endOfChapter(_currentChapterIndex + 1),
             style: TextStyle(
               color: textColor.withAlpha(120),
               fontSize: 12,
@@ -802,8 +803,8 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'CHAPITRE SUIVANT',
+                          Text(
+                            l10n.nextChapterUpper,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -840,14 +841,14 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                 border:
                     Border.all(color: const Color(0xFF8B5CF6).withAlpha(50)),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.check_circle_outline_rounded,
                       color: Color(0xFF8B5CF6), size: 20),
                   SizedBox(width: 10),
                   Text(
-                    'Vous avez terminé ce livre !',
+                    l10n.bookFinished,
                     style: TextStyle(
                       color: Color(0xFF8B5CF6),
                       fontWeight: FontWeight.bold,
@@ -884,7 +885,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                       color: settings.epubTextColor, size: 22),
                   const SizedBox(width: 10),
                   Text(
-                    'Table des Matières',
+                    l10n.tableOfContentsTitle,
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
@@ -901,7 +902,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                 controller: _tocSearchController,
                 style: TextStyle(color: settings.epubTextColor, fontSize: 13),
                 decoration: InputDecoration(
-                  hintText: 'Rechercher un chapitre...',
+                  hintText: l10n.searchChapterHint,
                   hintStyle: TextStyle(
                       color: settings.epubTextColor.withAlpha(120),
                       fontSize: 13),
@@ -940,7 +941,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Center(
                   child: Text(
-                    'Aucun chapitre trouvé pour "$_tocSearchQuery"',
+                    l10n.noChapterFound(_tocSearchQuery),
                     style: TextStyle(
                         color: Colors.grey.shade500,
                         fontStyle: FontStyle.italic),
@@ -1019,8 +1020,8 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Personnalisation du livre',
+                      Text(
+                        l10n.bookCustomization,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -1037,7 +1038,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   const SizedBox(height: 16),
 
                   // 1. Thème de lecture
-                  const Text('THÈME & COULEURS',
+                  Text(l10n.themeColorsUpper,
                       style: TextStyle(
                           color: Color(0xFF8B5CF6),
                           fontSize: 12,
@@ -1047,7 +1048,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       _buildThemeCircle(
-                        label: 'Sombre',
+                        label: l10n.dark,
                         theme: EpubTheme.dark,
                         bg: const Color(0xFF1C1C1E),
                         text: const Color(0xFFE2E2E6),
@@ -1063,7 +1064,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         onTap: () => settings.setEpubTheme(EpubTheme.oled),
                       ),
                       _buildThemeCircle(
-                        label: 'Sépia',
+                        label: l10n.sepia,
                         theme: EpubTheme.sepia,
                         bg: const Color(0xFFFBF0D9),
                         text: const Color(0xFF3C2F1F),
@@ -1071,7 +1072,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         onTap: () => settings.setEpubTheme(EpubTheme.sepia),
                       ),
                       _buildThemeCircle(
-                        label: 'Menthe',
+                        label: l10n.mint,
                         theme: EpubTheme.mint,
                         bg: const Color(0xFF182420),
                         text: const Color(0xFFD2E8DD),
@@ -1079,7 +1080,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         onTap: () => settings.setEpubTheme(EpubTheme.mint),
                       ),
                       _buildThemeCircle(
-                        label: 'Clair',
+                        label: l10n.light,
                         theme: EpubTheme.light,
                         bg: const Color(0xFFF8F9FA),
                         text: const Color(0xFF1C1B1F),
@@ -1094,7 +1095,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('TAILLE DU TEXTE',
+                      Text(l10n.textSizeUpper,
                           style: TextStyle(
                               color: Color(0xFF8B5CF6),
                               fontSize: 12,
@@ -1135,7 +1136,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   const SizedBox(height: 20),
 
                   // 3. Police de caractères
-                  const Text('POLICE DE CARACTÈRES',
+                  Text(l10n.fontUpper,
                       style: TextStyle(
                           color: Color(0xFF8B5CF6),
                           fontSize: 12,
@@ -1145,7 +1146,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                     children: [
                       Expanded(
                         child: _buildChoiceChip(
-                          label: 'Serif (Livre)',
+                          label: l10n.serifBook,
                           isSelected:
                               settings.epubFontFamily == EpubFontFamily.serif,
                           fontFamily: 'serif',
@@ -1186,7 +1187,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('INTERLIGNE',
+                            Text(l10n.lineSpacingUpper,
                                 style: TextStyle(
                                     color: Color(0xFF8B5CF6),
                                     fontSize: 12,
@@ -1219,7 +1220,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('ALIGNEMENT',
+                            Text(l10n.alignmentUpper,
                                 style: TextStyle(
                                     color: Color(0xFF8B5CF6),
                                     fontSize: 12,
@@ -1249,25 +1250,25 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                   const SizedBox(height: 20),
 
                   // 5. Marges latérales
-                  const Text('MARGES DU LIVRE',
+                  Text(l10n.bookMarginsUpper,
                       style: TextStyle(
                           color: Color(0xFF8B5CF6),
                           fontSize: 12,
                           fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   SegmentedButton<EpubMargin>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                           value: EpubMargin.narrow,
                           label:
-                              Text('Étroite', style: TextStyle(fontSize: 12))),
+                              Text(l10n.narrow, style: TextStyle(fontSize: 12))),
                       ButtonSegment(
                           value: EpubMargin.normal,
                           label:
-                              Text('Standard', style: TextStyle(fontSize: 12))),
+                              Text(l10n.standard, style: TextStyle(fontSize: 12))),
                       ButtonSegment(
                           value: EpubMargin.wide,
-                          label: Text('Large', style: TextStyle(fontSize: 12))),
+                          label: Text(l10n.large, style: TextStyle(fontSize: 12))),
                     ],
                     selected: {settings.epubMargin},
                     onSelectionChanged: (set) =>

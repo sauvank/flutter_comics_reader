@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:epub_pro/epub_pro.dart';
 import 'package:image/image.dart' as img;
 import 'package:xml/xml.dart' as xml;
+import '../l10n/l10n.dart';
 
 class EpubChapterItem {
   final String title;
@@ -130,7 +131,7 @@ class EpubService {
     for (final chapter in source) {
       final title = (chapter.title?.trim().isNotEmpty == true)
           ? chapter.title!.trim()
-          : 'Chapitre ${dest.length + 1}';
+          : l10n.chapterN(dest.length + 1);
 
       final content = chapter.htmlContent ?? '';
       if (content.trim().isNotEmpty) {
@@ -198,7 +199,7 @@ class EpubService {
                 if (chapterFile != null && chapterFile.isFile) {
                   final htmlStr = utf8.decode(chapterFile.content as List<int>, allowMalformed: true);
                   if (htmlStr.trim().isNotEmpty) {
-                    final title = _extractHtmlTitle(htmlStr) ?? 'Chapitre ${idx + 1}';
+                    final title = _extractHtmlTitle(htmlStr) ?? l10n.chapterNIdx(idx + 1);
                     chapters.add(EpubChapterItem(
                       title: title,
                       htmlContent: htmlStr,
@@ -234,7 +235,7 @@ class EpubService {
         try {
           final htmlStr = utf8.decode(f.content as List<int>, allowMalformed: true);
           if (htmlStr.trim().isNotEmpty) {
-            final title = _extractHtmlTitle(htmlStr) ?? 'Chapitre ${idx + 1}';
+            final title = _extractHtmlTitle(htmlStr) ?? l10n.chapterNIdx(idx + 1);
             chapters.add(EpubChapterItem(
               title: title,
               htmlContent: htmlStr,

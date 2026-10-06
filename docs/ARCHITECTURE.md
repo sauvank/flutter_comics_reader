@@ -121,6 +121,20 @@ leur applique ensuite une progression distante, il émet un évènement local qu
 
 ---
 
+## 🌍 Langues de l'interface
+
+L'interface suit la langue du téléphone : français, anglais, espagnol,
+allemand, italien et portugais, avec l'anglais par défaut. Les textes sont dans
+`lib/l10n/app_<langue>.arb` (modèle : `app_fr.arb`) ; le code Dart est généré
+par `flutter gen-l10n` (`l10n.yaml`, fichiers `app_localizations*.dart`
+versionnés). Le getter global `l10n` (`lib/l10n/l10n.dart`) résout la langue à
+partir des locales de la plateforme plutôt que d'un `BuildContext`, afin que
+services, providers et dialogues partagent les mêmes textes. Les tests forcent
+le français via `test/flutter_test_config.dart` (`localeOverride`).
+Ajouter un texte : l'écrire dans les six fichiers ARB puis relancer
+`flutter gen-l10n`. Les libellés d'onglets restent courts (≤ 8 caractères)
+pour ne pas passer sur deux lignes.
+
 ## 🔄 2. Pipeline de Téléchargement & Conversion PDF ➔ CBZ
 
 Lorsqu'un utilisateur sélectionne une BD au format PDF :

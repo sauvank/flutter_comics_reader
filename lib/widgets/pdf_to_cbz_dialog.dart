@@ -6,6 +6,7 @@ import '../providers/library_provider.dart';
 import '../screens/cbz_reader_screen.dart';
 import '../services/pdf_converter_service.dart';
 import 'synced_reader_gate.dart';
+import '../l10n/l10n.dart';
 
 class PdfToCbzDialog extends StatefulWidget {
   final BookItem book;
@@ -130,9 +131,9 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                 color: Color(0xFF8B5CF6), size: 24),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Convertir en BD (CBZ)',
+              l10n.convertToCbz,
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -165,24 +166,24 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Row(
                       children: [
                         Icon(Icons.bolt_rounded, size: 16, color: Colors.amber),
                         SizedBox(width: 6),
-                        Text('Avantages du format CBZ :',
+                        Text(l10n.cbzBenefits,
                             style: TextStyle(
                                 fontWeight: FontWeight.bold, fontSize: 12)),
                       ],
                     ),
                     SizedBox(height: 6),
-                    Text('• Rendu beaucoup plus rapide et fluide',
+                    Text(l10n.cbzBenefit1,
                         style: TextStyle(fontSize: 11)),
-                    Text('• Mode Manga (sens droit-à-gauche) disponible',
+                    Text(l10n.cbzBenefit2,
                         style: TextStyle(fontSize: 11)),
-                    Text('• Mode Webtoon (défilement continu) fluide',
+                    Text(l10n.cbzBenefit3,
                         style: TextStyle(fontSize: 11)),
-                    Text('• Moins de consommation mémoire et batterie',
+                    Text(l10n.cbzBenefit4,
                         style: TextStyle(fontSize: 11)),
                   ],
                 ),
@@ -204,7 +205,7 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                 children: [
                   Expanded(
                     child: Text(
-                      _progress?.statusText ?? 'Conversion en cours...',
+                      _progress?.statusText ?? l10n.converting,
                       style: TextStyle(
                           fontSize: 12,
                           color: theme.colorScheme.onSurfaceVariant),
@@ -239,12 +240,12 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text('Conversion réussie !',
+                        children: [
+                          Text(l10n.conversionSucceeded,
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13)),
                           Text(
-                              'Votre BD est disponible au format CBZ haute définition.',
+                              l10n.conversionSucceededBody,
                               style: TextStyle(fontSize: 11)),
                         ],
                       ),
@@ -287,31 +288,31 @@ class _PdfToCbzDialogState extends State<PdfToCbzDialog> {
         if (!_isConverting && !_isCompleted) ...[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Annuler'),
+            child: Text(l10n.cancel),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6)),
             onPressed: _startConversion,
             icon: const Icon(Icons.auto_fix_high_rounded, size: 16),
-            label: const Text('Convertir'),
+            label: Text(l10n.convert),
           ),
         ] else if (_isCompleted) ...[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
+            child: Text(l10n.close),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF8B5CF6)),
             onPressed: _openConvertedBook,
             icon: const Icon(Icons.auto_stories_rounded, size: 16),
-            label: const Text('Lire en mode BD (CBZ)'),
+            label: Text(l10n.readAsCbz),
           ),
         ] else ...[
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text('Veuillez patienter...',
+            child: Text(l10n.pleaseWait,
                 style: TextStyle(fontSize: 12, color: Colors.grey)),
           ),
         ],

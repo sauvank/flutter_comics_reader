@@ -1,5 +1,7 @@
 // Utility functions for string sorting, byte formatting, and time helpers
 
+import '../l10n/l10n.dart';
+
 class NaturalSort {
   /// Sorts a list of strings naturally (e.g., 'page2.jpg' before 'page10.jpg', 'Ch01/01.jpg' before 'Ch02/01.jpg')
   static final RegExp _chunks = RegExp(r'(\d+|\D+)');
@@ -60,7 +62,7 @@ class FormatUtils {
     return '${formatBytes(bytesPerSec.toInt())}/s';
   }
 
-  /// Formats duration (e.g. "Il y a 2 jours", "Hier", "Aujourd'hui")
+  /// Formats duration (e.g. "Il y a 2 jours", l10n.yesterday, l10n.today)
   static String formatRelativeDate(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
@@ -69,17 +71,17 @@ class FormatUtils {
       return '${dateTime.day.toString().padLeft(2, '0')}/${dateTime.month.toString().padLeft(2, '0')}/${dateTime.year}';
     } else if (diff.inDays >= 7) {
       final weeks = (diff.inDays / 7).floor();
-      return 'Il y a $weeks sem.';
+      return l10n.weeksAgo(weeks);
     } else if (diff.inDays >= 2) {
-      return 'Il y a ${diff.inDays} jours';
+      return l10n.daysAgo(diff.inDays);
     } else if (diff.inDays == 1) {
-      return 'Hier';
+      return l10n.yesterday;
     } else if (diff.inHours >= 1) {
-      return 'Il y a ${diff.inHours} h';
+      return l10n.hoursAgo(diff.inHours);
     } else if (diff.inMinutes >= 1) {
-      return 'Il y a ${diff.inMinutes} min';
+      return l10n.minutesAgo(diff.inMinutes);
     } else {
-      return 'À l\'instant';
+      return l10n.justNow;
     }
   }
 }
