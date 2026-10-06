@@ -32,6 +32,24 @@ class _ServerScreenState extends State<ServerScreen> {
     super.dispose();
   }
 
+  void _openSetupGuide() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (guideContext) => Scaffold(
+        appBar: AppBar(title: const Text('Configurer un serveur')),
+        body: ServerSetupGuide(
+          onAddServer: () {
+            Navigator.of(guideContext).pop();
+            _openAddServerDialog();
+          },
+          onImportConfiguration: () {
+            Navigator.of(guideContext).pop();
+            _importServersDialog();
+          },
+        ),
+      ),
+    ));
+  }
+
   void _openAddServerDialog() async {
     final newServer = await showDialog<ServerProfile>(
       context: context,
@@ -368,13 +386,25 @@ class _ServerScreenState extends State<ServerScreen> {
             icon: const Icon(Icons.more_vert_rounded),
             tooltip: 'Options',
             onSelected: (value) {
-              if (value == 'export') {
+              if (value == 'guide') {
+                _openSetupGuide();
+              } else if (value == 'export') {
                 _exportServersDialog();
               } else if (value == 'import') {
                 _importServersDialog();
               }
             },
             itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'guide',
+                child: Row(
+                  children: [
+                    Icon(Icons.help_outline_rounded, size: 20),
+                    SizedBox(width: 10),
+                    Text('Comment configurer un serveur'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'export',
                 child: Row(
