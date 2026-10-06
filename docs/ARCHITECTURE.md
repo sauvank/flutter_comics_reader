@@ -102,7 +102,15 @@ fichiers sous Android 11+, permission de lecture sous Android 8–10. Une fois
 accordé, `LocalBookImportService.scanDirectory` recherche récursivement les
 formats compatibles dans le stockage partagé et ignore uniquement les
 sous-dossiers système qu’Android ne rend pas accessibles ; l’utilisateur choisit ensuite
-les éléments à importer.
+les éléments à importer dans `DeviceScanResultsScreen` : grille de couvertures
+groupée par dossier, filtres par format, sélection par dossier. Les couvertures
+sont extraites à la demande (tuiles visibles, 2 en parallèle) par
+`ScanCoverService` dans un cache temporaire, via
+`LocalBookImportService.readMetadata`. Les livres déjà importés sont repérés par
+nom de fichier + taille (pas de hachage, trop coûteux sur tout le stockage) ;
+eux et les dossiers ne contenant que des PDF ne sont pas présélectionnés.
+L’onglet Serveur affiche `ServerSetupGuide` (étapes et exemples WebDAV, HTTP,
+FTP) tant qu’aucun serveur n’est configuré.
 `LocalBookImportService` copie ensuite chaque fichier retenu dans le stockage
 privé de l’application avant d’en extraire les métadonnées et la couverture.
 Cette copie évite de dépendre durablement de la disponibilité du fichier source.

@@ -25,7 +25,8 @@ Chaque appareil peut être renommé depuis Compte afin d’être clairement reco
 Les fichiers CBZ/CBR/ZIP, PDF et EPUB déjà présents sur l’appareil peuvent être
 détectés dans tout le stockage partagé depuis l’onglet **Fichiers** ; après
 l’autorisation Android explicite appropriée à la version du système,
-l’utilisateur coche ceux à conserver avant leur import local et leur lecture
+l’utilisateur les retrouve en grille de couvertures, groupés par dossier, et
+coche ceux à conserver avant leur import local et leur lecture
 hors ligne, sans serveur configuré.
 Lorsqu’un même fichier est importé sur plusieurs appareils, sa progression est
 elle aussi synchronisée grâce à son empreinte, sans transmettre son fichier ni

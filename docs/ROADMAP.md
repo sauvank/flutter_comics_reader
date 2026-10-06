@@ -17,8 +17,9 @@ système agrandie est assurée : les contrôles plafonnent l’échelle de texte
 115 % pour éviter les débordements.
 
 L’import depuis l’appareil analyse désormais récursivement tout le stockage
-partagé après autorisation explicite, et présente les livres détectés avant
-import afin de choisir ceux à conserver dans la bibliothèque.
+partagé après autorisation explicite, et présente les livres détectés dans une
+grille de couvertures groupée par dossier afin de choisir ceux à conserver.
+L’onglet Serveur guide la configuration d’un premier serveur.
 
 ---
 
