@@ -16,7 +16,15 @@ class SecureServerCredentialsService {
     await _storage.write(key: _key(serverId), value: password);
   }
 
-  Future<String?> read(String serverId) => _storage.read(key: _key(serverId));
+  /// Returns null when the stored value cannot be decrypted (e.g. Android
+  /// keystore reset), so one unreadable password never hides every server.
+  Future<String?> read(String serverId) async {
+    try {
+      return await _storage.read(key: _key(serverId));
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> delete(String serverId) => _storage.delete(key: _key(serverId));
 }
