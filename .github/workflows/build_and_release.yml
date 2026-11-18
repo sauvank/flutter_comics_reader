@@ -184,8 +184,25 @@ jobs:
           echo "version=v$ver" >> $env:GITHUB_OUTPUT
           Write-Host "Building Windows version v$ver"
 
+      - name: 🔥 Inject Firebase desktop configuration
+        shell: pwsh
+        env:
+          FIREBASE_DESKTOP_CONFIG: ${{ secrets.FIREBASE_DESKTOP_CONFIG }}
+        run: |
+          if ($env:FIREBASE_DESKTOP_CONFIG) {
+            Set-Content -Path firebase_desktop.json -Value $env:FIREBASE_DESKTOP_CONFIG -NoNewline
+          } else {
+            Write-Host "::warning::Secret FIREBASE_DESKTOP_CONFIG absent : compte et synchronisation desactives sur Windows."
+            Set-Content -Path firebase_desktop.json -Value '{}' -NoNewline
+          }
+
       - name: 🔨 Build Windows App
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define-from-file=firebase_desktop.json
+
+      - name: 🧹 Remove Firebase desktop configuration
+        if: always()
+        shell: pwsh
+        run: Remove-Item -Force -ErrorAction SilentlyContinue firebase_desktop.json
 
       - name: 📦 Compress Windows Release (Portable ZIP)
         shell: pwsh

@@ -75,3 +75,9 @@ SETUP_STORAGE_NOTES.md
 SECURITY_CONTEXT.md
 *.private.md
 demo_bd/
+
+# Firebase desktop configuration (injected by CI from a secret)
+firebase_desktop.json
+
+# Local-only files
+*.local

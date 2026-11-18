@@ -36,6 +36,26 @@ La connexion Google initialise le SDK natif `google_sign_in` (Credential
 Manager / Google Play Services) avant d’ouvrir le sélecteur de compte Android ;
 elle utilise le flux web uniquement sur le Web.
 
+## Windows (et autres ordinateurs)
+
+Il n'y a pas de `google-services.json` sur ordinateur : `FirebaseBootstrap`
+lit la configuration de l'app **Web** Firebase « comic_reader_app (windows) »
+passée à la compilation avec `--dart-define-from-file`. Le fichier JSON contient
+les clés `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID`,
+`FIREBASE_MESSAGING_SENDER_ID`, `FIREBASE_AUTH_DOMAIN` et
+`FIREBASE_STORAGE_BUCKET` (valeurs de `firebase apps:sdkconfig WEB <appId>`).
+
+- CI : secret `FIREBASE_DESKTOP_CONFIG` (contenu du JSON), écrit dans
+  `firebase_desktop.json` avant `flutter build windows`, puis supprimé.
+  Sans secret, l'app se compile mais le compte reste désactivé sur Windows.
+- Compilation locale : `flutter build windows --dart-define-from-file=firebase_desktop.json`
+  (fichier ignoré par Git).
+- La connexion Google n'existe pas sur ordinateur (`google_sign_in` n'a pas
+  d'implémentation Windows/Linux) : le bouton est masqué, la connexion se fait
+  par e-mail et mot de passe.
+- Linux n'est pas pris en charge par les SDK Firebase : le compte y reste
+  désactivé.
+
 ## Protection des données
 
 Les données de lecture, réglages et profils de serveurs sont chiffrés avec

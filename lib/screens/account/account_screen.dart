@@ -197,9 +197,7 @@ class _AccountScreenState extends State<AccountScreen> {
                           obscureNew ? Icons.visibility : Icons.visibility_off),
                       onPressed: () =>
                           setDialogState(() => obscureNew = !obscureNew),
-                      tooltip: obscureNew
-                          ? l10n.showPhrase
-                          : l10n.hidePhrase,
+                      tooltip: obscureNew ? l10n.showPhrase : l10n.hidePhrase,
                     ),
                   ),
                 ),
@@ -216,9 +214,8 @@ class _AccountScreenState extends State<AccountScreen> {
                           : Icons.visibility_off),
                       onPressed: () => setDialogState(
                           () => obscureConfirm = !obscureConfirm),
-                      tooltip: obscureConfirm
-                          ? l10n.showPhrase
-                          : l10n.hidePhrase,
+                      tooltip:
+                          obscureConfirm ? l10n.showPhrase : l10n.hidePhrase,
                     ),
                   ),
                 ),
@@ -243,13 +240,11 @@ class _AccountScreenState extends State<AccountScreen> {
                 final phrase = newPhraseController.text.trim();
                 final confirm = confirmPhraseController.text.trim();
                 if (phrase.length < 16) {
-                  setDialogState(() => errorText =
-                      l10n.phraseTooShort);
+                  setDialogState(() => errorText = l10n.phraseTooShort);
                   return;
                 }
                 if (phrase != confirm) {
-                  setDialogState(() =>
-                      errorText = l10n.phrasesDoNotMatch);
+                  setDialogState(() => errorText = l10n.phrasesDoNotMatch);
                   return;
                 }
                 Navigator.of(ctx).pop(phrase);
@@ -313,8 +308,7 @@ class _AccountScreenState extends State<AccountScreen> {
           await _sync.updateRecoveryPhrase(result);
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                  content: Text(l10n.secretPhraseUpdated)),
+              SnackBar(content: Text(l10n.secretPhraseUpdated)),
             );
           }
         });
@@ -377,11 +371,11 @@ class _AccountScreenState extends State<AccountScreen> {
             children: [
               Text(l10n.syncConflictBody(conflict.label)),
               const SizedBox(height: 12),
-              Text(
-                  l10n.thisDeviceValue(_formatConflictDate(conflict.localUpdatedAt))),
+              Text(l10n.thisDeviceValue(
+                  _formatConflictDate(conflict.localUpdatedAt))),
               const SizedBox(height: 4),
-              Text(
-                  l10n.syncServerValue(_formatConflictDate(conflict.remoteUpdatedAt))),
+              Text(l10n.syncServerValue(
+                  _formatConflictDate(conflict.remoteUpdatedAt))),
               const SizedBox(height: 12),
               Text(l10n.thisDeviceSummary(conflict.localSummary)),
               const SizedBox(height: 4),
@@ -502,9 +496,7 @@ class _AccountScreenState extends State<AccountScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text(l10n.cannotPrepareSync(error))),
+          SnackBar(content: Text(l10n.cannotPrepareSync(error))),
         );
       }
       return;
@@ -533,7 +525,8 @@ class _AccountScreenState extends State<AccountScreen> {
                   title: Text(backup.label),
                   subtitle: Text(backup.updatedAt == null
                       ? l10n.notBackedUpYet
-                      : l10n.backedUpAt(_formatConflictDate(backup.updatedAt!))),
+                      : l10n
+                          .backedUpAt(_formatConflictDate(backup.updatedAt!))),
                   trailing: backup.isCurrentDevice
                       ? Text(l10n.currentUpper)
                       : const Icon(Icons.chevron_right),
@@ -576,8 +569,7 @@ class _AccountScreenState extends State<AccountScreen> {
         appBar: AppBar(title: Text(l10n.accountAndSync)),
         body: Padding(
           padding: EdgeInsets.all(24),
-          child: Text(
-              l10n.syncUnavailableNoFirebase),
+          child: Text(l10n.syncUnavailableNoFirebase),
         ),
       );
     }
@@ -746,8 +738,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             Center(
                               child: TextButton(
                                 onPressed: _busy ? null : _showResetVaultDialog,
-                                child: Text(
-                                    l10n.forgotPhraseReset),
+                                child: Text(l10n.forgotPhraseReset),
                               ),
                             ),
                           ],
@@ -818,9 +809,8 @@ class _AccountScreenState extends State<AccountScreen> {
                                         ),
                                       )
                                     : const Icon(Icons.sync),
-                                label: Text(_syncing
-                                    ? l10n.syncing
-                                    : l10n.synchronize),
+                                label: Text(
+                                    _syncing ? l10n.syncing : l10n.synchronize),
                               );
                               final recoveryButton = OutlinedButton.icon(
                                 onPressed: _busy
@@ -854,8 +844,7 @@ class _AccountScreenState extends State<AccountScreen> {
                             contentPadding: EdgeInsets.zero,
                             leading: const Icon(Icons.devices_other_outlined),
                             title: Text(l10n.thisDeviceName),
-                            subtitle: Text(
-                                l10n.shownWhenChoosingBackup),
+                            subtitle: Text(l10n.shownWhenChoosingBackup),
                             trailing: OutlinedButton(
                               onPressed: _busy ? null : _showDeviceNameDialog,
                               child: Text(l10n.edit),
@@ -956,8 +945,7 @@ class _AccountScreenState extends State<AccountScreen> {
                               final phrase = _recovery.text.trim();
                               final confirm = _confirmRecovery.text.trim();
                               if (phrase.length < 16) {
-                                throw ArgumentError(
-                                    l10n.secretPhraseTooShort);
+                                throw ArgumentError(l10n.secretPhraseTooShort);
                               }
                               if (phrase != confirm) {
                                 throw ArgumentError(
@@ -975,30 +963,35 @@ class _AccountScreenState extends State<AccountScreen> {
                             }
                             await _checkVault();
                           }),
-                  child: Text(_createMode ? l10n.createTheAccount : l10n.signIn),
+                  child:
+                      Text(_createMode ? l10n.createTheAccount : l10n.signIn),
                 ),
                 TextButton(
                   onPressed: _busy
                       ? null
                       : () => setState(() => _createMode = !_createMode),
-                  child: Text(
-                      _createMode ? l10n.alreadyHaveAccount : l10n.createAccount),
+                  child: Text(_createMode
+                      ? l10n.alreadyHaveAccount
+                      : l10n.createAccount),
                 ),
-                const Divider(height: 32),
-                OutlinedButton.icon(
-                  onPressed: _busy
-                      ? null
-                      : () => _run(() async {
-                            await _sync.signInWithGoogle();
-                            await _checkVault();
-                          }),
-                  icon: const Icon(Icons.g_mobiledata),
-                  label: Text(l10n.continueWithGoogle),
-                ),
+                // google_sign_in has no Windows/Linux implementation: desktop
+                // users sign in with email and password.
+                if (FirebaseBootstrap.supportsGoogleSignIn) ...[
+                  const Divider(height: 32),
+                  OutlinedButton.icon(
+                    onPressed: _busy
+                        ? null
+                        : () => _run(() async {
+                              await _sync.signInWithGoogle();
+                              await _checkVault();
+                            }),
+                    icon: const Icon(Icons.g_mobiledata),
+                    label: Text(l10n.continueWithGoogle),
+                  ),
+                ],
               ],
               const SizedBox(height: 24),
-              Text(
-                  l10n.recoveryPhraseRequiredNote),
+              Text(l10n.recoveryPhraseRequiredNote),
             ],
           ),
         );

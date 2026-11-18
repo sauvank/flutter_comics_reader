@@ -161,6 +161,11 @@ gantt
 
 - [x] Ouvrir un livre par double-clic quand l'app est le lecteur par défaut.
 - [ ] Instance unique : transmettre le fichier à la fenêtre déjà ouverte au lieu d'en lancer une seconde.
+- [x] Menu latéral, bibliothèque, fichiers, serveurs adaptés au PC ; double page dans le lecteur CBZ.
+- [x] Compte et synchronisation sur Windows (e-mail / mot de passe).
+- [ ] Vérifier la connexion au compte sur un vrai Windows (build CI v2.0.55).
+- [ ] Glisser-déposer de fichiers sur la fenêtre ; sommaire latéral des Réglages ; double page pour les PDF.
+- [ ] Connexion Google sur PC (flux OAuth navigateur).
 
 ## Prochaine étape — qualité de production
 

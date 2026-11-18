@@ -183,6 +183,16 @@ l’interface plafonne le facteur de texte Android à 115 %.
 
 ## ⚡ 4. Fonctionnalités Implémentées & État Actuel
 
+### 🖥️ Interface PC (fenêtre ≥ 900 px)
+* `lib/utils/desktop_layout.dart` (`DesktopLayout.isWide`, `DesktopContent`) : menu latéral (`_DesktopSidebar` dans `home_screen.dart`) au lieu de la barre du bas, contenu centré ≤ 1180 px. Le mobile est inchangé.
+* Bibliothèque : en-tête sur une ligne, 3 cartes « Reprendre ». Fichiers : sélecteurs fichier/dossier (`file_picker`) + tableau. Serveurs : liste + guide compact.
+* Lecteur CBZ : double page en paysage large (`ReaderSettingsService.doublePage`, local, non synchronisé) ; les items du `PageView` sont des doubles pages, `_currentPage` reste un index de page.
+* Maquette validée : https://claude.ai/artifact/P2MGK8uYj467c7PvNTarpJ
+* Captures : build Linux (`flutter build linux --debug`) lancé sous WSLg, `xdotool` + `import`.
+
+### 🔐 Compte sur Windows
+* Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google masquée sur PC.
+
 ### 🪟 Ouverture d'un fichier depuis Windows
 * Lecteur par défaut / « Ouvrir avec » : `main(args)` lit le chemin transmis par Windows, `LaunchFileService` (`lib/services/launch_file_service.dart`) retrouve le livre par empreinte SHA-256 ou l'importe, puis ouvre le lecteur.
 * Limite : pas d'instance unique ; un double-clic avec l'app déjà ouverte lance une deuxième fenêtre.
