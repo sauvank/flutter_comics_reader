@@ -82,6 +82,7 @@ class ReaderSettingsService extends ChangeNotifier {
   ReaderBgColor _bgColor = ReaderBgColor.black;
   bool _keepScreenOn = true;
   bool _showPageNumbers = true;
+  bool _doublePage = true;
   bool _volumeButtonsNavigation = false;
   bool _autoConvertPdfToCbz =
       false; // Native PDF reading by default (instant and smooth)
@@ -100,6 +101,9 @@ class ReaderSettingsService extends ChangeNotifier {
   ReaderBgColor get bgColor => _bgColor;
   bool get keepScreenOn => _keepScreenOn;
   bool get showPageNumbers => _showPageNumbers;
+
+  /// Two pages side by side on wide landscape windows (device-local).
+  bool get doublePage => _doublePage;
   bool get volumeButtonsNavigation => _volumeButtonsNavigation;
   bool get autoConvertPdfToCbz => _autoConvertPdfToCbz;
   PdfRenderQuality get pdfRenderQuality => _pdfRenderQuality;
@@ -249,6 +253,7 @@ class ReaderSettingsService extends ChangeNotifier {
     }
     _keepScreenOn = prefs.getBool('reader_keep_screen_on') ?? true;
     _showPageNumbers = prefs.getBool('reader_show_page_numbers') ?? true;
+    _doublePage = prefs.getBool('reader_double_page') ?? true;
     _volumeButtonsNavigation = prefs.getBool('reader_volume_nav') ?? false;
     _autoConvertPdfToCbz = prefs.getBool('auto_convert_pdf_to_cbz') ?? false;
 
@@ -382,6 +387,14 @@ class ReaderSettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('reader_show_page_numbers', value);
     await _notifySettingsChanged();
+  }
+
+  /// Not synced: a double page suits a computer, not necessarily a phone.
+  Future<void> setDoublePage(bool value) async {
+    _doublePage = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reader_double_page', value);
   }
 
   Future<void> setAutoConvertPdfToCbz(bool value) async {

@@ -1903,4 +1903,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get columnAdded => 'Añadido';
+
+  @override
+  String get doublePageTitle => 'Doble página en pantallas grandes';
+
+  @override
+  String get doublePageBody => 'Dos páginas una al lado de otra cuando la ventana es ancha y horizontal';
 }

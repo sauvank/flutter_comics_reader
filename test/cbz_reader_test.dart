@@ -9,6 +9,7 @@ import 'package:comic_reader_app/services/reader_settings_service.dart';
 import 'package:comic_reader_app/widgets/cbz_page_image.dart';
 import 'package:comic_reader_app/widgets/reader_controls.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:provider/provider.dart';
@@ -313,5 +314,39 @@ void main() {
     expect(library.savedPages, isEmpty);
     await close(tester);
     expect(library.savedPages, [2]);
+  });
+
+  testWidgets('wide landscape windows show two pages after a single cover',
+      (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.runAsync(() => settings.setDoublePage(true));
+
+    await open(tester, ReadingMode.leftToRight);
+    bool visible(int index) => find
+        .byWidgetPredicate(
+            (widget) => widget is CbzPageImage && widget.pageIndex == index)
+        .hitTestable()
+        .evaluate()
+        .isNotEmpty;
+    expect(visible(0), isTrue);
+    expect(visible(1), isFalse);
+
+    final controls =
+        tester.widget<ReaderBottomBar>(find.byType(ReaderBottomBar));
+    controls.onPageChanged(3);
+    await tick(tester);
+    expect(visible(3), isTrue);
+    expect(visible(4), isTrue);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tick(tester);
+    expect(visible(5), isTrue);
+    expect(visible(6), isTrue);
+
+    await close(tester);
+    expect(library.savedPages.last, 5);
+    await tester.runAsync(() => settings.setDoublePage(false));
   });
 }

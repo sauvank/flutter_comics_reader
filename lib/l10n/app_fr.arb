@@ -1155,5 +1155,7 @@
   "columnTitle": "Titre",
   "columnFormat": "Format",
   "columnSize": "Taille",
-  "columnAdded": "Ajouté"
+  "columnAdded": "Ajouté",
+  "doublePageTitle": "Double page sur grand écran",
+  "doublePageBody": "Deux pages côte à côte quand la fenêtre est large et en paysage"
 }

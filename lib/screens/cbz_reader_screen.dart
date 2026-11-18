@@ -357,7 +357,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       });
 
       _pageController.dispose();
-      _pageController = PageController(initialPage: _currentPage);
+      _pageController = PageController(initialPage: _pageToItem(_currentPage));
       _verticalLayout = CbzPageLayout(pages.length);
       _verticalScrollController.dispose();
       _verticalScrollController = ScrollController(
@@ -372,15 +372,52 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       if (!mounted) return;
       final sizeMb = (fileSize / (1024 * 1024)).toStringAsFixed(1);
       setState(() {
-        _errorMessage =
-            l10n.cbzReadError(sizeMb, e);
+        _errorMessage = l10n.cbzReadError(sizeMb, e);
         _isLoading = false;
       });
     }
   }
 
-  void _onPageChanged(int index) {
+  // Two-page spreads: the cover stays alone, then pages go by pairs
+  // (1-2, 3-4…). PageView items are spreads; _currentPage stays a page index.
+  bool _spreadMode = false;
+
+  int get _itemCount {
+    if (!_spreadMode || _pages.length <= 1) return _pages.length;
+    return 1 + _pages.length ~/ 2;
+  }
+
+  int _itemToPage(int item) {
+    if (item >= _itemCount) return _pages.length;
+    return !_spreadMode || item == 0 ? item : 2 * item - 1;
+  }
+
+  int _pageToItem(int page) {
+    if (page >= _pages.length) return _itemCount;
+    return !_spreadMode || page == 0 ? page : (page + 1) ~/ 2;
+  }
+
+  bool _wantsSpread(ReaderSettingsService settings) {
+    final size = MediaQuery.sizeOf(context);
+    return settings.doublePage &&
+        settings.readingMode != ReadingMode.vertical &&
+        size.width >= 900 &&
+        size.width > size.height;
+  }
+
+  /// Switches between single pages and spreads, keeping the current page.
+  void _syncSpreadMode(ReaderSettingsService settings) {
+    final wanted = _wantsSpread(settings);
+    if (wanted == _spreadMode) return;
+    _spreadMode = wanted;
+    final previous = _pageController;
+    _pageController = PageController(initialPage: _pageToItem(_currentPage));
+    WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+  }
+
+  void _onPageChanged(int item) {
     final wasZoomed = _sharedTransformation.getMaxScaleOnAxis() > 1.05;
+    final index = _itemToPage(item);
 
     setState(() {
       _currentPage = index;
@@ -490,7 +527,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
       _scheduleProgressSave();
       _schedulePrefetch();
     } else if (_pageController.hasClients) {
-      _pageController.jumpToPage(pageIndex);
+      _pageController.jumpToPage(_pageToItem(pageIndex));
     }
   }
 
@@ -862,21 +899,27 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
   Widget _buildHorizontalReader(ReaderSettingsService settings) {
     final isRTL = settings.readingMode == ReadingMode.rightToLeft;
+    _syncSpreadMode(settings);
 
     return Directionality(
       textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
       child: PageView.builder(
-        key: ValueKey('pageview_${settings.readingMode}'),
+        key: ValueKey('pageview_${settings.readingMode}_$_spreadMode'),
         controller: _pageController,
         physics: _isCurrentPageZoomed
             ? const NeverScrollableScrollPhysics()
             : const PageScrollPhysics(),
-        itemCount: _pages.length + 1,
+        itemCount: _itemCount + 1,
         onPageChanged: _onPageChanged,
-        itemBuilder: (context, index) {
-          if (index == _pages.length) {
+        itemBuilder: (context, item) {
+          if (item == _itemCount) {
             return _buildEndOfBookWidget(context);
           }
+          final index = _itemToPage(item);
+          final secondIndex =
+              _spreadMode && item > 0 && index + 1 < _pages.length
+                  ? index + 1
+                  : null;
           final transformCtrl = _getTransformController(index);
           TapDownDetails? doubleTapDetails;
 
@@ -904,28 +947,53 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                 }
               },
               onInteractionEnd: (_) => _synchronizeTransformation(index),
-              child: Center(
-                child: CbzPageImage(
-                  cbzFilePath: widget.book.localPath,
-                  bookId: widget.book.id,
-                  pageIndex: index,
-                  fit: effectiveFit,
-                  onReady: () {
-                    if (index == _currentPage) _schedulePrefetch();
-                  },
-                  width: (!isWidescreen && settings.fitMode == FitMode.fitWidth)
-                      ? screenSize.width
-                      : null,
-                  height: (effectiveFit == BoxFit.contain ||
-                          effectiveFit == BoxFit.fitHeight)
-                      ? screenSize.height
-                      : null,
-                ),
-              ),
+              child: secondIndex == null
+                  ? Center(
+                      child: _buildHorizontalPage(
+                          index, settings, effectiveFit, isWidescreen),
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerEnd,
+                            child: _buildHorizontalPage(
+                                index, settings, BoxFit.contain, true),
+                          ),
+                        ),
+                        Expanded(
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: _buildHorizontalPage(
+                                secondIndex, settings, BoxFit.contain, true),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHorizontalPage(int index, ReaderSettingsService settings,
+      BoxFit fit, bool isWidescreen) {
+    final screenSize = MediaQuery.of(context).size;
+    return CbzPageImage(
+      cbzFilePath: widget.book.localPath,
+      bookId: widget.book.id,
+      pageIndex: index,
+      fit: fit,
+      onReady: () {
+        if (index == _currentPage) _schedulePrefetch();
+      },
+      width: (!isWidescreen && settings.fitMode == FitMode.fitWidth)
+          ? screenSize.width
+          : null,
+      height: (fit == BoxFit.contain || fit == BoxFit.fitHeight)
+          ? screenSize.height
+          : null,
     );
   }
 

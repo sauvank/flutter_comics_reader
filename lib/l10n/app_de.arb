@@ -545,5 +545,7 @@
   "columnTitle": "Titel",
   "columnFormat": "Format",
   "columnSize": "Größe",
-  "columnAdded": "Hinzugefügt"
+  "columnAdded": "Hinzugefügt",
+  "doublePageTitle": "Doppelseite auf großen Bildschirmen",
+  "doublePageBody": "Zwei Seiten nebeneinander, wenn das Fenster breit und im Querformat ist"
 }

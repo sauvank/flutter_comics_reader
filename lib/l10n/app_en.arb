@@ -545,5 +545,7 @@
   "columnTitle": "Title",
   "columnFormat": "Format",
   "columnSize": "Size",
-  "columnAdded": "Added"
+  "columnAdded": "Added",
+  "doublePageTitle": "Two-page spread on large screens",
+  "doublePageBody": "Two pages side by side when the window is wide and in landscape"
 }

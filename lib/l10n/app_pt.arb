@@ -545,5 +545,7 @@
   "columnTitle": "Título",
   "columnFormat": "Formato",
   "columnSize": "Tamanho",
-  "columnAdded": "Adicionado"
+  "columnAdded": "Adicionado",
+  "doublePageTitle": "Página dupla em ecrãs grandes",
+  "doublePageBody": "Duas páginas lado a lado quando a janela é larga e na horizontal"
 }

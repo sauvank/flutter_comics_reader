@@ -3378,6 +3378,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Ajouté'**
   String get columnAdded;
+
+  /// No description provided for @doublePageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Double page sur grand écran'**
+  String get doublePageTitle;
+
+  /// No description provided for @doublePageBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Deux pages côte à côte quand la fenêtre est large et en paysage'**
+  String get doublePageBody;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

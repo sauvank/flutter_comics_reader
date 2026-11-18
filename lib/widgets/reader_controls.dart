@@ -59,7 +59,8 @@ class ReaderTopBar extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                      icon: const Icon(Icons.arrow_back_ios_new,
+                          color: Colors.white, size: 20),
                       onPressed: onBack,
                     ),
                     Expanded(
@@ -99,11 +100,15 @@ class ReaderTopBar extends StatelessWidget {
                     if (onToggleFavorite != null)
                       IconButton(
                         icon: Icon(
-                          isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          isFavorite
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
                           color: isFavorite ? Colors.redAccent : Colors.white,
                         ),
                         onPressed: onToggleFavorite,
-                        tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+                        tooltip: isFavorite
+                            ? l10n.removeFromFavorites
+                            : l10n.addToFavorites,
                       ),
                     IconButton(
                       icon: const Icon(Icons.tune_rounded, color: Colors.white),
@@ -170,7 +175,8 @@ class ReaderBottomBar extends StatelessWidget {
             child: SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -181,20 +187,28 @@ class ReaderBottomBar extends StatelessWidget {
                         children: [
                           Text(
                             '${currentPage + 1} / $totalPages',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13),
                           ),
                           Directionality(
-                            textDirection: isRTL ? TextDirection.rtl : TextDirection.ltr,
+                            textDirection:
+                                isRTL ? TextDirection.rtl : TextDirection.ltr,
                             child: SliderTheme(
                               data: SliderTheme.of(context).copyWith(
                                 activeTrackColor: const Color(0xFF8B5CF6),
                                 inactiveTrackColor: Colors.white24,
                                 thumbColor: const Color(0xFF8B5CF6),
-                                overlayColor: const Color(0xFF8B5CF6).withAlpha(50),
-                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                                overlayColor:
+                                    const Color(0xFF8B5CF6).withAlpha(50),
+                                thumbShape: const RoundSliderThumbShape(
+                                    enabledThumbRadius: 7),
                               ),
                               child: Slider(
-                                value: currentPage.toDouble().clamp(0.0, (totalPages - 1).toDouble()),
+                                value: currentPage
+                                    .toDouble()
+                                    .clamp(0.0, (totalPages - 1).toDouble()),
                                 min: 0,
                                 max: (totalPages - 1).toDouble(),
                                 divisions: totalPages > 1 ? totalPages - 1 : 1,
@@ -206,7 +220,7 @@ class ReaderBottomBar extends StatelessWidget {
                           ),
                         ],
                       ),
-      
+
                     // Control buttons row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -214,23 +228,27 @@ class ReaderBottomBar extends StatelessWidget {
                         // Mode Switcher (LTR / Manga RTL / Webtoon)
                         TextButton.icon(
                           onPressed: () {
-                            final nextMode = readingMode == ReadingMode.leftToRight
-                                ? ReadingMode.rightToLeft
-                                : readingMode == ReadingMode.rightToLeft
-                                    ? ReadingMode.vertical
-                                    : ReadingMode.leftToRight;
+                            final nextMode =
+                                readingMode == ReadingMode.leftToRight
+                                    ? ReadingMode.rightToLeft
+                                    : readingMode == ReadingMode.rightToLeft
+                                        ? ReadingMode.vertical
+                                        : ReadingMode.leftToRight;
                             onReadingModeChanged(nextMode);
                           },
-                          icon: Icon(_getReadingModeIcon(readingMode), color: const Color(0xFF8B5CF6), size: 18),
+                          icon: Icon(_getReadingModeIcon(readingMode),
+                              color: const Color(0xFF8B5CF6), size: 18),
                           label: Text(
                             _getReadingModeLabel(readingMode),
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 12),
                           ),
                         ),
-      
+
                         // Thumbnails Gallery button
                         IconButton(
-                          icon: const Icon(Icons.grid_view_rounded, color: Colors.white),
+                          icon: const Icon(Icons.grid_view_rounded,
+                              color: Colors.white),
                           onPressed: onOpenThumbnails,
                           tooltip: l10n.pageGrid,
                         ),
@@ -307,7 +325,8 @@ class ReaderSettingsSheet extends StatelessWidget {
             const SizedBox(height: 18),
 
             // Sens de lecture
-            Text(l10n.readingDirection, style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.readingDirection,
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             SegmentedButton<ReadingMode>(
               segments: [
@@ -330,7 +349,8 @@ class ReaderSettingsSheet extends StatelessWidget {
             const SizedBox(height: 18),
 
             // Mode d'ajustement
-            Text(l10n.imageFit, style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.imageFit,
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             SegmentedButton<FitMode>(
               segments: [
@@ -353,17 +373,22 @@ class ReaderSettingsSheet extends StatelessWidget {
             const SizedBox(height: 18),
 
             // Couleur d'arrière-plan
-            Text(l10n.background, style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(l10n.background,
+                style: TextStyle(fontSize: 13, color: Colors.grey)),
             const SizedBox(height: 8),
             Row(
               children: [
-                _buildColorOption(context, ReaderBgColor.black, Colors.black, l10n.black),
+                _buildColorOption(
+                    context, ReaderBgColor.black, Colors.black, l10n.black),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.darkGray, const Color(0xFF222222), l10n.grey),
+                _buildColorOption(context, ReaderBgColor.darkGray,
+                    const Color(0xFF222222), l10n.grey),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.sepia, const Color(0xFFF4ECD8), l10n.sepia),
+                _buildColorOption(context, ReaderBgColor.sepia,
+                    const Color(0xFFF4ECD8), l10n.sepia),
                 const SizedBox(width: 8),
-                _buildColorOption(context, ReaderBgColor.white, Colors.white, l10n.white),
+                _buildColorOption(
+                    context, ReaderBgColor.white, Colors.white, l10n.white),
               ],
             ),
             const SizedBox(height: 14),
@@ -375,13 +400,22 @@ class ReaderSettingsSheet extends StatelessWidget {
               onChanged: (val) => settings.setKeepScreenOn(val),
               contentPadding: EdgeInsets.zero,
             ),
+            if (MediaQuery.sizeOf(context).width >= 900)
+              SwitchListTile(
+                title:
+                    Text(l10n.doublePageTitle, style: TextStyle(fontSize: 14)),
+                value: settings.doublePage,
+                onChanged: (val) => settings.setDoublePage(val),
+                contentPadding: EdgeInsets.zero,
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildColorOption(BuildContext context, ReaderBgColor colorType, Color color, String label) {
+  Widget _buildColorOption(BuildContext context, ReaderBgColor colorType,
+      Color color, String label) {
     final isSelected = settings.bgColor == colorType;
 
     return Expanded(
@@ -393,7 +427,8 @@ class ReaderSettingsSheet extends StatelessWidget {
             color: color,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected ? const Color(0xFF8B5CF6) : Colors.grey.shade700,
+              color:
+                  isSelected ? const Color(0xFF8B5CF6) : Colors.grey.shade700,
               width: isSelected ? 2.5 : 1,
             ),
           ),
@@ -403,7 +438,9 @@ class ReaderSettingsSheet extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: color == Colors.white || color == const Color(0xFFF4ECD8) ? Colors.black : Colors.white,
+                color: color == Colors.white || color == const Color(0xFFF4ECD8)
+                    ? Colors.black
+                    : Colors.white,
               ),
             ),
           ),
