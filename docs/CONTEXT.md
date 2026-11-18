@@ -196,6 +196,11 @@ l’interface plafonne le facteur de texte Android à 115 %.
 * « Déplacer » écrit `BookItem.customSeries` (champ JSON optionnel, prioritaire dans `SeriesItem._extractSeriesName`) ; « Série automatique » l'efface. Méthodes groupées dans `LibraryProvider` (`deleteBooks`, `setBooksCompleted`, `setBooksFavorite`, `moveBooksToSeries`).
 * Test : `test/library_selection_test.dart` (simule path_provider ; largeur 800 car la ligne d'en-tête déborde à 420 px avec la police de test).
 
+### 🌐 Langue et icône
+* Langue choisie dans Réglages → Apparence (`ThemeProvider.setLanguage`, clé `app_language`, locale globale `userLocale` dans `lib/l10n/l10n.dart`) ; non synchronisée. Après un changement, `main.dart` reconstruit tout l'arbre, car les widgets lisent le getter global `l10n`.
+* Icône (v2.0.59) : néon pleine surface ; fond adaptatif Android `#03042A`, premier plan `assets/icon/app_icon_foreground.png` (dessin à 62 % du canevas). Regénérer avec `dart run flutter_launcher_icons` ; le `.ico` Windows est fait à la main (ImageMagick).
+* Play Store : la CI publie sur la piste interne ; la promotion en production se fait à la main dans la Play Console (v2.0.59 promue le 18/11/2026).
+
 ### 🔐 Compte sur Windows
 * Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google masquée sur PC.
 
