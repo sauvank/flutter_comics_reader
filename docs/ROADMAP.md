@@ -157,6 +157,11 @@ gantt
 - [x] Appliquer immédiatement les réglages reçus du cloud au thème ouvert.
 - [ ] Déclencher une nouvelle tentative au retour réseau.
 
+## Windows
+
+- [x] Ouvrir un livre par double-clic quand l'app est le lecteur par défaut.
+- [ ] Instance unique : transmettre le fichier à la fenêtre déjà ouverte au lieu d'en lancer une seconde.
+
 ## Prochaine étape — qualité de production
 
 - [ ] Tests unitaires du chiffrement, du coffre et des cas de conflit.

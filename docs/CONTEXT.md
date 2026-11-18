@@ -147,7 +147,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
   * **Système d'Exploitation** : Android 8.0.0 (Oreo, API level 26)
   * **Connexion ADB** : Câble USB / Réseau (`0123456789ABCDEF`)
 * **Environnement de Développement** :
-  * **SDK Flutter** : Flutter 3.27.4 (Dart 3.6.2)
+  * **SDK Flutter** : Flutter 3.27.4 (Dart 3.6.2), version de la CI GitHub ; elle fige `intl` à 0.19.0, ne pas monter `intl` ni tester avec un Flutter plus récent (`pdfrx` 1.0.103 n'y compile plus). SDK local dédié : `/root/flutter-3.27.4/bin/flutter`.
   * **Architecture Applicative** : Provider (State Management) + SQLite/SharedPreferences (Persistance locale) + pdfrx (Moteur PDF C++) + archive (CBZ/ZIP).
 
 ---
@@ -182,6 +182,10 @@ l’interface plafonne le facteur de texte Android à 115 %.
 ---
 
 ## ⚡ 4. Fonctionnalités Implémentées & État Actuel
+
+### 🪟 Ouverture d'un fichier depuis Windows
+* Lecteur par défaut / « Ouvrir avec » : `main(args)` lit le chemin transmis par Windows, `LaunchFileService` (`lib/services/launch_file_service.dart`) retrouve le livre par empreinte SHA-256 ou l'importe, puis ouvre le lecteur.
+* Limite : pas d'instance unique ; un double-clic avec l'app déjà ouverte lance une deuxième fenêtre.
 
 ### 📥 Gestionnaire de Téléchargement & File d'attente
 * **Téléchargements Simultanés (Multi-queue)** : Jusqu'à 2 transferts en parallèle sans bloquer la bande passante ni la mémoire de la tablette.

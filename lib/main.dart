@@ -6,13 +6,16 @@ import 'providers/server_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/sync_provider.dart';
 import 'screens/home_screen.dart';
+import 'models/book_item.dart';
+import 'screens/synced_reader_screen.dart';
 import 'services/database_service.dart';
+import 'services/launch_file_service.dart';
 import 'services/reader_settings_service.dart';
 import 'services/sync/firebase_bootstrap.dart';
 import 'utils/text_scale.dart';
 import 'l10n/l10n.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Limit Flutter image cache to prevent OOM crashes on memory-constrained devices (tablets <= 3GB RAM)
@@ -34,11 +37,53 @@ void main() async {
   //   ),
   // );
 
-  runApp(const ComicStreamApp());
+  runApp(ComicStreamApp(launchFilePath: LaunchFileService.bookPathFromArgs(args)));
 }
 
-class ComicStreamApp extends StatelessWidget {
-  const ComicStreamApp({super.key});
+class ComicStreamApp extends StatefulWidget {
+  const ComicStreamApp({super.key, this.launchFilePath});
+
+  /// Book handed over by the OS at launch (Windows default reader).
+  final String? launchFilePath;
+
+  @override
+  State<ComicStreamApp> createState() => _ComicStreamAppState();
+}
+
+class _ComicStreamAppState extends State<ComicStreamApp> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    final path = widget.launchFilePath;
+    if (path != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openLaunchFile(path));
+    }
+  }
+
+  Future<void> _openLaunchFile(String path) async {
+    BookItem? book;
+    Object? error;
+    try {
+      book = await LaunchFileService().resolveBook(path);
+    } catch (e) {
+      error = e;
+    }
+    final navigatorContext = _navigatorKey.currentContext;
+    if (navigatorContext == null || !navigatorContext.mounted) return;
+    if (book == null) {
+      ScaffoldMessenger.of(navigatorContext).showSnackBar(
+        SnackBar(content: Text(l10n.importFailed(error ?? path))),
+      );
+      return;
+    }
+    navigatorContext.read<LibraryProvider>().loadLibrary();
+    final openedBook = book;
+    _navigatorKey.currentState?.push(
+      MaterialPageRoute(builder: (_) => buildSyncedReaderScreen(openedBook)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +105,7 @@ class ComicStreamApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
+            navigatorKey: _navigatorKey,
             title: 'ComicStream',
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
