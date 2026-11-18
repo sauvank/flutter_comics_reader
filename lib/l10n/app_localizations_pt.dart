@@ -1879,4 +1879,28 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get navServers => 'Servidores';
+
+  @override
+  String get computerFiles => 'Ficheiros do computador';
+
+  @override
+  String get addComicsFromComputerBody => 'Escolha BD (CBZ, CBR, PDF, EPUB) ou uma pasta inteira para analisar. Um duplo clique no Explorador também os abre diretamente.';
+
+  @override
+  String get openFiles => 'Abrir ficheiros…';
+
+  @override
+  String get scanFolder => 'Analisar uma pasta…';
+
+  @override
+  String get columnTitle => 'Título';
+
+  @override
+  String get columnFormat => 'Formato';
+
+  @override
+  String get columnSize => 'Tamanho';
+
+  @override
+  String get columnAdded => 'Adicionado';
 }

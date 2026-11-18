@@ -537,5 +537,13 @@
   "alignmentUpper": "ALIGNMENT",
   "comicsFilter": "Comics",
   "navLibrary": "Library",
-  "navServers": "Servers"
+  "navServers": "Servers",
+  "computerFiles": "Computer files",
+  "addComicsFromComputerBody": "Pick comics (CBZ, CBR, PDF, EPUB) or a whole folder to scan. Double-clicking a file in Explorer also opens it directly.",
+  "openFiles": "Open files…",
+  "scanFolder": "Scan a folder…",
+  "columnTitle": "Title",
+  "columnFormat": "Format",
+  "columnSize": "Size",
+  "columnAdded": "Added"
 }

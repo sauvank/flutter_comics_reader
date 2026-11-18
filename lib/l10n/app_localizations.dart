@@ -3330,6 +3330,54 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Serveurs'**
   String get navServers;
+
+  /// No description provided for @computerFiles.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fichiers de l’ordinateur'**
+  String get computerFiles;
+
+  /// No description provided for @addComicsFromComputerBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez des BD (CBZ, CBR, PDF, EPUB) ou un dossier entier à analyser. Un double-clic dans l’Explorateur les ouvre aussi directement.'**
+  String get addComicsFromComputerBody;
+
+  /// No description provided for @openFiles.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir des fichiers…'**
+  String get openFiles;
+
+  /// No description provided for @scanFolder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Analyser un dossier…'**
+  String get scanFolder;
+
+  /// No description provided for @columnTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre'**
+  String get columnTitle;
+
+  /// No description provided for @columnFormat.
+  ///
+  /// In fr, this message translates to:
+  /// **'Format'**
+  String get columnFormat;
+
+  /// No description provided for @columnSize.
+  ///
+  /// In fr, this message translates to:
+  /// **'Taille'**
+  String get columnSize;
+
+  /// No description provided for @columnAdded.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouté'**
+  String get columnAdded;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

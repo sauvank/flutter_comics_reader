@@ -537,5 +537,13 @@
   "alignmentUpper": "ALLINEAMENTO",
   "comicsFilter": "Fumetti",
   "navLibrary": "Libreria",
-  "navServers": "Server"
+  "navServers": "Server",
+  "computerFiles": "File del computer",
+  "addComicsFromComputerBody": "Scegli fumetti (CBZ, CBR, PDF, EPUB) o un’intera cartella da analizzare. Anche un doppio clic in Esplora file li apre direttamente.",
+  "openFiles": "Apri file…",
+  "scanFolder": "Analizza una cartella…",
+  "columnTitle": "Titolo",
+  "columnFormat": "Formato",
+  "columnSize": "Dimensione",
+  "columnAdded": "Aggiunto"
 }

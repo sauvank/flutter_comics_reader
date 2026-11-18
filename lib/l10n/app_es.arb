@@ -537,5 +537,13 @@
   "alignmentUpper": "ALINEACIÓN",
   "comicsFilter": "Cómics",
   "navLibrary": "Biblioteca",
-  "navServers": "Servidores"
+  "navServers": "Servidores",
+  "computerFiles": "Archivos del ordenador",
+  "addComicsFromComputerBody": "Elige cómics (CBZ, CBR, PDF, EPUB) o una carpeta entera para analizar. Un doble clic en el Explorador también los abre directamente.",
+  "openFiles": "Abrir archivos…",
+  "scanFolder": "Analizar una carpeta…",
+  "columnTitle": "Título",
+  "columnFormat": "Formato",
+  "columnSize": "Tamaño",
+  "columnAdded": "Añadido"
 }

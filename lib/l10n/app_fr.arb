@@ -1147,5 +1147,13 @@
   "alignmentUpper": "ALIGNEMENT",
   "comicsFilter": "BD",
   "navLibrary": "Bibliothèque",
-  "navServers": "Serveurs"
+  "navServers": "Serveurs",
+  "computerFiles": "Fichiers de l’ordinateur",
+  "addComicsFromComputerBody": "Choisissez des BD (CBZ, CBR, PDF, EPUB) ou un dossier entier à analyser. Un double-clic dans l’Explorateur les ouvre aussi directement.",
+  "openFiles": "Ouvrir des fichiers…",
+  "scanFolder": "Analyser un dossier…",
+  "columnTitle": "Titre",
+  "columnFormat": "Format",
+  "columnSize": "Taille",
+  "columnAdded": "Ajouté"
 }

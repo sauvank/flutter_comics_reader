@@ -13,6 +13,7 @@ import '../widgets/remote_book_card.dart';
 import '../widgets/server_form_dialog.dart';
 import '../widgets/server_setup_guide.dart';
 import '../l10n/l10n.dart';
+import '../utils/desktop_layout.dart';
 
 class ServerScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -121,8 +122,7 @@ class _ServerScreenState extends State<ServerScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteServerTitle),
-        content: Text(
-            l10n.deleteServerBody(server.name)),
+        content: Text(l10n.deleteServerBody(server.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -205,8 +205,7 @@ class _ServerScreenState extends State<ServerScreen> {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content:
-                      Text(l10n.configurationCopied),
+                  content: Text(l10n.configurationCopied),
                   backgroundColor: Colors.green,
                 ),
               );
@@ -255,9 +254,7 @@ class _ServerScreenState extends State<ServerScreen> {
                     } catch (e) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  l10n.fileReadError(e))),
+                          SnackBar(content: Text(l10n.fileReadError(e))),
                         );
                       }
                     }
@@ -265,8 +262,7 @@ class _ServerScreenState extends State<ServerScreen> {
                 },
               ),
               const SizedBox(height: 12),
-              Text(l10n.orPasteJson,
-                  style: TextStyle(fontSize: 12)),
+              Text(l10n.orPasteJson, style: TextStyle(fontSize: 12)),
               const SizedBox(height: 6),
               TextField(
                 controller: textController,
@@ -317,8 +313,7 @@ class _ServerScreenState extends State<ServerScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              l10n.baseLocationSet(serverProvider.currentPath)),
+          content: Text(l10n.baseLocationSet(serverProvider.currentPath)),
           backgroundColor: Colors.green,
         ),
       );
@@ -435,14 +430,100 @@ class _ServerScreenState extends State<ServerScreen> {
               onAddServer: _openAddServerDialog,
               onImportConfiguration: _importServersDialog,
             )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              itemCount: servers.length,
-              itemBuilder: (context, index) {
-                final server = servers[index];
-                return _buildServerCard(context, server, serverProvider, theme);
-              },
+          : DesktopLayout.isWide(context)
+              ? _buildDesktopServers(servers, serverProvider, theme)
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                  itemCount: servers.length,
+                  itemBuilder: (context, index) {
+                    final server = servers[index];
+                    return _buildServerCard(
+                        context, server, serverProvider, theme);
+                  },
+                ),
+    );
+  }
+
+  /// Large windows: servers on the left, a compact setup guide on the right.
+  Widget _buildDesktopServers(List<ServerProfile> servers,
+      ServerProvider serverProvider, ThemeData theme) {
+    final scheme = theme.colorScheme;
+    final steps = [
+      l10n.guideStep1Title,
+      l10n.guideStep2Title,
+      l10n.guideStep3Title,
+      l10n.guideStep4Title,
+    ];
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(
+          horizontal: DesktopLayout.contentPadding - 16, vertical: 16),
+      child: DesktopContent(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [
+                  for (final server in servers)
+                    _buildServerCard(context, server, serverProvider, theme),
+                ],
+              ),
             ),
+            const SizedBox(width: 24),
+            SizedBox(
+              width: 340,
+              child: Container(
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: scheme.outlineVariant),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.guideHeroTitle,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 14),
+                    for (var i = 0; i < steps.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 11,
+                              backgroundColor: scheme.primary,
+                              child: Text('${i + 1}',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: scheme.onPrimary)),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(steps[i],
+                                  style: theme.textTheme.bodyMedium),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    TextButton.icon(
+                      onPressed: _openSetupGuide,
+                      icon: const Icon(Icons.help_outline_rounded, size: 18),
+                      label: Text(l10n.howToSetupServer),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -855,8 +936,8 @@ class _ServerScreenState extends State<ServerScreen> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                                l10n.volumesQueuedCount(undownloadedBooks.length)),
+                            content: Text(l10n
+                                .volumesQueuedCount(undownloadedBooks.length)),
                           ),
                         );
                       }
@@ -892,7 +973,8 @@ class _ServerScreenState extends State<ServerScreen> {
                                               color: theme.colorScheme.primary),
                                           const SizedBox(width: 6),
                                           Text(
-                                            l10n.foldersSeriesCount(folders.length),
+                                            l10n.foldersSeriesCount(
+                                                folders.length),
                                             style: const TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold),
@@ -1016,7 +1098,8 @@ class _ServerScreenState extends State<ServerScreen> {
                                                       const SizedBox(width: 10),
                                                       Expanded(
                                                         child: Text(
-                                                          l10n.downloadingNamePlain(file.name),
+                                                          l10n.downloadingNamePlain(
+                                                              file.name),
                                                           maxLines: 1,
                                                           overflow: TextOverflow
                                                               .ellipsis,

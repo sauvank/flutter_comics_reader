@@ -1879,4 +1879,28 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get navServers => 'Servidores';
+
+  @override
+  String get computerFiles => 'Archivos del ordenador';
+
+  @override
+  String get addComicsFromComputerBody => 'Elige cómics (CBZ, CBR, PDF, EPUB) o una carpeta entera para analizar. Un doble clic en el Explorador también los abre directamente.';
+
+  @override
+  String get openFiles => 'Abrir archivos…';
+
+  @override
+  String get scanFolder => 'Analizar una carpeta…';
+
+  @override
+  String get columnTitle => 'Título';
+
+  @override
+  String get columnFormat => 'Formato';
+
+  @override
+  String get columnSize => 'Tamaño';
+
+  @override
+  String get columnAdded => 'Añadido';
 }

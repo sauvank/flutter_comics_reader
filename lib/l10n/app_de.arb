@@ -537,5 +537,13 @@
   "alignmentUpper": "AUSRICHTUNG",
   "comicsFilter": "Comics",
   "navLibrary": "Bibliothek",
-  "navServers": "Server"
+  "navServers": "Server",
+  "computerFiles": "Dateien auf dem Computer",
+  "addComicsFromComputerBody": "Wähle Comics (CBZ, CBR, PDF, EPUB) oder einen ganzen Ordner zum Durchsuchen. Ein Doppelklick im Explorer öffnet sie ebenfalls direkt.",
+  "openFiles": "Dateien öffnen…",
+  "scanFolder": "Ordner durchsuchen…",
+  "columnTitle": "Titel",
+  "columnFormat": "Format",
+  "columnSize": "Größe",
+  "columnAdded": "Hinzugefügt"
 }
