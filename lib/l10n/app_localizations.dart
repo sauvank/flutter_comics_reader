@@ -3408,6 +3408,60 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Afficher 1 ou 2 pages (D)'**
   String get togglePagesPerView;
+
+  /// No description provided for @selectAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tout sélectionner'**
+  String get selectAll;
+
+  /// No description provided for @clearSelection.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annuler la sélection'**
+  String get clearSelection;
+
+  /// No description provided for @moveToSeries.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer vers une série'**
+  String get moveToSeries;
+
+  /// No description provided for @seriesNameLabel.
+  ///
+  /// In fr, this message translates to:
+  /// **'Nom de la série'**
+  String get seriesNameLabel;
+
+  /// No description provided for @automaticSeries.
+  ///
+  /// In fr, this message translates to:
+  /// **'Série automatique'**
+  String get automaticSeries;
+
+  /// No description provided for @move.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déplacer'**
+  String get move;
+
+  /// No description provided for @deleteSelectedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{Supprimer 1 livre ?} other{Supprimer {count} livres ?}}'**
+  String deleteSelectedTitle(int count);
+
+  /// No description provided for @deleteSelectedBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les fichiers seront supprimés de cet appareil. Ceux de tes serveurs ne sont pas touchés.'**
+  String get deleteSelectedBody;
+
+  /// No description provided for @librarySelectionCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 sélectionné} other{{count} sélectionnés}}'**
+  String librarySelectionCount(int count);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

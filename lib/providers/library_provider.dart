@@ -379,6 +379,55 @@ class LibraryProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Bulk actions of the library selection mode.
+  Future<void> deleteBooks(Iterable<String> bookIds) async {
+    for (final id in bookIds.toList()) {
+      try {
+        await _db.deleteBook(id);
+      } catch (_) {
+        // Already removed: keep deleting the others.
+      }
+    }
+    await loadLibrary();
+  }
+
+  Future<void> setBooksCompleted(
+      Iterable<String> bookIds, bool completed) async {
+    for (final id in bookIds.toList()) {
+      final book = getBookById(id);
+      if (book == null) continue;
+      await updateBookProgress(
+        bookId: id,
+        currentPage: completed ? book.totalPages : 0,
+        totalPages: book.totalPages,
+        isCompleted: completed,
+      );
+    }
+  }
+
+  Future<void> setBooksFavorite(Iterable<String> bookIds, bool favorite) async {
+    for (final id in bookIds.toList()) {
+      final book = getBookById(id);
+      if (book != null && book.isFavorite != favorite) await toggleFavorite(id);
+    }
+  }
+
+  /// Moves books to [series]; null or empty restores the automatic series.
+  Future<void> moveBooksToSeries(
+      Iterable<String> bookIds, String? series) async {
+    final name = series?.trim();
+    for (final id in bookIds.toList()) {
+      final index = _books.indexWhere((b) => b.id == id);
+      if (index < 0) continue;
+      final updated = (name == null || name.isEmpty)
+          ? _books[index].copyWith(clearCustomSeries: true)
+          : _books[index].copyWith(customSeries: name);
+      await _db.updateBook(updated);
+      _books[index] = updated;
+    }
+    notifyListeners();
+  }
+
   Future<void> deleteBook(String bookId) async {
     await _db.deleteBook(bookId);
     await loadLibrary();

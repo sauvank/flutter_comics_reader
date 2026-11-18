@@ -1918,4 +1918,47 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get togglePagesPerView => 'Mostrar 1 ou 2 páginas (D)';
+
+  @override
+  String get selectAll => 'Selecionar tudo';
+
+  @override
+  String get clearSelection => 'Cancelar seleção';
+
+  @override
+  String get moveToSeries => 'Mover para uma série';
+
+  @override
+  String get seriesNameLabel => 'Nome da série';
+
+  @override
+  String get automaticSeries => 'Série automática';
+
+  @override
+  String get move => 'Mover';
+
+  @override
+  String deleteSelectedTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Excluir $count livros?',
+      one: 'Excluir 1 livro?',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get deleteSelectedBody => 'Os arquivos serão removidos deste dispositivo. Os dos seus servidores não são afetados.';
+
+  @override
+  String librarySelectionCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count selecionados',
+      one: '1 selecionado',
+    );
+    return '$_temp0';
+  }
 }

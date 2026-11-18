@@ -550,5 +550,14 @@
   "doublePageBody": "Zwei Seiten nebeneinander, wenn das Fenster breit und im Querformat ist",
   "onePage": "1 Seite",
   "twoPages": "2 Seiten",
-  "togglePagesPerView": "1 oder 2 Seiten anzeigen (D)"
+  "togglePagesPerView": "1 oder 2 Seiten anzeigen (D)",
+  "selectAll": "Alle auswählen",
+  "clearSelection": "Auswahl aufheben",
+  "moveToSeries": "In Serie verschieben",
+  "seriesNameLabel": "Name der Serie",
+  "automaticSeries": "Automatische Serie",
+  "move": "Verschieben",
+  "deleteSelectedTitle": "{count, plural, =1{1 Buch löschen?} other{{count} Bücher löschen?}}",
+  "deleteSelectedBody": "Die Dateien werden von diesem Gerät gelöscht. Dateien auf deinen Servern bleiben erhalten.",
+  "librarySelectionCount": "{count, plural, =1{1 ausgewählt} other{{count} ausgewählt}}"
 }

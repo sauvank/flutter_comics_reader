@@ -550,5 +550,14 @@
   "doublePageBody": "Due pagine affiancate quando la finestra è larga e orizzontale",
   "onePage": "1 pagina",
   "twoPages": "2 pagine",
-  "togglePagesPerView": "Mostra 1 o 2 pagine (D)"
+  "togglePagesPerView": "Mostra 1 o 2 pagine (D)",
+  "selectAll": "Seleziona tutto",
+  "clearSelection": "Annulla selezione",
+  "moveToSeries": "Sposta in una serie",
+  "seriesNameLabel": "Nome della serie",
+  "automaticSeries": "Serie automatica",
+  "move": "Sposta",
+  "deleteSelectedTitle": "{count, plural, =1{Eliminare 1 libro?} other{Eliminare {count} libri?}}",
+  "deleteSelectedBody": "I file verranno eliminati da questo dispositivo. Quelli sui tuoi server restano intatti.",
+  "librarySelectionCount": "{count, plural, =1{1 selezionato} other{{count} selezionati}}"
 }

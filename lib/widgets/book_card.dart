@@ -14,6 +14,12 @@ class BookCard extends StatefulWidget {
   final VoidCallback onToggleStatus;
   final VoidCallback? onToggleFavorite;
 
+  /// Selection mode: null = normal card, true/false = selected or not.
+  final bool? selected;
+
+  /// Long press (touch) starts the selection mode.
+  final VoidCallback? onLongPress;
+
   const BookCard({
     super.key,
     required this.book,
@@ -21,6 +27,8 @@ class BookCard extends StatefulWidget {
     required this.onDelete,
     required this.onToggleStatus,
     this.onToggleFavorite,
+    this.selected,
+    this.onLongPress,
   });
 
   @override
@@ -45,6 +53,7 @@ class _BookCardState extends State<BookCard> {
             _showContextMenu(context, theme, details.globalPosition),
         child: InkWell(
           onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
           borderRadius: BorderRadius.circular(14),
           focusColor: theme.colorScheme.primary.withAlpha(60),
           child: Container(
@@ -175,29 +184,59 @@ class _BookCardState extends State<BookCard> {
                           ),
                         ),
 
-                      // Menu Button (desktop: shown on hover, right-click works too)
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: AnimatedOpacity(
-                          opacity: !isWide || _hovered ? 1 : 0,
-                          duration: const Duration(milliseconds: 120),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: PopupMenuButton<String>(
-                              icon: const Icon(Icons.more_vert,
-                                  color: Colors.white, size: 20),
-                              padding: EdgeInsets.zero,
-                              color: theme.colorScheme.surfaceContainerHighest,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12)),
-                              onSelected: (value) =>
-                                  _handleMenu(context, value),
-                              itemBuilder: (context) => _menuItems(theme),
+                      // Selection mode: dim unselected covers, show a check.
+                      if (widget.selected != null) ...[
+                        if (widget.selected!)
+                          Container(
+                              color: theme.colorScheme.primary.withAlpha(70)),
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: widget.selected!
+                                  ? theme.colorScheme.primary
+                                  : Colors.black45,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            padding: const EdgeInsets.all(2),
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: widget.selected!
+                                  ? theme.colorScheme.onPrimary
+                                  : Colors.transparent,
                             ),
                           ),
                         ),
-                      ),
+                      ],
+
+                      // Menu Button (desktop: shown on hover, right-click works too)
+                      if (widget.selected == null)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: AnimatedOpacity(
+                            opacity: !isWide || _hovered ? 1 : 0,
+                            duration: const Duration(milliseconds: 120),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert,
+                                    color: Colors.white, size: 20),
+                                padding: EdgeInsets.zero,
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                                onSelected: (value) =>
+                                    _handleMenu(context, value),
+                                itemBuilder: (context) => _menuItems(theme),
+                              ),
+                            ),
+                          ),
+                        ),
 
                       // Completed Checkmark or Reading Progress Pill
                       Positioned(

@@ -550,5 +550,14 @@
   "doublePageBody": "Duas páginas lado a lado quando a janela é larga e na horizontal",
   "onePage": "1 página",
   "twoPages": "2 páginas",
-  "togglePagesPerView": "Mostrar 1 ou 2 páginas (D)"
+  "togglePagesPerView": "Mostrar 1 ou 2 páginas (D)",
+  "selectAll": "Selecionar tudo",
+  "clearSelection": "Cancelar seleção",
+  "moveToSeries": "Mover para uma série",
+  "seriesNameLabel": "Nome da série",
+  "automaticSeries": "Série automática",
+  "move": "Mover",
+  "deleteSelectedTitle": "{count, plural, =1{Excluir 1 livro?} other{Excluir {count} livros?}}",
+  "deleteSelectedBody": "Os arquivos serão removidos deste dispositivo. Os dos seus servidores não são afetados.",
+  "librarySelectionCount": "{count, plural, =1{1 selecionado} other{{count} selecionados}}"
 }

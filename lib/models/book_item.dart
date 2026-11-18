@@ -39,6 +39,10 @@ class BookItem {
   final List<int> bookmarks;
   final bool isFavorite;
 
+  /// Series chosen by the user ("Move to series"); overrides the series
+  /// guessed from the folder or title when not null.
+  final String? customSeries;
+
   BookItem({
     required this.id,
     required this.title,
@@ -59,6 +63,7 @@ class BookItem {
     this.contentHash,
     List<int>? bookmarks,
     this.isFavorite = false,
+    this.customSeries,
   }) : bookmarks = bookmarks ?? [];
 
   static BookFormat formatFromExtension(String pathOrName) {
@@ -108,6 +113,8 @@ class BookItem {
     String? contentHash,
     List<int>? bookmarks,
     bool? isFavorite,
+    String? customSeries,
+    bool clearCustomSeries = false,
   }) {
     return BookItem(
       id: id ?? this.id,
@@ -129,6 +136,8 @@ class BookItem {
       contentHash: contentHash ?? this.contentHash,
       bookmarks: bookmarks ?? List.from(this.bookmarks),
       isFavorite: isFavorite ?? this.isFavorite,
+      customSeries:
+          clearCustomSeries ? null : (customSeries ?? this.customSeries),
     );
   }
 
@@ -153,6 +162,7 @@ class BookItem {
       'contentHash': contentHash,
       'bookmarks': jsonEncode(bookmarks),
       'isFavorite': isFavorite ? 1 : 0,
+      if (customSeries != null) 'customSeries': customSeries,
     };
   }
 
@@ -182,7 +192,7 @@ class BookItem {
       // had not yet been updated.
       progress: totalPages > 0
           ? ((currentPage +
-              (format == BookFormat.epub ? epubChapterProgress : 0)) /
+                      (format == BookFormat.epub ? epubChapterProgress : 0)) /
                   totalPages)
               .clamp(0.0, 1.0)
               .toDouble()
@@ -202,6 +212,7 @@ class BookItem {
           ? List<int>.from(jsonDecode(map['bookmarks'] as String) as List)
           : [],
       isFavorite: (map['isFavorite'] == 1 || map['isFavorite'] == true),
+      customSeries: map['customSeries'] as String?,
     );
   }
 

@@ -7,10 +7,17 @@ class SeriesCard extends StatelessWidget {
   final SeriesItem series;
   final VoidCallback onTap;
 
+  /// Selection mode: null = normal, true = every volume selected,
+  /// false = not (or only partly) selected.
+  final bool? selected;
+  final VoidCallback? onLongPress;
+
   const SeriesCard({
     super.key,
     required this.series,
     required this.onTap,
+    this.selected,
+    this.onLongPress,
   });
 
   @override
@@ -19,16 +26,18 @@ class SeriesCard extends StatelessWidget {
     final progress = series.overallProgress;
     final progressPercent = (progress * 100).toInt();
 
-    return Material(
+    final card = Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: theme.colorScheme.outlineVariant.withAlpha(40)),
+            border: Border.all(
+                color: theme.colorScheme.outlineVariant.withAlpha(40)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withAlpha(25),
@@ -55,7 +64,8 @@ class SeriesCard extends StatelessWidget {
                         bottom: 0,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withAlpha(120),
+                            color: theme.colorScheme.surfaceContainerHighest
+                                .withAlpha(120),
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
@@ -63,8 +73,10 @@ class SeriesCard extends StatelessWidget {
 
                     // Main Cover
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-                      child: series.coverPath != null && File(series.coverPath!).existsSync()
+                      borderRadius:
+                          const BorderRadius.vertical(top: Radius.circular(14)),
+                      child: series.coverPath != null &&
+                              File(series.coverPath!).existsSync()
                           ? Image.file(
                               File(series.coverPath!),
                               fit: BoxFit.cover,
@@ -105,16 +117,19 @@ class SeriesCard extends StatelessWidget {
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 3),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(180),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withAlpha(50), width: 0.8),
+                          border: Border.all(
+                              color: Colors.white.withAlpha(50), width: 0.8),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.auto_stories_rounded, color: Colors.white, size: 12),
+                            const Icon(Icons.auto_stories_rounded,
+                                color: Colors.white, size: 12),
                             const SizedBox(width: 4),
                             Text(
                               l10n.volumeCountPlural(series.totalBooks),
@@ -140,7 +155,8 @@ class SeriesCard extends StatelessWidget {
                             color: Color(0xFF10B981),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_rounded, color: Colors.white, size: 12),
+                          child: const Icon(Icons.check_rounded,
+                              color: Colors.white, size: 12),
                         ),
                       )
                     else if (series.inProgressBooks > 0)
@@ -148,7 +164,8 @@ class SeriesCard extends StatelessWidget {
                         top: 8,
                         right: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: const Color(0xFF8B5CF6),
                             borderRadius: BorderRadius.circular(6),
@@ -188,7 +205,8 @@ class SeriesCard extends StatelessWidget {
                       children: [
                         Text(
                           series.completedBooks > 0
-                              ? l10n.readOfTotal(series.completedBooks, series.totalBooks)
+                              ? l10n.readOfTotal(
+                                  series.completedBooks, series.totalBooks)
                               : l10n.volumeCountPlural(series.totalBooks),
                           style: TextStyle(
                             fontSize: 11,
@@ -210,9 +228,12 @@ class SeriesCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: progress.clamp(0.0, 1.0),
                           minHeight: 3,
-                          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
                           valueColor: AlwaysStoppedAnimation(
-                            series.isCompleted ? const Color(0xFF10B981) : theme.colorScheme.primary,
+                            series.isCompleted
+                                ? const Color(0xFF10B981)
+                                : theme.colorScheme.primary,
                           ),
                         ),
                       ),
@@ -224,6 +245,47 @@ class SeriesCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+    if (selected == null) return card;
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        card,
+        if (selected!)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withAlpha(60),
+                  borderRadius: BorderRadius.circular(14),
+                  border:
+                      Border.all(color: theme.colorScheme.primary, width: 2),
+                ),
+              ),
+            ),
+          ),
+        Positioned(
+          top: 6,
+          right: 6,
+          child: IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: selected! ? theme.colorScheme.primary : Colors.black45,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              padding: const EdgeInsets.all(2),
+              child: Icon(
+                Icons.check_rounded,
+                size: 18,
+                color: selected!
+                    ? theme.colorScheme.onPrimary
+                    : Colors.transparent,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

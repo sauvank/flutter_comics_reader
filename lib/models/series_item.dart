@@ -13,8 +13,10 @@ class SeriesItem {
 
   int get totalBooks => books.length;
   int get completedBooks => books.where((b) => b.isCompleted).length;
-  int get inProgressBooks => books.where((b) => b.progress > 0 && !b.isCompleted).length;
-  int get unreadBooks => books.where((b) => b.progress == 0 && !b.isCompleted).length;
+  int get inProgressBooks =>
+      books.where((b) => b.progress > 0 && !b.isCompleted).length;
+  int get unreadBooks =>
+      books.where((b) => b.progress == 0 && !b.isCompleted).length;
   bool get isCompleted => totalBooks > 0 && completedBooks == totalBooks;
   bool get hasFavorites => books.any((b) => b.isFavorite);
 
@@ -32,10 +34,12 @@ class SeriesItem {
   }
 
   BookItem? get nextToReadBook {
-    final inProgress = books.where((b) => b.progress > 0 && !b.isCompleted).toList();
+    final inProgress =
+        books.where((b) => b.progress > 0 && !b.isCompleted).toList();
     if (inProgress.isNotEmpty) return inProgress.first;
 
-    final unread = books.where((b) => b.progress == 0 && !b.isCompleted).toList();
+    final unread =
+        books.where((b) => b.progress == 0 && !b.isCompleted).toList();
     if (unread.isNotEmpty) return unread.first;
 
     return books.isNotEmpty ? books.first : null;
@@ -89,13 +93,19 @@ class SeriesItem {
   }
 
   static String _extractSeriesName(BookItem book) {
+    final custom = book.customSeries?.trim();
+    if (custom != null && custom.isNotEmpty) return custom;
+
     // 1. From serverRelativePath folder if present
-    if (book.serverRelativePath != null && book.serverRelativePath!.isNotEmpty) {
+    if (book.serverRelativePath != null &&
+        book.serverRelativePath!.isNotEmpty) {
       final clean = book.serverRelativePath!.replaceAll(RegExp(r'/+$'), '');
       final parts = clean.split('/').where((s) => s.isNotEmpty).toList();
       if (parts.length >= 2) {
         final folderName = parts[parts.length - 2].replaceAll('_', ' ').trim();
-        if (folderName.isNotEmpty && folderName != '/' && folderName.toLowerCase() != 'root') {
+        if (folderName.isNotEmpty &&
+            folderName != '/' &&
+            folderName.toLowerCase() != 'root') {
           return folderName;
         }
       }

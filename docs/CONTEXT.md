@@ -191,6 +191,11 @@ l’interface plafonne le facteur de texte Android à 115 %.
 * Maquette : https://claude.ai/artifact/P2MGK8uYj467c7PvNTarpJ (planches V2 « logiciel » non retenues : l'utilisateur garde le design actuel).
 * Captures : build Linux (`flutter build linux --debug`) lancé sous WSLg, `xdotool` + `import`.
 
+### ✅ Sélection multiple (bibliothèque)
+* Appui long (ou Ctrl + clic sur PC) sur un livre ou une série → mode sélection (`_selection` dans `library_screen.dart`, barre `_buildSelectionBar` par-dessus l'en-tête). Actions : tout sélectionner (Ctrl+A), lu/non lu, favoris, déplacer vers une série, supprimer (Suppr). Échap / retour vide la sélection.
+* « Déplacer » écrit `BookItem.customSeries` (champ JSON optionnel, prioritaire dans `SeriesItem._extractSeriesName`) ; « Série automatique » l'efface. Méthodes groupées dans `LibraryProvider` (`deleteBooks`, `setBooksCompleted`, `setBooksFavorite`, `moveBooksToSeries`).
+* Test : `test/library_selection_test.dart` (simule path_provider ; largeur 800 car la ligne d'en-tête déborde à 420 px avec la police de test).
+
 ### 🔐 Compte sur Windows
 * Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google masquée sur PC.
 

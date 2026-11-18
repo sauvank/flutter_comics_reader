@@ -41,6 +41,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
   LibraryViewMode _viewMode = LibraryViewMode.series;
   SeriesItem? _selectedSeries;
 
+  /// Selected book ids (long press, or Ctrl + click on PC).
+  final Set<String> _selection = {};
+  bool get _selecting => _selection.isNotEmpty;
+  bool get _ctrlPressed => HardwareKeyboard.instance.isControlPressed;
+
   ServerProfile? _seriesServer;
   List<RemoteFile> _remoteSeriesFiles = [];
   bool _isLoadingRemoteSeries = false;
@@ -165,19 +170,248 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final theme = Theme.of(context);
     final library = context.watch<LibraryProvider>();
 
+    // Forget selected books that no longer exist (deleted, synced away).
+    _selection.removeWhere((id) => library.getBookById(id) == null);
+
     return PopScope(
-      canPop: _selectedSeries == null,
+      canPop: _selectedSeries == null && !_selecting,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && _selectedSeries != null) {
-          setState(() {
+        if (didPop) return;
+        setState(() {
+          if (_selecting) {
+            _selection.clear();
+          } else {
             _selectedSeries = null;
-          });
+          }
+        });
+      },
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.keyA, control: true): () =>
+              setState(() =>
+                  _selection.addAll(_visibleBooks(library).map((b) => b.id))),
+          const SingleActivator(LogicalKeyboardKey.delete): () {
+            if (_selecting) _confirmBulkDelete(library);
+          },
+        },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: _selectedSeries != null
+                  ? _buildSeriesDetailView(context, library, theme)
+                  : _buildMainLibraryView(context, library, theme),
+            ),
+            if (_selecting)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _buildSelectionBar(library, theme),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<BookItem> _visibleBooks(LibraryProvider library) =>
+      _selectedSeries?.books ?? library.filteredBooks;
+
+  void _toggleBook(String id) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      if (!_selection.remove(id)) _selection.add(id);
+    });
+  }
+
+  bool _isSeriesSelected(SeriesItem series) =>
+      series.books.isNotEmpty &&
+      series.books.every((b) => _selection.contains(b.id));
+
+  void _toggleSeries(SeriesItem series) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      final ids = series.books.map((b) => b.id);
+      if (_isSeriesSelected(series)) {
+        _selection.removeAll(ids);
+      } else {
+        _selection.addAll(ids);
+      }
+    });
+  }
+
+  Widget _bookCard(BookItem book, LibraryProvider library) {
+    return BookCard(
+      book: book,
+      selected: _selecting ? _selection.contains(book.id) : null,
+      onLongPress: () => _toggleBook(book.id),
+      onTap: () {
+        if (_selecting || _ctrlPressed) {
+          _toggleBook(book.id);
+        } else {
+          _openReader(book);
         }
       },
-      child: _selectedSeries != null
-          ? _buildSeriesDetailView(context, library, theme)
-          : _buildMainLibraryView(context, library, theme),
+      onDelete: () => _confirmDelete(book),
+      onToggleFavorite: () => library.toggleFavorite(book.id),
+      onToggleStatus: () {
+        library.updateBookProgress(
+          bookId: book.id,
+          currentPage: book.isCompleted ? 0 : book.totalPages,
+          totalPages: book.totalPages,
+          isCompleted: !book.isCompleted,
+        );
+      },
     );
+  }
+
+  Widget _buildSelectionBar(LibraryProvider library, ThemeData theme) {
+    final selectedBooks =
+        _selection.map(library.getBookById).whereType<BookItem>().toList();
+    final allFavorite =
+        selectedBooks.isNotEmpty && selectedBooks.every((b) => b.isFavorite);
+    final allRead =
+        selectedBooks.isNotEmpty && selectedBooks.every((b) => b.isCompleted);
+    final compact = MediaQuery.sizeOf(context).width < 600;
+    final ids = Set<String>.of(_selection);
+
+    final secondary = <(IconData, String, VoidCallback)>[
+      (
+        allRead ? Icons.restart_alt_rounded : Icons.check_circle_outline,
+        allRead ? l10n.markAsUnread : l10n.markAsRead,
+        () => _runBulk(() => library.setBooksCompleted(ids, !allRead)),
+      ),
+      (
+        allFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        allFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+        () => _runBulk(() => library.setBooksFavorite(ids, !allFavorite)),
+      ),
+    ];
+
+    return Material(
+      color: theme.colorScheme.primaryContainer,
+      elevation: 3,
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: kToolbarHeight,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                tooltip: l10n.clearSelection,
+                onPressed: () => setState(_selection.clear),
+              ),
+              Expanded(
+                child: Text(
+                  l10n.librarySelectionCount(_selection.length),
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: theme.colorScheme.onPrimaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.select_all_rounded),
+                tooltip: l10n.selectAll,
+                onPressed: () => setState(() =>
+                    _selection.addAll(_visibleBooks(library).map((b) => b.id))),
+              ),
+              if (!compact)
+                for (final (icon, label, action) in secondary)
+                  IconButton(
+                      icon: Icon(icon), tooltip: label, onPressed: action),
+              IconButton(
+                icon: const Icon(Icons.drive_file_move_outline),
+                tooltip: l10n.moveToSeries,
+                onPressed: () => _moveSelection(library),
+              ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded,
+                    color: theme.colorScheme.error),
+                tooltip: l10n.delete,
+                onPressed: () => _confirmBulkDelete(library),
+              ),
+              if (compact)
+                PopupMenuButton<int>(
+                  onSelected: (i) => secondary[i].$3(),
+                  itemBuilder: (_) => [
+                    for (var i = 0; i < secondary.length; i++)
+                      PopupMenuItem(
+                        value: i,
+                        child: Row(children: [
+                          Icon(secondary[i].$1, size: 20),
+                          const SizedBox(width: 12),
+                          Text(secondary[i].$2),
+                        ]),
+                      ),
+                  ],
+                ),
+              const SizedBox(width: 4),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _runBulk(Future<void> Function() action) async {
+    await action();
+    if (mounted) setState(_selection.clear);
+  }
+
+  Future<void> _confirmBulkDelete(LibraryProvider library) async {
+    final ids = Set<String>.of(_selection);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteSelectedTitle(ids.length)),
+        content: Text(l10n.deleteSelectedBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await _runBulk(() => library.deleteBooks(ids));
+    if (mounted && _selectedSeries != null) {
+      final remaining = SeriesItem.groupFromBooks(library.books)
+          .where((s) => s.name == _selectedSeries!.name)
+          .firstOrNull;
+      setState(() => _selectedSeries = remaining);
+    }
+  }
+
+  Future<void> _moveSelection(LibraryProvider library) async {
+    final ids = Set<String>.of(_selection);
+    final names =
+        SeriesItem.groupFromBooks(library.books).map((s) => s.name).toList();
+    // '' = automatic series, null = cancelled.
+    final result = await showDialog<String>(
+      context: context,
+      builder: (_) => _MoveToSeriesDialog(
+        initialName: _selectedSeries?.name,
+        seriesNames: names,
+      ),
+    );
+    if (result == null || !mounted) return;
+    await _runBulk(() => library.moveBooksToSeries(ids, result));
+    // The open series may have been emptied or renamed: go back to the list.
+    if (mounted && _selectedSeries != null) {
+      setState(() => _selectedSeries = null);
+    }
   }
 
   Widget _buildMainLibraryView(
@@ -540,20 +774,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       width: 130,
                       margin: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 4),
-                      child: BookCard(
-                        book: book,
-                        onTap: () => _openReader(book),
-                        onDelete: () => _confirmDelete(book),
-                        onToggleFavorite: () => library.toggleFavorite(book.id),
-                        onToggleStatus: () {
-                          library.updateBookProgress(
-                            bookId: book.id,
-                            currentPage: book.isCompleted ? 0 : book.totalPages,
-                            totalPages: book.totalPages,
-                            isCompleted: !book.isCompleted,
-                          );
-                        },
-                      ),
+                      child: _bookCard(book, library),
                     );
                   },
                 ),
@@ -594,8 +815,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   final series = allSeries[index];
                   return SeriesCard(
                     series: series,
+                    selected: _selecting ? _isSeriesSelected(series) : null,
+                    onLongPress: () => _toggleSeries(series),
                     onTap: () {
-                      _onSelectSeries(series);
+                      if (_selecting || _ctrlPressed) {
+                        _toggleSeries(series);
+                      } else {
+                        _onSelectSeries(series);
+                      }
                     },
                   );
                 },
@@ -637,20 +864,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final book = books[index];
-                  return BookCard(
-                    book: book,
-                    onTap: () => _openReader(book),
-                    onDelete: () => _confirmDelete(book),
-                    onToggleFavorite: () => library.toggleFavorite(book.id),
-                    onToggleStatus: () {
-                      library.updateBookProgress(
-                        bookId: book.id,
-                        currentPage: book.isCompleted ? 0 : book.totalPages,
-                        totalPages: book.totalPages,
-                        isCompleted: !book.isCompleted,
-                      );
-                    },
-                  );
+                  return _bookCard(book, library);
                 },
                 childCount: books.length,
               ),
@@ -1041,20 +1255,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final book = series.books[index];
-                  return BookCard(
-                    book: book,
-                    onTap: () => _openReader(book),
-                    onDelete: () => _confirmDelete(book),
-                    onToggleFavorite: () => library.toggleFavorite(book.id),
-                    onToggleStatus: () {
-                      library.updateBookProgress(
-                        bookId: book.id,
-                        currentPage: book.isCompleted ? 0 : book.totalPages,
-                        totalPages: book.totalPages,
-                        isCompleted: !book.isCompleted,
-                      );
-                    },
-                  );
+                  return _bookCard(book, library);
                 },
                 childCount: series.books.length,
               ),
@@ -1432,6 +1633,81 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks for the destination series of the selected books.
+/// Pops '' for the automatic series, the chosen name, or null when cancelled.
+class _MoveToSeriesDialog extends StatefulWidget {
+  const _MoveToSeriesDialog({this.initialName, required this.seriesNames});
+
+  final String? initialName;
+  final List<String> seriesNames;
+
+  @override
+  State<_MoveToSeriesDialog> createState() => _MoveToSeriesDialogState();
+}
+
+class _MoveToSeriesDialogState extends State<_MoveToSeriesDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.initialName);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(l10n.moveToSeries),
+      content: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(labelText: l10n.seriesNameLabel),
+              onSubmitted: (v) => Navigator.pop(context, v.trim()),
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final name in widget.seriesNames)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.collections_bookmark_outlined),
+                      title: Text(name),
+                      onTap: () => Navigator.pop(context, name),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, ''),
+          child: Text(l10n.automaticSeries),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: Text(l10n.move),
+        ),
+      ],
     );
   }
 }
