@@ -3462,6 +3462,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =1{1 sélectionné} other{{count} sélectionnés}}'**
   String librarySelectionCount(int count);
+
+  /// No description provided for @languageTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue'**
+  String get languageTitle;
+
+  /// No description provided for @systemLanguage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Langue du système'**
+  String get systemLanguage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

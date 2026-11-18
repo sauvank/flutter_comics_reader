@@ -351,6 +351,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onSelectionChanged: (set) =>
                           themeProvider.setThemeMode(set.first),
                     ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.translate_rounded,
+                            size: 18, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(l10n.languageTitle,
+                              style: const TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.w600)),
+                        ),
+                        DropdownButton<String>(
+                          value: themeProvider.languageCode ?? '',
+                          underline: const SizedBox.shrink(),
+                          borderRadius: BorderRadius.circular(12),
+                          items: [
+                            DropdownMenuItem(
+                                value: '', child: Text(l10n.systemLanguage)),
+                            for (final entry in languageNativeNames.entries)
+                              DropdownMenuItem(
+                                  value: entry.key, child: Text(entry.value)),
+                          ],
+                          onChanged: (code) => themeProvider.setLanguage(
+                              code == null || code.isEmpty ? null : code),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

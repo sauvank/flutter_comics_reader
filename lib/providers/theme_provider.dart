@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../l10n/l10n.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_service.dart';
 import '../utils/app_theme.dart';
@@ -22,6 +23,12 @@ class ThemeProvider extends ChangeNotifier {
 
   AppThemeMode get mode => _mode;
 
+  static const _languageKey = 'app_language';
+
+  /// Language chosen in the settings (null = system language). Kept on this
+  /// device only: each device may use its own language.
+  String? get languageCode => userLocale?.languageCode;
+
   ThemeData get currentTheme {
     switch (_mode) {
       case AppThemeMode.dark:
@@ -40,6 +47,13 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedLanguage = prefs.getString(_languageKey);
+    if (savedLanguage != null &&
+        languageNativeNames.containsKey(savedLanguage) &&
+        userLocale?.languageCode != savedLanguage) {
+      userLocale = Locale(savedLanguage);
+      notifyListeners();
+    }
     final savedMode = prefs.getString('app_theme_mode');
     if (savedMode != null) {
       _mode = AppThemeMode.values.firstWhere(
@@ -56,6 +70,17 @@ class ThemeProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('app_theme_mode', mode.name);
     await DatabaseService().notifySettingsChanged();
+  }
+
+  Future<void> setLanguage(String? languageCode) async {
+    userLocale = languageCode == null ? null : Locale(languageCode);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    if (languageCode == null) {
+      await prefs.remove(_languageKey);
+    } else {
+      await prefs.setString(_languageKey, languageCode);
+    }
   }
 
   @override

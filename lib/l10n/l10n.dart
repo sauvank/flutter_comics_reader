@@ -6,7 +6,7 @@ import 'app_localizations.dart';
 
 export 'app_localizations.dart';
 
-/// Translations for the phone's current language.
+/// Translations for the app language (settings choice, else the phone's).
 ///
 /// Resolved from the platform locales rather than a [BuildContext] so that
 /// services, providers and dialogs share the same strings. English is used
@@ -14,7 +14,22 @@ export 'app_localizations.dart';
 AppLocalizations get l10n => lookupAppLocalizations(appLocale);
 
 Locale get appLocale =>
-    localeOverride ?? resolveAppLocale(PlatformDispatcher.instance.locales);
+    localeOverride ??
+    userLocale ??
+    resolveAppLocale(PlatformDispatcher.instance.locales);
+
+/// Language chosen in the settings; null follows the system language.
+Locale? userLocale;
+
+/// Native names of the supported languages, shown untranslated.
+const Map<String, String> languageNativeNames = {
+  'fr': 'Français',
+  'en': 'English',
+  'de': 'Deutsch',
+  'es': 'Español',
+  'it': 'Italiano',
+  'pt': 'Português',
+};
 
 /// Forces a language, e.g. French in tests that assert on French text.
 @visibleForTesting

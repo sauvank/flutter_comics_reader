@@ -559,5 +559,7 @@
   "move": "Mover",
   "deleteSelectedTitle": "{count, plural, =1{¿Eliminar 1 libro?} other{¿Eliminar {count} libros?}}",
   "deleteSelectedBody": "Los archivos se eliminarán de este dispositivo. Los de tus servidores no se tocan.",
-  "librarySelectionCount": "{count, plural, =1{1 seleccionado} other{{count} seleccionados}}"
+  "librarySelectionCount": "{count, plural, =1{1 seleccionado} other{{count} seleccionados}}",
+  "languageTitle": "Idioma",
+  "systemLanguage": "Idioma del sistema"
 }

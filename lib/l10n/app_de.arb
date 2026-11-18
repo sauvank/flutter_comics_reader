@@ -559,5 +559,7 @@
   "move": "Verschieben",
   "deleteSelectedTitle": "{count, plural, =1{1 Buch löschen?} other{{count} Bücher löschen?}}",
   "deleteSelectedBody": "Die Dateien werden von diesem Gerät gelöscht. Dateien auf deinen Servern bleiben erhalten.",
-  "librarySelectionCount": "{count, plural, =1{1 ausgewählt} other{{count} ausgewählt}}"
+  "librarySelectionCount": "{count, plural, =1{1 ausgewählt} other{{count} ausgewählt}}",
+  "languageTitle": "Sprache",
+  "systemLanguage": "Systemsprache"
 }

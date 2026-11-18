@@ -1183,5 +1183,7 @@
         "type": "int"
       }
     }
-  }
+  },
+  "languageTitle": "Langue",
+  "systemLanguage": "Langue du système"
 }

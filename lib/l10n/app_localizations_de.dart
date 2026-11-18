@@ -1961,4 +1961,10 @@ class AppLocalizationsDe extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get languageTitle => 'Sprache';
+
+  @override
+  String get systemLanguage => 'Systemsprache';
 }

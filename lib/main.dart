@@ -54,6 +54,7 @@ class ComicStreamApp extends StatefulWidget {
 }
 
 class _ComicStreamAppState extends State<ComicStreamApp> {
+  String? _shownLanguage = userLocale?.languageCode;
   final _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
@@ -108,13 +109,27 @@ class _ComicStreamAppState extends State<ComicStreamApp> {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
+          // Most widgets read the global `l10n`, not Localizations: after a
+          // language change, rebuild the whole tree once.
+          if (_shownLanguage != themeProvider.languageCode) {
+            _shownLanguage = themeProvider.languageCode;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              void rebuild(Element e) {
+                e.markNeedsBuild();
+                e.visitChildren(rebuild);
+              }
+
+              WidgetsBinding.instance.rootElement?.visitChildren(rebuild);
+            });
+          }
           return MaterialApp(
             navigatorKey: _navigatorKey,
             title: 'ComicStream',
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            locale: userLocale,
             localeListResolutionCallback: (locales, _) =>
-                resolveAppLocale(locales),
+                userLocale ?? resolveAppLocale(locales),
             debugShowCheckedModeBanner: false,
             theme: themeProvider.currentTheme,
             home: const HomeScreen(),
