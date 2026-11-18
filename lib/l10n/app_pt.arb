@@ -535,5 +535,7 @@
   "currentUpper": "ATUAL",
   "lineSpacingUpper": "ENTRELINHA",
   "alignmentUpper": "ALINHAMENTO",
-  "comicsFilter": "BD"
+  "comicsFilter": "BD",
+  "navLibrary": "Biblioteca",
+  "navServers": "Servidores"
 }

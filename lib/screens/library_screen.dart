@@ -18,6 +18,7 @@ import '../widgets/remote_book_card.dart';
 import '../widgets/series_card.dart';
 import 'synced_reader_screen.dart';
 import '../l10n/l10n.dart';
+import '../utils/desktop_layout.dart';
 
 enum LibraryViewMode {
   series,
@@ -113,8 +114,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text(l10n.deleteBookTitle),
-        content: Text(
-            l10n.deleteBookBody(book.title)),
+        content: Text(l10n.deleteBookBody(book.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
@@ -183,174 +183,102 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final books = library.filteredBooks;
     final allSeries = library.filteredSeries;
     final sync = context.watch<SyncProvider>();
+    final wide = DesktopLayout.isWide(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withAlpha(40),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.auto_stories_rounded,
-                color: theme.colorScheme.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Flexible(
-              child: Text(
-                l10n.myLibrary,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (library.books.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  l10n.comicsCount(library.books.length),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
+      appBar: wide
+          ? null
+          : AppBar(
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withAlpha(40),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.auto_stories_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 20,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      l10n.myLibrary,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (library.books.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        l10n.comicsCount(library.books.length),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
-        actions: [
-          if (sync.status == SyncStatus.syncing)
-            Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Tooltip(
-                message: l10n.syncInProgress,
-                child: Icon(Icons.cloud_sync_outlined, size: 18),
-              ),
+              actions: [
+                if (sync.status == SyncStatus.syncing)
+                  Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Tooltip(
+                      message: l10n.syncInProgress,
+                      child: Icon(Icons.cloud_sync_outlined, size: 18),
+                    ),
+                  ),
+                _buildSortMenu(library),
+              ],
             ),
-          PopupMenuButton<LibrarySort>(
-            icon: const Icon(Icons.sort_rounded),
-            tooltip: l10n.sortBy,
-            onSelected: (sort) => library.setSort(sort),
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                value: LibrarySort.lastRead,
-                child: Text(l10n.lastRead),
-              ),
-              PopupMenuItem(
-                value: LibrarySort.title,
-                child: Text(l10n.titleAz),
-              ),
-              PopupMenuItem(
-                value: LibrarySort.dateAdded,
-                child: Text(l10n.dateAdded),
-              ),
-              PopupMenuItem(
-                value: LibrarySort.progress,
-                child: Text(l10n.progress),
-              ),
-            ],
-          ),
-        ],
-      ),
       body: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusScope.of(context).unfocus(),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1350),
-            child: Column(
-              children: [
-                if (library.books.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                    child: SegmentedButton<LibraryViewMode>(
-                      segments: [
-                        ButtonSegment(
-                          value: LibraryViewMode.series,
-                          icon: const Icon(Icons.folder_special_rounded,
-                              size: 16),
-                          label: Text(l10n.seriesCount(allSeries.length)),
-                        ),
-                        ButtonSegment(
-                          value: LibraryViewMode.allBooks,
-                          icon:
-                              const Icon(Icons.auto_stories_rounded, size: 16),
-                          label: Text(l10n.volumesCount(books.length)),
-                        ),
-                      ],
-                      selected: {_viewMode},
-                      onSelectionChanged: (set) {
-                        setState(() {
-                          _viewMode = set.first;
-                        });
-                      },
+            constraints: BoxConstraints(
+                maxWidth: wide
+                    ? DesktopLayout.contentMaxWidth +
+                        2 * (DesktopLayout.contentPadding - 16)
+                    : 1350),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: wide ? DesktopLayout.contentPadding - 16 : 0),
+              child: Column(
+                children: [
+                  if (wide)
+                    _buildDesktopHeader(library, allSeries, books, theme, sync),
+                  if (library.books.isNotEmpty && !wide)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                      child: _buildViewModeToggle(allSeries, books),
                     ),
+                  if (!wide)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                      child: _buildSearchField(library, theme),
+                    ),
+                  Expanded(
+                    child: _viewMode == LibraryViewMode.series
+                        ? _buildSeriesListView(
+                            context, library, allSeries, theme)
+                        : _buildFlatBooksListView(
+                            context, library, books, theme),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                  child: Container(
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest
-                          .withAlpha(90),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant.withAlpha(50),
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(fontSize: 14),
-                      decoration: InputDecoration(
-                        hintText: l10n.searchLibraryHint,
-                        hintStyle: TextStyle(
-                          fontSize: 13,
-                          color:
-                              theme.colorScheme.onSurfaceVariant.withAlpha(150),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          size: 20,
-                          color: theme.colorScheme.primary,
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18),
-                                onPressed: () {
-                                  setState(() {
-                                    _searchController.clear();
-                                    library.setSearchQuery('');
-                                  });
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
-                      ),
-                      onChanged: (val) {
-                        setState(() {
-                          library.setSearchQuery(val);
-                        });
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: _viewMode == LibraryViewMode.series
-                      ? _buildSeriesListView(context, library, allSeries, theme)
-                      : _buildFlatBooksListView(context, library, books, theme),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -358,9 +286,179 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  Widget _buildSortMenu(LibraryProvider library) {
+    return PopupMenuButton<LibrarySort>(
+      icon: const Icon(Icons.sort_rounded),
+      tooltip: l10n.sortBy,
+      onSelected: (sort) => library.setSort(sort),
+      itemBuilder: (ctx) => [
+        PopupMenuItem(
+          value: LibrarySort.lastRead,
+          child: Text(l10n.lastRead),
+        ),
+        PopupMenuItem(
+          value: LibrarySort.title,
+          child: Text(l10n.titleAz),
+        ),
+        PopupMenuItem(
+          value: LibrarySort.dateAdded,
+          child: Text(l10n.dateAdded),
+        ),
+        PopupMenuItem(
+          value: LibrarySort.progress,
+          child: Text(l10n.progress),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildViewModeToggle(
+      List<SeriesItem> allSeries, List<BookItem> books) {
+    return SegmentedButton<LibraryViewMode>(
+      segments: [
+        ButtonSegment(
+          value: LibraryViewMode.series,
+          icon: const Icon(Icons.folder_special_rounded, size: 16),
+          label: Text(l10n.seriesCount(allSeries.length)),
+        ),
+        ButtonSegment(
+          value: LibraryViewMode.allBooks,
+          icon: const Icon(Icons.auto_stories_rounded, size: 16),
+          label: Text(l10n.volumesCount(books.length)),
+        ),
+      ],
+      selected: {_viewMode},
+      onSelectionChanged: (set) {
+        setState(() {
+          _viewMode = set.first;
+        });
+      },
+    );
+  }
+
+  Widget _buildSearchField(LibraryProvider library, ThemeData theme) {
+    return Container(
+      height: 46,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(90),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withAlpha(50),
+        ),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(fontSize: 14),
+        decoration: InputDecoration(
+          hintText: l10n.searchLibraryHint,
+          hintStyle: TextStyle(
+            fontSize: 13,
+            color: theme.colorScheme.onSurfaceVariant.withAlpha(150),
+          ),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            size: 20,
+            color: theme.colorScheme.primary,
+          ),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded, size: 18),
+                  onPressed: () {
+                    setState(() {
+                      _searchController.clear();
+                      library.setSearchQuery('');
+                    });
+                  },
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+        onChanged: (val) {
+          setState(() {
+            library.setSearchQuery(val);
+          });
+        },
+      ),
+    );
+  }
+
+  /// One-line header used instead of the app bar on large windows.
+  Widget _buildDesktopHeader(
+      LibraryProvider library,
+      List<SeriesItem> allSeries,
+      List<BookItem> books,
+      ThemeData theme,
+      SyncProvider sync) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+      child: Row(
+        children: [
+          Text(
+            l10n.navLibrary,
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(width: 16),
+          if (sync.status == SyncStatus.syncing)
+            Tooltip(
+              message: l10n.syncInProgress,
+              child: const Icon(Icons.cloud_sync_outlined, size: 18),
+            ),
+          const Spacer(),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: _buildSearchField(library, theme),
+            ),
+          ),
+          if (library.books.isNotEmpty) ...[
+            const SizedBox(width: 12),
+            _buildViewModeToggle(allSeries, books),
+          ],
+          const SizedBox(width: 4),
+          _buildSortMenu(library),
+        ],
+      ),
+    );
+  }
+
+  /// Up to three "continue reading" cards side by side on large windows.
+  Widget _buildDesktopResumeRow(List<BookItem> books, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 4),
+            child: Text(
+              l10n.continueReading,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < 3; i++)
+                Expanded(
+                  child: i < books.length
+                      ? _buildResumeReadingHero(books[i], theme,
+                          padding: const EdgeInsets.all(8), showLabel: false)
+                      : const SizedBox.shrink(),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSeriesListView(BuildContext context, LibraryProvider library,
       List<SeriesItem> allSeries, ThemeData theme) {
     final recentBooks = library.recentBooks;
+    final wide = DesktopLayout.isWide(context);
 
     if (library.books.isEmpty) {
       return _buildEmptyLibraryState(theme);
@@ -377,13 +475,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
           SliverToBoxAdapter(
             child: _buildFilterChipsRow(context, library),
           ),
-          if (recentBooks.isNotEmpty &&
+          if (wide &&
+              recentBooks.isNotEmpty &&
+              !_isSearching &&
+              library.filter == LibraryFilter.all)
+            SliverToBoxAdapter(
+              child: _buildDesktopResumeRow(recentBooks, theme),
+            ),
+          if (!wide &&
+              recentBooks.isNotEmpty &&
               !_isSearching &&
               library.filter == LibraryFilter.all)
             SliverToBoxAdapter(
               child: _buildResumeReadingHero(recentBooks.first, theme),
             ),
-          if (recentBooks.length > 1 &&
+          if (!wide &&
+              recentBooks.length > 1 &&
               !_isSearching &&
               library.filter == LibraryFilter.all) ...[
             SliverToBoxAdapter(
@@ -459,11 +566,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 220,
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: wide ? 190 : 220,
                 childAspectRatio: 0.68,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
+                crossAxisSpacing: wide ? 20 : 14,
+                mainAxisSpacing: wide ? 20 : 14,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -586,7 +693,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              l10n.seriesProgress(series.completedBooks, series.totalBooks, progressPercent),
+              l10n.seriesProgress(
+                  series.completedBooks, series.totalBooks, progressPercent),
               style: TextStyle(
                   fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
             ),
@@ -685,7 +793,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     nextLocalBook.totalPages > 0
-                                        ? (nextLocalBook.format == BookFormat.epub ? l10n.chapterProgressPercent : l10n.pageProgressPercent)(nextLocalBook.currentPage + 1, nextLocalBook.totalPages, (nextLocalBook.progress * 100).toInt())
+                                        ? (nextLocalBook.format ==
+                                                    BookFormat.epub
+                                                ? l10n.chapterProgressPercent
+                                                : l10n.pageProgressPercent)(
+                                            nextLocalBook.currentPage + 1,
+                                            nextLocalBook.totalPages,
+                                            (nextLocalBook.progress * 100)
+                                                .toInt())
                                         : nextLocalBook.formatString,
                                     style: TextStyle(
                                         fontSize: 11,
@@ -820,8 +935,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
-                                          content: Text(
-                                              l10n.downloadStarted(nextRemoteToDownload.name)),
+                                          content: Text(l10n.downloadStarted(
+                                              nextRemoteToDownload.name)),
                                           duration: const Duration(seconds: 2),
                                         ),
                                       );
@@ -961,8 +1076,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           }
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text(
-                                  l10n.volumesQueued(undownloadedRemote.length)),
+                              content: Text(l10n
+                                  .volumesQueued(undownloadedRemote.length)),
                             ),
                           );
                         },
@@ -1041,7 +1156,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 context, l10n.favorites, LibraryFilter.favorites, library),
             _buildFilterChip(
                 context, l10n.inProgress, LibraryFilter.inProgress, library),
-            _buildFilterChip(context, l10n.unread, LibraryFilter.unread, library),
+            _buildFilterChip(
+                context, l10n.unread, LibraryFilter.unread, library),
             _buildFilterChip(context, 'CBZ / CBR', LibraryFilter.cbz, library),
             _buildFilterChip(context, 'PDF', LibraryFilter.pdf, library),
             _buildFilterChip(
@@ -1094,11 +1210,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
         LibraryFilter.completed => Icons.check_circle_outline_rounded,
       };
 
-  Widget _buildResumeReadingHero(BookItem book, ThemeData theme) {
+  Widget _buildResumeReadingHero(BookItem book, ThemeData theme,
+      {EdgeInsets padding = const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      bool showLabel = true}) {
     final progressPercent = (book.progress * 100).toInt();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      padding: padding,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
@@ -1145,22 +1263,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.primary.withAlpha(40),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                l10n.continueReading,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: theme.colorScheme.primary,
+                            if (showLabel)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color:
+                                      theme.colorScheme.primary.withAlpha(40),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  l10n.continueReading,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
                                 ),
                               ),
-                            ),
                             const Spacer(),
                             Text(
                               '$progressPercent%',
@@ -1183,7 +1303,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         const SizedBox(height: 2),
                         Text(
                           book.totalPages > 0
-                              ? (book.format == BookFormat.epub ? l10n.chapterOfTotal : l10n.pageOfTotal)(book.currentPage + 1, book.totalPages)
+                              ? (book.format == BookFormat.epub
+                                      ? l10n.chapterOfTotal
+                                      : l10n.pageOfTotal)(
+                                  book.currentPage + 1, book.totalPages)
                               : book.formatString,
                           style: TextStyle(
                               fontSize: 12,

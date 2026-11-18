@@ -535,5 +535,7 @@
   "currentUpper": "ACTUAL",
   "lineSpacingUpper": "INTERLINEADO",
   "alignmentUpper": "ALINEACIÓN",
-  "comicsFilter": "Cómics"
+  "comicsFilter": "Cómics",
+  "navLibrary": "Biblioteca",
+  "navServers": "Servidores"
 }

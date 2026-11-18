@@ -3318,6 +3318,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'BD'**
   String get comicsFilter;
+
+  /// No description provided for @navLibrary.
+  ///
+  /// In fr, this message translates to:
+  /// **'Bibliothèque'**
+  String get navLibrary;
+
+  /// No description provided for @navServers.
+  ///
+  /// In fr, this message translates to:
+  /// **'Serveurs'**
+  String get navServers;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

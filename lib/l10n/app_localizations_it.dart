@@ -1873,4 +1873,10 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get comicsFilter => 'Fumetti';
+
+  @override
+  String get navLibrary => 'Libreria';
+
+  @override
+  String get navServers => 'Server';
 }

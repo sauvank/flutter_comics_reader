@@ -37,7 +37,8 @@ void main(List<String> args) async {
   //   ),
   // );
 
-  runApp(ComicStreamApp(launchFilePath: LaunchFileService.bookPathFromArgs(args)));
+  runApp(
+      ComicStreamApp(launchFilePath: LaunchFileService.bookPathFromArgs(args)));
 }
 
 class ComicStreamApp extends StatefulWidget {
@@ -58,7 +59,8 @@ class _ComicStreamAppState extends State<ComicStreamApp> {
     super.initState();
     final path = widget.launchFilePath;
     if (path != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _openLaunchFile(path));
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _openLaunchFile(path));
     }
   }
 
