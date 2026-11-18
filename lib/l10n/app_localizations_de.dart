@@ -1909,4 +1909,13 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get doublePageBody => 'Zwei Seiten nebeneinander, wenn das Fenster breit und im Querformat ist';
+
+  @override
+  String get onePage => '1 Seite';
+
+  @override
+  String get twoPages => '2 Seiten';
+
+  @override
+  String get togglePagesPerView => '1 oder 2 Seiten anzeigen (D)';
 }

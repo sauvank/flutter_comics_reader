@@ -547,5 +547,8 @@
   "columnSize": "Dimensione",
   "columnAdded": "Aggiunto",
   "doublePageTitle": "Doppia pagina su schermi grandi",
-  "doublePageBody": "Due pagine affiancate quando la finestra è larga e orizzontale"
+  "doublePageBody": "Due pagine affiancate quando la finestra è larga e orizzontale",
+  "onePage": "1 pagina",
+  "twoPages": "2 pagine",
+  "togglePagesPerView": "Mostra 1 o 2 pagine (D)"
 }

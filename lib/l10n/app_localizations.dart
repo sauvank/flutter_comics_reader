@@ -3390,6 +3390,24 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Deux pages côte à côte quand la fenêtre est large et en paysage'**
   String get doublePageBody;
+
+  /// No description provided for @onePage.
+  ///
+  /// In fr, this message translates to:
+  /// **'1 page'**
+  String get onePage;
+
+  /// No description provided for @twoPages.
+  ///
+  /// In fr, this message translates to:
+  /// **'2 pages'**
+  String get twoPages;
+
+  /// No description provided for @togglePagesPerView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Afficher 1 ou 2 pages (D)'**
+  String get togglePagesPerView;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

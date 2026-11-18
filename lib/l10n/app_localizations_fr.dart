@@ -1909,4 +1909,13 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get doublePageBody => 'Deux pages côte à côte quand la fenêtre est large et en paysage';
+
+  @override
+  String get onePage => '1 page';
+
+  @override
+  String get twoPages => '2 pages';
+
+  @override
+  String get togglePagesPerView => 'Afficher 1 ou 2 pages (D)';
 }

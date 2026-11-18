@@ -547,5 +547,8 @@
   "columnSize": "Größe",
   "columnAdded": "Hinzugefügt",
   "doublePageTitle": "Doppelseite auf großen Bildschirmen",
-  "doublePageBody": "Zwei Seiten nebeneinander, wenn das Fenster breit und im Querformat ist"
+  "doublePageBody": "Zwei Seiten nebeneinander, wenn das Fenster breit und im Querformat ist",
+  "onePage": "1 Seite",
+  "twoPages": "2 Seiten",
+  "togglePagesPerView": "1 oder 2 Seiten anzeigen (D)"
 }

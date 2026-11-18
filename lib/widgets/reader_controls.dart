@@ -14,6 +14,10 @@ class ReaderTopBar extends StatelessWidget {
   final VoidCallback? onToggleFavorite;
   final VoidCallback onOpenSettings;
 
+  /// Non-null on wide landscape windows: current pages-per-view choice.
+  final bool? doublePage;
+  final VoidCallback? onToggleDoublePage;
+
   const ReaderTopBar({
     super.key,
     this.visible = true,
@@ -26,10 +30,13 @@ class ReaderTopBar extends StatelessWidget {
     required this.onToggleBookmark,
     this.onToggleFavorite,
     required this.onOpenSettings,
+    this.doublePage,
+    this.onToggleDoublePage,
   });
 
   @override
   Widget build(BuildContext context) {
+    final twoPages = doublePage;
     return IgnorePointer(
       ignoring: !visible,
       child: AnimatedSlide(
@@ -89,6 +96,19 @@ class ReaderTopBar extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (twoPages != null && onToggleDoublePage != null)
+                      Tooltip(
+                        message: l10n.togglePagesPerView,
+                        child: TextButton.icon(
+                          onPressed: onToggleDoublePage,
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.white),
+                          icon: Icon(twoPages
+                              ? Icons.menu_book_outlined
+                              : Icons.crop_portrait_rounded),
+                          label: Text(twoPages ? l10n.twoPages : l10n.onePage),
+                        ),
+                      ),
                     IconButton(
                       icon: Icon(
                         isBookmarked ? Icons.bookmark : Icons.bookmark_border,

@@ -345,6 +345,15 @@ void main() {
     expect(visible(5), isTrue);
     expect(visible(6), isTrue);
 
+    final topBar = tester.widget<ReaderTopBar>(find.byType(ReaderTopBar));
+    expect(topBar.doublePage, isTrue);
+    await tester.runAsync(() async => topBar.onToggleDoublePage!());
+    await tick(tester);
+    expect(tester.widget<ReaderTopBar>(find.byType(ReaderTopBar)).doublePage,
+        isFalse);
+    expect(visible(5), isTrue);
+    expect(visible(6), isFalse);
+
     await close(tester);
     expect(library.savedPages.last, 5);
     await tester.runAsync(() => settings.setDoublePage(false));

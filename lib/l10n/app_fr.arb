@@ -1157,5 +1157,8 @@
   "columnSize": "Taille",
   "columnAdded": "Ajouté",
   "doublePageTitle": "Double page sur grand écran",
-  "doublePageBody": "Deux pages côte à côte quand la fenêtre est large et en paysage"
+  "doublePageBody": "Deux pages côte à côte quand la fenêtre est large et en paysage",
+  "onePage": "1 page",
+  "twoPages": "2 pages",
+  "togglePagesPerView": "Afficher 1 ou 2 pages (D)"
 }

@@ -547,5 +547,8 @@
   "columnSize": "Size",
   "columnAdded": "Added",
   "doublePageTitle": "Two-page spread on large screens",
-  "doublePageBody": "Two pages side by side when the window is wide and in landscape"
+  "doublePageBody": "Two pages side by side when the window is wide and in landscape",
+  "onePage": "1 page",
+  "twoPages": "2 pages",
+  "togglePagesPerView": "Show 1 or 2 pages (D)"
 }

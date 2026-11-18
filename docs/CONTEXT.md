@@ -186,7 +186,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
 ### 🖥️ Interface PC (fenêtre ≥ 900 px)
 * `lib/utils/desktop_layout.dart` (`DesktopLayout.isWide`, `DesktopContent`) : menu latéral (`_DesktopSidebar` dans `home_screen.dart`) au lieu de la barre du bas, contenu centré ≤ 1180 px. Le mobile est inchangé.
 * Bibliothèque : en-tête sur une ligne, 3 cartes « Reprendre ». Fichiers : sélecteurs fichier/dossier (`file_picker`) + tableau. Serveurs : liste + guide compact.
-* Lecteur CBZ : double page en paysage large (`ReaderSettingsService.doublePage`, local, non synchronisé) ; les items du `PageView` sont des doubles pages, `_currentPage` reste un index de page.
+* Lecteur CBZ : double page en paysage large (`ReaderSettingsService.doublePage`, local, non synchronisé ; bouton « 1 page / 2 pages » dans la barre du haut, touche D) ; les items du `PageView` sont des doubles pages, `_currentPage` reste un index de page.
 * Maquette validée : https://claude.ai/artifact/P2MGK8uYj467c7PvNTarpJ
 * Captures : build Linux (`flutter build linux --debug`) lancé sous WSLg, `xdotool` + `import`.
 

@@ -397,13 +397,17 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
     return !_spreadMode || page == 0 ? page : (page + 1) ~/ 2;
   }
 
-  bool _wantsSpread(ReaderSettingsService settings) {
+  /// Whether the window allows two pages side by side (wide, landscape,
+  /// horizontal reading), whatever the user's choice.
+  bool _canShowSpreads(ReaderSettingsService settings) {
     final size = MediaQuery.sizeOf(context);
-    return settings.doublePage &&
-        settings.readingMode != ReadingMode.vertical &&
+    return settings.readingMode != ReadingMode.vertical &&
         size.width >= 900 &&
         size.width > size.height;
   }
+
+  bool _wantsSpread(ReaderSettingsService settings) =>
+      settings.doublePage && _canShowSpreads(settings);
 
   /// Switches between single pages and spreads, keeping the current page.
   void _syncSpreadMode(ReaderSettingsService settings) {
@@ -808,6 +812,12 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
           const SingleActivator(LogicalKeyboardKey.pageDown): _nextPage,
           const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
           const SingleActivator(LogicalKeyboardKey.backspace): _prevPage,
+          const SingleActivator(LogicalKeyboardKey.keyD): () {
+            final settings = context.read<ReaderSettingsService>();
+            if (_canShowSpreads(settings)) {
+              settings.setDoublePage(!settings.doublePage);
+            }
+          },
           const SingleActivator(LogicalKeyboardKey.escape): () =>
               Navigator.of(context).pop(),
         },
@@ -842,6 +852,10 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                     onToggleFavorite: () =>
                         library.toggleFavorite(widget.book.id),
                     onOpenSettings: _showSettings,
+                    doublePage:
+                        _canShowSpreads(settings) ? settings.doublePage : null,
+                    onToggleDoublePage: () =>
+                        settings.setDoublePage(!settings.doublePage),
                   ),
                 ),
 
