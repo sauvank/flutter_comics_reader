@@ -1,4 +1,6 @@
+import 'package:flutter/gestures.dart' show kBackMouseButton;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/library_provider.dart';
@@ -124,11 +126,44 @@ class _ComicStreamAppState extends State<ComicStreamApp> {
                     mediaQuery.textScaler,
                   ),
                 ),
-                child: child!,
+                child: _DesktopNavigationShortcuts(
+                  navigatorKey: _navigatorKey,
+                  child: child!,
+                ),
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+/// PC habits: Esc / Alt+Left / mouse "back" button go to the previous screen.
+/// Deeper handlers (dialogs, the reader, text fields) still take precedence.
+class _DesktopNavigationShortcuts extends StatelessWidget {
+  const _DesktopNavigationShortcuts({
+    required this.navigatorKey,
+    required this.child,
+  });
+
+  final GlobalKey<NavigatorState> navigatorKey;
+  final Widget child;
+
+  void _back() => navigatorKey.currentState?.maybePop();
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      onPointerDown: (event) {
+        if (event.buttons & kBackMouseButton != 0) _back();
+      },
+      child: CallbackShortcuts(
+        bindings: {
+          const SingleActivator(LogicalKeyboardKey.escape): _back,
+          const SingleActivator(LogicalKeyboardKey.arrowLeft, alt: true): _back,
+        },
+        child: child,
       ),
     );
   }

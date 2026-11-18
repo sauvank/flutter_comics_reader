@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/desktop_layout.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_version.dart';
 import '../providers/library_provider.dart';
@@ -182,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
 
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: theme.colorScheme.surface,
@@ -378,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () {
-                        showModalBottomSheet(
+                        showAdaptiveSheet(
                           context: context,
                           backgroundColor: Colors.transparent,
                           builder: (_) =>

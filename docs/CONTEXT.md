@@ -187,7 +187,8 @@ l’interface plafonne le facteur de texte Android à 115 %.
 * `lib/utils/desktop_layout.dart` (`DesktopLayout.isWide`, `DesktopContent`) : menu latéral (`_DesktopSidebar` dans `home_screen.dart`) au lieu de la barre du bas, contenu centré ≤ 1180 px. Le mobile est inchangé.
 * Bibliothèque : en-tête sur une ligne, 3 cartes « Reprendre ». Fichiers : sélecteurs fichier/dossier (`file_picker`) + tableau. Serveurs : liste + guide compact.
 * Lecteur CBZ : double page en paysage large (`ReaderSettingsService.doublePage`, local, non synchronisé ; bouton « 1 page / 2 pages » dans la barre du haut, touche D) ; les items du `PageView` sont des doubles pages, `_currentPage` reste un index de page.
-* Maquette validée : https://claude.ai/artifact/P2MGK8uYj467c7PvNTarpJ
+* UX souris/clavier (le visuel reste celui du mobile, choix de l'utilisateur) : clic droit et menu ⋮ au survol sur `BookCard` ; `showAdaptiveSheet` (`desktop_layout.dart`) = tiroir sur mobile, fenêtre centrée sur PC, utilisé à la place de `showModalBottomSheet` ; molette = page suivante/précédente dans le lecteur CBZ horizontal (Ctrl + molette = zoom) ; Échap / Alt+← / bouton « précédent » de la souris = retour (`_DesktopNavigationShortcuts`, `main.dart`) ; bibliothèque : Ctrl+F / Ctrl+K = recherche, F5 = recharger.
+* Maquette : https://claude.ai/artifact/P2MGK8uYj467c7PvNTarpJ (planches V2 « logiciel » non retenues : l'utilisateur garde le design actuel).
 * Captures : build Linux (`flutter build linux --debug`) lancé sous WSLg, `xdotool` + `import`.
 
 ### 🔐 Compte sur Windows

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../utils/desktop_layout.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
@@ -502,7 +503,7 @@ class _AccountScreenState extends State<AccountScreen> {
       return;
     }
     if (!mounted) return;
-    final choice = await showModalBottomSheet<SyncDeviceBackup>(
+    final choice = await showAdaptiveSheet<SyncDeviceBackup>(
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(

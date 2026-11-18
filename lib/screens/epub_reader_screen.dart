@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import '../utils/desktop_layout.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:provider/provider.dart';
@@ -1001,7 +1002,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
 
   void _showSettingsModal(
       BuildContext context, ReaderSettingsService settings) {
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       backgroundColor: const Color(0xFF1E1E24),
       isScrollControlled: true,

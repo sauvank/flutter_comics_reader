@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/desktop_layout.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
 import '../models/download_task.dart';
@@ -34,7 +35,7 @@ class InstantReadModal extends StatefulWidget {
     }
 
     // Start instant download modal and await the result
-    final downloadedBook = await showModalBottomSheet<BookItem>(
+    final downloadedBook = await showAdaptiveSheet<BookItem>(
       context: context,
       isDismissible: true,
       enableDrag: true,

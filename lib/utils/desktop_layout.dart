@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Layout rules for large windows (Windows, Linux, macOS or a wide tablet).
 ///
@@ -40,4 +40,54 @@ class DesktopContent extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Bottom sheet on phones, centered dialog on large windows.
+///
+/// Accepts the same arguments as [showModalBottomSheet] used in the app, so
+/// call sites switch by name only.
+Future<T?> showAdaptiveSheet<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  Color? backgroundColor,
+  ShapeBorder? shape,
+  bool isScrollControlled = false,
+  bool isDismissible = true,
+  bool enableDrag = true,
+  bool? showDragHandle,
+}) {
+  if (!DesktopLayout.isWide(context)) {
+    return showModalBottomSheet<T>(
+      context: context,
+      builder: builder,
+      backgroundColor: backgroundColor,
+      shape: shape,
+      isScrollControlled: isScrollControlled,
+      isDismissible: isDismissible,
+      enableDrag: enableDrag,
+      showDragHandle: showDragHandle,
+    );
+  }
+  final size = MediaQuery.sizeOf(context);
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: isDismissible,
+    builder: (dialogContext) => Dialog(
+      backgroundColor: backgroundColor ?? Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 560,
+          maxHeight: size.height * 0.85,
+        ),
+        child: MediaQuery.removePadding(
+          context: dialogContext,
+          removeBottom: true,
+          child: builder(dialogContext),
+        ),
+      ),
+    ),
+  );
 }

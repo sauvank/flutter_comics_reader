@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
+import '../utils/desktop_layout.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
@@ -435,6 +437,21 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
     _scheduleProgressSave();
   }
 
+  DateTime _lastWheelTurn = DateTime(0);
+
+  /// Mouse wheel turns pages in horizontal modes (one page per notch burst).
+  void _onWheel(PointerScrollEvent event) {
+    final delta =
+        event.scrollDelta.dy != 0 ? event.scrollDelta.dy : event.scrollDelta.dx;
+    final now = DateTime.now();
+    if (delta == 0 ||
+        now.difference(_lastWheelTurn) < const Duration(milliseconds: 280)) {
+      return;
+    }
+    _lastWheelTurn = now;
+    delta > 0 ? _nextPage() : _prevPage();
+  }
+
   void _nextPage() {
     final settings = context.read<ReaderSettingsService>();
     if (settings.readingMode == ReadingMode.vertical) {
@@ -544,7 +561,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
 
   void _showSettings() {
     final settings = context.read<ReaderSettingsService>();
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => ReaderSettingsSheet(settings: settings),
@@ -552,7 +569,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
   }
 
   void _showThumbnailsGrid() {
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: const Color(0xFF13151F),
@@ -961,6 +978,7 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                 }
               },
               onInteractionEnd: (_) => _synchronizeTransformation(index),
+              onWheel: _isCurrentPageZoomed ? null : _onWheel,
               child: secondIndex == null
                   ? Center(
                       child: _buildHorizontalPage(

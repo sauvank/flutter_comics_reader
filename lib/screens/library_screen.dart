@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import '../models/book_item.dart';
@@ -36,6 +37,7 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
   LibraryViewMode _viewMode = LibraryViewMode.series;
   SeriesItem? _selectedSeries;
 
@@ -48,6 +50,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocus.dispose();
     super.dispose();
   }
 
@@ -185,99 +188,112 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final sync = context.watch<SyncProvider>();
     final wide = DesktopLayout.isWide(context);
 
-    return Scaffold(
-      appBar: wide
-          ? null
-          : AppBar(
-              title: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withAlpha(40),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.auto_stories_rounded,
-                      color: theme.colorScheme.primary,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      l10n.myLibrary,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (library.books.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        l10n.comicsCount(library.books.length),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true):
+            _searchFocus.requestFocus,
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true):
+            _searchFocus.requestFocus,
+        const SingleActivator(LogicalKeyboardKey.f5): library.loadLibrary,
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          appBar: wide
+              ? null
+              : AppBar(
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary.withAlpha(40),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.auto_stories_rounded,
                           color: theme.colorScheme.primary,
+                          size: 20,
                         ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          l10n.myLibrary,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (library.books.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withAlpha(30),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            l10n.comicsCount(library.books.length),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  actions: [
+                    if (sync.status == SyncStatus.syncing)
+                      Padding(
+                        padding: EdgeInsets.only(right: 4),
+                        child: Tooltip(
+                          message: l10n.syncInProgress,
+                          child: Icon(Icons.cloud_sync_outlined, size: 18),
+                        ),
+                      ),
+                    _buildSortMenu(library),
                   ],
-                ],
-              ),
-              actions: [
-                if (sync.status == SyncStatus.syncing)
-                  Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: Tooltip(
-                      message: l10n.syncInProgress,
-                      child: Icon(Icons.cloud_sync_outlined, size: 18),
-                    ),
+                ),
+          body: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                    maxWidth: wide
+                        ? DesktopLayout.contentMaxWidth +
+                            2 * (DesktopLayout.contentPadding - 16)
+                        : 1350),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: wide ? DesktopLayout.contentPadding - 16 : 0),
+                  child: Column(
+                    children: [
+                      if (wide)
+                        _buildDesktopHeader(
+                            library, allSeries, books, theme, sync),
+                      if (library.books.isNotEmpty && !wide)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          child: _buildViewModeToggle(allSeries, books),
+                        ),
+                      if (!wide)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                          child: _buildSearchField(library, theme),
+                        ),
+                      Expanded(
+                        child: _viewMode == LibraryViewMode.series
+                            ? _buildSeriesListView(
+                                context, library, allSeries, theme)
+                            : _buildFlatBooksListView(
+                                context, library, books, theme),
+                      ),
+                    ],
                   ),
-                _buildSortMenu(library),
-              ],
-            ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusScope.of(context).unfocus(),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-                maxWidth: wide
-                    ? DesktopLayout.contentMaxWidth +
-                        2 * (DesktopLayout.contentPadding - 16)
-                    : 1350),
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                  horizontal: wide ? DesktopLayout.contentPadding - 16 : 0),
-              child: Column(
-                children: [
-                  if (wide)
-                    _buildDesktopHeader(library, allSeries, books, theme, sync),
-                  if (library.books.isNotEmpty && !wide)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                      child: _buildViewModeToggle(allSeries, books),
-                    ),
-                  if (!wide)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                      child: _buildSearchField(library, theme),
-                    ),
-                  Expanded(
-                    child: _viewMode == LibraryViewMode.series
-                        ? _buildSeriesListView(
-                            context, library, allSeries, theme)
-                        : _buildFlatBooksListView(
-                            context, library, books, theme),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -348,6 +364,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       child: TextField(
         controller: _searchController,
+        focusNode: _searchFocus,
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: l10n.searchLibraryHint,

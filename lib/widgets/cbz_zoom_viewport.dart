@@ -1,4 +1,6 @@
-import 'package:flutter/gestures.dart' show DeviceGestureSettings;
+import 'package:flutter/gestures.dart'
+    show DeviceGestureSettings, GestureBinding, PointerScrollEvent;
+import 'package:flutter/services.dart' show HardwareKeyboard;
 import 'package:flutter/material.dart';
 
 /// Lets the reader scroll at normal size while retaining pinch-to-zoom.
@@ -10,7 +12,11 @@ class CbzZoomViewport extends StatelessWidget {
     required this.onInteractionUpdate,
     required this.onInteractionEnd,
     required this.child,
+    this.onWheel,
   });
+
+  /// Mouse wheel without Ctrl (e.g. turn pages). Ctrl + wheel keeps zooming.
+  final ValueChanged<PointerScrollEvent>? onWheel;
 
   final TransformationController controller;
   final bool zoomed;
@@ -41,7 +47,24 @@ class CbzZoomViewport extends StatelessWidget {
         onInteractionEnd: onInteractionEnd,
         // Restore normal drag thresholds for the vertical ListView and any
         // other controls inside the zoomed content.
-        child: MediaQuery(data: media, child: child),
+        child: MediaQuery(
+          data: media,
+          child: onWheel == null
+              ? child
+              : Listener(
+                  // Registered deeper than InteractiveViewer, so it wins the
+                  // wheel event unless Ctrl is held (then the viewer zooms).
+                  onPointerSignal: (event) {
+                    if (event is! PointerScrollEvent ||
+                        HardwareKeyboard.instance.isControlPressed) {
+                      return;
+                    }
+                    GestureBinding.instance.pointerSignalResolver.register(
+                        event, (e) => onWheel!(e as PointerScrollEvent));
+                  },
+                  child: child,
+                ),
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../utils/desktop_layout.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:provider/provider.dart';
@@ -115,7 +116,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
   void _showSettings() {
     final settings = context.read<ReaderSettingsService>();
-    showModalBottomSheet(
+    showAdaptiveSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => ReaderSettingsSheet(settings: settings),
