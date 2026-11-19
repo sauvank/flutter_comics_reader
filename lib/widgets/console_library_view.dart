@@ -229,9 +229,10 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
     } else if (k == LogicalKeyboardKey.escape ||
         k == LogicalKeyboardKey.backspace) {
       return _back() ? KeyEventResult.handled : KeyEventResult.ignored;
-    } else if (k == LogicalKeyboardKey.keyQ) {
+    } else if (isConsolePrevKey(e)) {
       _cycleFilter(-1);
-    } else if (k == LogicalKeyboardKey.keyE) {
+    } else if (e.physicalKey == PhysicalKeyboardKey.keyE ||
+        k == LogicalKeyboardKey.keyE) {
       _cycleFilter(1);
     } else {
       return KeyEventResult.ignored;
@@ -328,7 +329,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
       padding: const EdgeInsets.fromLTRB(28, 6, 28, 0),
       child: Row(
         children: [
-          ConsoleKeyCap('Q'),
+          ConsoleKeyCap(consolePrevKeyLabel),
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.all(5),
@@ -637,7 +638,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
             hint(['←', '→', '↑', '↓'], l10n.consoleHintMove),
             hint(['↵'], l10n.consoleHintOpen),
             hint(['Esc'], l10n.consoleHintBack),
-            hint(['Q', 'E'], l10n.consoleHintFilter),
+            hint([consolePrevKeyLabel, 'E'], l10n.consoleHintFilter),
           ],
         ),
       ),

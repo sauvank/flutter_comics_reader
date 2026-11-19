@@ -2,9 +2,22 @@ import 'dart:io';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../l10n/l10n.dart';
 
 /// Shared pieces of the PC "console" pages (library, servers, downloads):
 /// tiles that grow with a pulsing ring, pill buttons, key caps and covers.
+
+/// Letter printed on the key left of E: "A" on the French AZERTY layout,
+/// "Q" on QWERTY/QWERTZ. Chosen from the app language.
+String get consolePrevKeyLabel => appLocale.languageCode == 'fr' ? 'A' : 'Q';
+
+/// The "previous" shortcut is matched by position (the key left of E), so it
+/// works whatever the keyboard layout; the printed letter also counts.
+bool isConsolePrevKey(KeyEvent e) =>
+    e.physicalKey == PhysicalKeyboardKey.keyQ ||
+    e.logicalKey.keyLabel.toUpperCase() == consolePrevKeyLabel;
 
 /// Stable colour derived from a name (series, server).
 Color consoleColor(String name, {double l = .5}) {

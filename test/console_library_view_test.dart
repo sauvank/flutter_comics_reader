@@ -72,4 +72,33 @@ void main() {
     await key(LogicalKeyboardKey.enter);
     expect(opened.last.id, 'Batman-2');
   });
+
+  testWidgets('filter keys follow the layout: A/E printed in French',
+      (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final filters = <LibraryFilter>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: ConsoleLibraryView(
+          series: [_series('Akira', 2)],
+          filter: LibraryFilter.all,
+          onFilter: filters.add,
+          onOpenBook: (_) {},
+          onOpenSeries: (_) {},
+        ),
+      ),
+    ));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('A'), findsWidgets);
+    expect(find.text('Q'), findsNothing);
+
+    // AZERTY: the key left of E is physically "KeyQ" and prints "a".
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA,
+        physicalKey: PhysicalKeyboardKey.keyQ);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyE);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(filters, [LibraryFilter.completed, LibraryFilter.inProgress]);
+  });
 }
