@@ -1213,5 +1213,32 @@
   "consoleHintOpen": "Ouvrir",
   "consoleHintBack": "Retour",
   "consoleHintFilter": "Filtre",
-  "consoleView": "Console"
+  "consoleView": "Console",
+  "consoleQueue": "File d'attente",
+  "consoleQueueHint": "dans l'ordre de démarrage",
+  "consoleReady": "Prêt à lire",
+  "consoleFailed": "Échec · réessayer",
+  "consoleCancelled": "Annulé · relancer",
+  "consoleChooseServer": "Choisissez un serveur pour parcourir ses dossiers.",
+  "consoleItemsCount": "{count, plural, =1{1 élément} other{{count} éléments}}",
+  "@consoleItemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "consoleDownloadMissing": "Télécharger les {count} manquants",
+  "@consoleDownloadMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "consoleHintOpenDownload": "Ouvrir / télécharger",
+  "consoleHintReadRetry": "Lire / réessayer",
+  "consoleAlreadyQueued": "Déjà dans la file de téléchargement",
+  "consoleNothingYet": "Aucun téléchargement pour l'instant",
+  "consoleSwitchPage": "Page suivante"
 }

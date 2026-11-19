@@ -57,7 +57,9 @@ class FolderCard extends StatelessWidget {
                 child: Center(
                   child: Icon(
                     Icons.folder_rounded,
-                    color: isFavorite ? Colors.redAccent : theme.colorScheme.primary,
+                    color: isFavorite
+                        ? Colors.redAccent
+                        : theme.colorScheme.primary,
                     size: 24,
                   ),
                 ),
@@ -86,14 +88,18 @@ class FolderCard extends StatelessWidget {
                         Icon(
                           Icons.collections_bookmark_outlined,
                           size: 13,
-                          color: theme.colorScheme.onSurfaceVariant.withAlpha(160),
+                          color:
+                              theme.colorScheme.onSurfaceVariant.withAlpha(160),
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          itemCount != null ? l10n.itemsCount(itemCount!) : l10n.folder,
+                          itemCount != null
+                              ? l10n.itemsCount(itemCount!)
+                              : l10n.folder,
                           style: TextStyle(
                             fontSize: 12,
-                            color: theme.colorScheme.onSurfaceVariant.withAlpha(180),
+                            color: theme.colorScheme.onSurfaceVariant
+                                .withAlpha(180),
                           ),
                         ),
                       ],
@@ -106,12 +112,18 @@ class FolderCard extends StatelessWidget {
               if (onToggleFavorite != null)
                 IconButton(
                   icon: Icon(
-                    isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFavorite ? Colors.redAccent : theme.colorScheme.onSurfaceVariant.withAlpha(140),
+                    isFavorite
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFavorite
+                        ? Colors.redAccent
+                        : theme.colorScheme.onSurfaceVariant.withAlpha(140),
                     size: 20,
                   ),
                   onPressed: onToggleFavorite,
-                  tooltip: isFavorite ? l10n.removeFromFavorites : l10n.addToFavorites,
+                  tooltip: isFavorite
+                      ? l10n.removeFromFavorites
+                      : l10n.addToFavorites,
                   visualDensity: VisualDensity.compact,
                 ),
 

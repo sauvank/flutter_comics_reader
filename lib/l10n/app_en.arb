@@ -575,5 +575,18 @@
   "consoleHintOpen": "Open",
   "consoleHintBack": "Back",
   "consoleHintFilter": "Filter",
-  "consoleView": "Console"
+  "consoleView": "Console",
+  "consoleQueue": "Queue",
+  "consoleQueueHint": "in start order",
+  "consoleReady": "Ready to read",
+  "consoleFailed": "Failed · retry",
+  "consoleCancelled": "Cancelled · restart",
+  "consoleChooseServer": "Choose a server to browse its folders.",
+  "consoleItemsCount": "{count, plural, =1{1 item} other{{count} items}}",
+  "consoleDownloadMissing": "Download the {count} missing",
+  "consoleHintOpenDownload": "Open / download",
+  "consoleHintReadRetry": "Read / retry",
+  "consoleAlreadyQueued": "Already in the download queue",
+  "consoleNothingYet": "No downloads yet",
+  "consoleSwitchPage": "Next page"
 }

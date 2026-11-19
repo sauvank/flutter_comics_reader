@@ -46,7 +46,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
   @override
   void didUpdateWidget(covariant RemoteBookCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.file.path != widget.file.path || oldWidget.isDownloaded != widget.isDownloaded) {
+    if (oldWidget.file.path != widget.file.path ||
+        oldWidget.isDownloaded != widget.isDownloaded) {
       _loadCover();
     }
   }
@@ -55,8 +56,10 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
     // 1. If book is downloaded locally, use local book cover
     try {
       final library = context.read<LibraryProvider>();
-      final localBook = library.getBookByServerPath(widget.server.id, widget.file.path);
-      if (localBook?.coverPath != null && File(localBook!.coverPath!).existsSync()) {
+      final localBook =
+          library.getBookByServerPath(widget.server.id, widget.file.path);
+      if (localBook?.coverPath != null &&
+          File(localBook!.coverPath!).existsSync()) {
         if (mounted) {
           setState(() {
             _cachedCoverPath = localBook.coverPath;
@@ -109,7 +112,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
             onPressed: () async {
               Navigator.of(ctx).pop();
               final library = context.read<LibraryProvider>();
-              final book = library.getBookByServerPath(widget.server.id, widget.file.path);
+              final book = library.getBookByServerPath(
+                  widget.server.id, widget.file.path);
               if (book != null) {
                 await library.deleteBook(book.id);
               }
@@ -181,16 +185,19 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
             widget.downloadTask!.status == DownloadStatus.pending);
 
     final library = context.watch<LibraryProvider>();
-    final localBook = library.getBookByServerPath(widget.server.id, widget.file.path);
+    final localBook =
+        library.getBookByServerPath(widget.server.id, widget.file.path);
     final isFavorite = widget.isDownloaded && localBook != null
         ? localBook.isFavorite
         : library.isRemoteFavorite(widget.server.id, widget.file.path);
 
     final cleanTitle = widget.file.name
-        .replaceAll(RegExp(r'\.(cbz|cbr|zip|rar|pdf|epub)$', caseSensitive: false), '')
+        .replaceAll(
+            RegExp(r'\.(cbz|cbr|zip|rar|pdf|epub)$', caseSensitive: false), '')
         .replaceAll('_', ' ');
 
-    final hasCover = _cachedCoverPath != null && File(_cachedCoverPath!).existsSync();
+    final hasCover =
+        _cachedCoverPath != null && File(_cachedCoverPath!).existsSync();
 
     return InkWell(
       onTap: widget.onTap,
@@ -233,7 +240,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                         File(_cachedCoverPath!),
                         fit: BoxFit.cover,
                         cacheWidth: 350,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(theme, format),
+                        errorBuilder: (_, __, ___) =>
+                            _buildPlaceholder(theme, format),
                       )
                     else
                       _buildPlaceholder(theme, format),
@@ -264,7 +272,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: widget.isDownloaded
                               ? _getFormatColor(format)
@@ -298,13 +307,13 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                 if (widget.isDownloaded && localBook != null) {
                                   library.toggleFavorite(localBook.id);
                                 } else {
-                                  library.toggleRemoteFavorite(widget.server.id, widget.file.path);
+                                  library.toggleRemoteFavorite(
+                                      widget.server.id, widget.file.path);
                                 }
                               },
                               borderRadius: BorderRadius.circular(20),
                               child: Container(
                                 padding: const EdgeInsets.all(4),
-
                                 decoration: BoxDecoration(
                                   color: isFavorite
                                       ? Colors.redAccent.withAlpha(220)
@@ -312,8 +321,12 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                  color: isFavorite ? Colors.white : Colors.white70,
+                                  isFavorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFavorite
+                                      ? Colors.white
+                                      : Colors.white70,
                                   size: 13,
                                 ),
                               ),
@@ -321,11 +334,14 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 3),
                             decoration: BoxDecoration(
                               color: widget.isDownloaded
-                                  ? const Color(0xFF10B981) // Vibrant Green for LOCAL
-                                  : const Color(0xFF3B82F6), // Vibrant Blue for SERVEUR
+                                  ? const Color(
+                                      0xFF10B981) // Vibrant Green for LOCAL
+                                  : const Color(
+                                      0xFF3B82F6), // Vibrant Blue for SERVEUR
                               borderRadius: BorderRadius.circular(7),
                               boxShadow: [
                                 BoxShadow(
@@ -347,7 +363,9 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                 ),
                                 const SizedBox(width: 3),
                                 Text(
-                                  widget.isDownloaded ? 'LOCAL' : l10n.serverUpper,
+                                  widget.isDownloaded
+                                      ? 'LOCAL'
+                                      : l10n.serverUpper,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 8.5,
@@ -369,12 +387,16 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                     color: Colors.black.withAlpha(160),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.more_vert, size: 14, color: Colors.white),
+                                  child: const Icon(Icons.more_vert,
+                                      size: 14, color: Colors.white),
                                 ),
                                 padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 160),
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                constraints:
+                                    const BoxConstraints(minWidth: 160),
+                                color:
+                                    theme.colorScheme.surfaceContainerHighest,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
                                 onSelected: (value) {
                                   if (value == 'delete') {
                                     _confirmDeleteLocal(context);
@@ -385,11 +407,14 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                     value: 'delete',
                                     child: Row(
                                       children: [
-                                        Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                                        Icon(Icons.delete_outline,
+                                            color: Colors.redAccent, size: 18),
                                         SizedBox(width: 8),
                                         Text(
                                           l10n.deleteLocalCopy,
-                                          style: TextStyle(color: Colors.redAccent, fontSize: 13),
+                                          style: TextStyle(
+                                              color: Colors.redAccent,
+                                              fontSize: 13),
                                         ),
                                       ],
                                     ),
@@ -408,14 +433,16 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                         bottom: 8,
                         left: 8,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: Colors.black.withAlpha(160),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             _formatBytes(widget.file.size),
-                            style: const TextStyle(color: Colors.white, fontSize: 10),
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 10),
                           ),
                         ),
                       ),
@@ -435,7 +462,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                     value: widget.downloadTask!.progress > 0
                                         ? widget.downloadTask!.progress
                                         : null,
-                                    color: widget.downloadTask!.status == DownloadStatus.converting
+                                    color: widget.downloadTask!.status ==
+                                            DownloadStatus.converting
                                         ? const Color(0xFF8B5CF6)
                                         : theme.colorScheme.primary,
                                     strokeWidth: 3,
@@ -449,7 +477,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                                       fontSize: 12,
                                     ),
                                   ),
-                                  if (widget.downloadTask?.etaString != null) ...[
+                                  if (widget.downloadTask?.etaString !=
+                                      null) ...[
                                     const SizedBox(height: 2),
                                     Text(
                                       widget.downloadTask!.etaString!,
@@ -502,7 +531,8 @@ class _RemoteBookCardState extends State<RemoteBookCard> {
                       IconButton(
                         icon: const Icon(Icons.download_rounded, size: 18),
                         padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
                         tooltip: l10n.downloadForOffline,
                         onPressed: widget.onDownload,
                       ),

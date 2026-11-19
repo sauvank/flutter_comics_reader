@@ -575,5 +575,18 @@
   "consoleHintOpen": "Apri",
   "consoleHintBack": "Indietro",
   "consoleHintFilter": "Filtro",
-  "consoleView": "Console"
+  "consoleView": "Console",
+  "consoleQueue": "Coda",
+  "consoleQueueHint": "in ordine di avvio",
+  "consoleReady": "Pronto da leggere",
+  "consoleFailed": "Errore · riprova",
+  "consoleCancelled": "Annullato · riavvia",
+  "consoleChooseServer": "Scegli un server per sfogliarne le cartelle.",
+  "consoleItemsCount": "{count, plural, =1{1 elemento} other{{count} elementi}}",
+  "consoleDownloadMissing": "Scarica i {count} mancanti",
+  "consoleHintOpenDownload": "Apri / scarica",
+  "consoleHintReadRetry": "Leggi / riprova",
+  "consoleAlreadyQueued": "Già nella coda dei download",
+  "consoleNothingYet": "Ancora nessun download",
+  "consoleSwitchPage": "Pagina successiva"
 }

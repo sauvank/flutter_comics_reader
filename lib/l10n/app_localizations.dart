@@ -3558,6 +3558,84 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Console'**
   String get consoleView;
+
+  /// No description provided for @consoleQueue.
+  ///
+  /// In fr, this message translates to:
+  /// **'File d\'attente'**
+  String get consoleQueue;
+
+  /// No description provided for @consoleQueueHint.
+  ///
+  /// In fr, this message translates to:
+  /// **'dans l\'ordre de démarrage'**
+  String get consoleQueueHint;
+
+  /// No description provided for @consoleReady.
+  ///
+  /// In fr, this message translates to:
+  /// **'Prêt à lire'**
+  String get consoleReady;
+
+  /// No description provided for @consoleFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Échec · réessayer'**
+  String get consoleFailed;
+
+  /// No description provided for @consoleCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Annulé · relancer'**
+  String get consoleCancelled;
+
+  /// No description provided for @consoleChooseServer.
+  ///
+  /// In fr, this message translates to:
+  /// **'Choisissez un serveur pour parcourir ses dossiers.'**
+  String get consoleChooseServer;
+
+  /// No description provided for @consoleItemsCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'{count, plural, =1{1 élément} other{{count} éléments}}'**
+  String consoleItemsCount(int count);
+
+  /// No description provided for @consoleDownloadMissing.
+  ///
+  /// In fr, this message translates to:
+  /// **'Télécharger les {count} manquants'**
+  String consoleDownloadMissing(int count);
+
+  /// No description provided for @consoleHintOpenDownload.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir / télécharger'**
+  String get consoleHintOpenDownload;
+
+  /// No description provided for @consoleHintReadRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire / réessayer'**
+  String get consoleHintReadRetry;
+
+  /// No description provided for @consoleAlreadyQueued.
+  ///
+  /// In fr, this message translates to:
+  /// **'Déjà dans la file de téléchargement'**
+  String get consoleAlreadyQueued;
+
+  /// No description provided for @consoleNothingYet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun téléchargement pour l\'instant'**
+  String get consoleNothingYet;
+
+  /// No description provided for @consoleSwitchPage.
+  ///
+  /// In fr, this message translates to:
+  /// **'Page suivante'**
+  String get consoleSwitchPage;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

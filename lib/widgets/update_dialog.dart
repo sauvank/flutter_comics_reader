@@ -77,7 +77,8 @@ class UpdateDialog extends StatelessWidget {
                 constraints: const BoxConstraints(maxHeight: 180),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
+                  color:
+                      theme.colorScheme.surfaceContainerHighest.withAlpha(80),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: theme.colorScheme.outlineVariant.withAlpha(50),
@@ -113,8 +114,10 @@ class UpdateDialog extends StatelessWidget {
                     icon: const Icon(Icons.download_rounded, size: 18),
                     label: Text(l10n.downloadApk),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       final url = info.directDownloadUrl ?? info.releaseUrl;
@@ -126,8 +129,10 @@ class UpdateDialog extends StatelessWidget {
                     icon: const Icon(Icons.shop_two_rounded, size: 18),
                     label: const Text('Google Play'),
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () {
                       UpdateService().launchPlayStore();

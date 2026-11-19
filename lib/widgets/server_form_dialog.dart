@@ -37,7 +37,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     final s = widget.server;
     _nameController = TextEditingController(text: s?.name ?? '');
     _hostController = TextEditingController(text: s?.host ?? '');
-    _portController = TextEditingController(text: s != null ? s.port.toString() : '8080');
+    _portController =
+        TextEditingController(text: s != null ? s.port.toString() : '8080');
     _pathController = TextEditingController(text: s?.path ?? '');
     _userController = TextEditingController(text: s?.username ?? '');
     _passController = TextEditingController(text: s?.password ?? '');
@@ -90,7 +91,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
     if (changed) {
       _hostController.text = input;
       // Move cursor to end
-      _hostController.selection = TextSelection.fromPosition(TextPosition(offset: input.length));
+      _hostController.selection =
+          TextSelection.fromPosition(TextPosition(offset: input.length));
       setState(() {});
     }
   }
@@ -98,14 +100,27 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
   ServerProfile _buildProfile() {
     return ServerProfile(
       id: widget.server?.id ?? const Uuid().v4(),
-      name: _nameController.text.trim().isEmpty ? l10n.serverDefaultName : _nameController.text.trim(),
+      name: _nameController.text.trim().isEmpty
+          ? l10n.serverDefaultName
+          : _nameController.text.trim(),
       host: _hostController.text.trim(),
-      port: int.tryParse(_portController.text.trim()) ?? (_serverType == ServerType.ftp ? 21 : _isHttps ? 443 : 80),
-      path: _pathController.text.trim().isEmpty ? '/' : _pathController.text.trim().replaceAll('\\', '/'),
+      port: int.tryParse(_portController.text.trim()) ??
+          (_serverType == ServerType.ftp
+              ? 21
+              : _isHttps
+                  ? 443
+                  : 80),
+      path: _pathController.text.trim().isEmpty
+          ? '/'
+          : _pathController.text.trim().replaceAll('\\', '/'),
       isHttps: _isHttps,
       serverType: _serverType,
-      username: _userController.text.trim().isEmpty ? null : _userController.text.trim(),
-      password: _passController.text.trim().isEmpty ? null : _passController.text.trim(),
+      username: _userController.text.trim().isEmpty
+          ? null
+          : _userController.text.trim(),
+      password: _passController.text.trim().isEmpty
+          ? null
+          : _passController.text.trim(),
       isActive: widget.server?.isActive ?? true,
     );
   }
@@ -249,18 +264,23 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                         color: theme.colorScheme.primary.withAlpha(30),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(Icons.dns_rounded, color: theme.colorScheme.primary),
+                      child: Icon(Icons.dns_rounded,
+                          color: theme.colorScheme.primary),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        widget.server == null ? l10n.addLocalServer : l10n.editServer,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        widget.server == null
+                            ? l10n.addLocalServer
+                            : l10n.editServer,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                     if (widget.server != null)
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                        icon: const Icon(Icons.delete_outline,
+                            color: Colors.redAccent),
                         tooltip: l10n.deleteThisServer,
                         onPressed: _confirmDelete,
                       ),
@@ -280,7 +300,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     prefixIcon: Icon(Icons.label_outline),
                     hintText: l10n.serverNameHint,
                   ),
-                  validator: (val) => val == null || val.trim().isEmpty ? l10n.enterName : null,
+                  validator: (val) =>
+                      val == null || val.trim().isEmpty ? l10n.enterName : null,
                 ),
                 const SizedBox(height: 14),
 
@@ -295,7 +316,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     ButtonSegment(
                       value: ServerType.ftp,
                       label: Text(l10n.ftpPort21),
-                      icon: Icon(Icons.swap_horizontal_circle_outlined, size: 16),
+                      icon:
+                          Icon(Icons.swap_horizontal_circle_outlined, size: 16),
                     ),
                     ButtonSegment(
                       value: ServerType.httpDirectory,
@@ -307,9 +329,12 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                   onSelectionChanged: (set) {
                     setState(() {
                       _serverType = set.first;
-                      if (_serverType == ServerType.ftp && (_portController.text == '8080' || _portController.text == '80')) {
+                      if (_serverType == ServerType.ftp &&
+                          (_portController.text == '8080' ||
+                              _portController.text == '80')) {
                         _portController.text = '21';
-                      } else if (_serverType == ServerType.webdav && _portController.text == '21') {
+                      } else if (_serverType == ServerType.webdav &&
+                          _portController.text == '21') {
                         _portController.text = '8080';
                       }
                     });
@@ -331,7 +356,9 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                           prefixIcon: Icon(Icons.router_outlined),
                           hintText: l10n.hostHint,
                         ),
-                        validator: (val) => val == null || val.trim().isEmpty ? l10n.hostRequired : null,
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? l10n.hostRequired
+                            : null,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -364,7 +391,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
 
                 // HTTPS switch
                 SwitchListTile(
-                  title: Text(l10n.secureConnectionHttps, style: TextStyle(fontSize: 14)),
+                  title: Text(l10n.secureConnectionHttps,
+                      style: TextStyle(fontSize: 14)),
                   value: _isHttps,
                   onChanged: (val) => setState(() => _isHttps = val),
                   contentPadding: EdgeInsets.zero,
@@ -374,7 +402,10 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                 // Credentials section
                 Text(
                   l10n.authenticationOptional,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey),
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey),
                 ),
                 const SizedBox(height: 10),
                 TextFormField(
@@ -392,8 +423,11 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     labelText: l10n.password,
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      icon: Icon(_obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                 ),
@@ -417,8 +451,11 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                     child: Row(
                       children: [
                         Icon(
-                          _testSuccess == true ? Icons.check_circle : Icons.error_outline,
-                          color: _testSuccess == true ? Colors.green : Colors.red,
+                          _testSuccess == true
+                              ? Icons.check_circle
+                              : Icons.error_outline,
+                          color:
+                              _testSuccess == true ? Colors.green : Colors.red,
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -427,7 +464,9 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                             _testResult!,
                             style: TextStyle(
                               fontSize: 12,
-                              color: _testSuccess == true ? Colors.green.shade200 : Colors.red.shade200,
+                              color: _testSuccess == true
+                                  ? Colors.green.shade200
+                                  : Colors.red.shade200,
                             ),
                           ),
                         ),
@@ -445,13 +484,15 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.sensors, size: 18),
                         label: Text(l10n.test),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),
@@ -463,7 +504,8 @@ class _ServerFormDialogState extends State<ServerFormDialog> {
                         label: Text(l10n.save),
                         style: FilledButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
                     ),

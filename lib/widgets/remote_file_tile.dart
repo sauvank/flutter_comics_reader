@@ -48,21 +48,27 @@ class RemoteFileTile extends StatelessWidget {
           style: TextStyle(
             fontWeight: file.isDirectory ? FontWeight.w600 : FontWeight.normal,
             fontSize: 14,
-            color: file.isDirectory ? theme.colorScheme.onSurface : theme.colorScheme.onSurface,
+            color: file.isDirectory
+                ? theme.colorScheme.onSurface
+                : theme.colorScheme.onSurface,
           ),
         ),
         subtitle: file.isDirectory
-            ? Text(l10n.folder, style: TextStyle(fontSize: 12, color: Colors.grey))
+            ? Text(l10n.folder,
+                style: TextStyle(fontSize: 12, color: Colors.grey))
             : Row(
                 children: [
                   if (file.size > 0) ...[
-                    Text(FormatUtils.formatBytes(file.size), style: const TextStyle(fontSize: 12)),
+                    Text(FormatUtils.formatBytes(file.size),
+                        style: const TextStyle(fontSize: 12)),
                     const SizedBox(width: 8),
                   ],
                   if (file.modified != null)
                     Text(
                       FormatUtils.formatRelativeDate(file.modified!),
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurfaceVariant),
                     ),
                 ],
               ),
@@ -147,7 +153,10 @@ class RemoteFileTile extends StatelessWidget {
             SizedBox(width: 4),
             Text(
               l10n.downloaded,
-              style: TextStyle(color: Colors.green, fontSize: 11, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -166,7 +175,8 @@ class RemoteFileTile extends StatelessWidget {
               percent: downloadTask!.progress.clamp(0.0, 1.0),
               center: Text(
                 '${(downloadTask!.progress * 100).toInt()}%',
-                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
               ),
               progressColor: downloadTask!.status == DownloadStatus.converting
                   ? const Color(0xFF8B5CF6)
@@ -176,7 +186,8 @@ class RemoteFileTile extends StatelessWidget {
             if (onCancelDownload != null) ...[
               const SizedBox(width: 6),
               IconButton(
-                icon: const Icon(Icons.close, size: 18, color: Colors.redAccent),
+                icon:
+                    const Icon(Icons.close, size: 18, color: Colors.redAccent),
                 onPressed: onCancelDownload,
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

@@ -115,8 +115,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
       setState(() => _ready = true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              l10n.bookSyncUnavailable(error)),
+          content: Text(l10n.bookSyncUnavailable(error)),
         ),
       );
     } finally {

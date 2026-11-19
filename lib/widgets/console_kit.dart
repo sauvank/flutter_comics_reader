@@ -290,13 +290,10 @@ class ConsoleTile extends StatelessWidget {
 
 class ConsoleCover extends StatelessWidget {
   const ConsoleCover(
-      {super.key,
-      required this.path,
-      required this.title,
-      required this.number});
+      {super.key, required this.path, required this.title, this.number});
   final String? path;
   final String title;
-  final int number;
+  final int? number;
 
   @override
   Widget build(BuildContext context) {
@@ -343,16 +340,17 @@ class ConsoleCover extends StatelessWidget {
                       fontSize: w * .09,
                       height: 1.05)),
             ),
-            Positioned(
-              right: pad,
-              bottom: pad,
-              child: Text(number.toString().padLeft(2, '0'),
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: w * .2,
-                      height: 1)),
-            ),
+            if (number != null)
+              Positioned(
+                right: pad,
+                bottom: pad,
+                child: Text(number.toString().padLeft(2, '0'),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: w * .2,
+                        height: 1)),
+              ),
           ],
         );
       }),

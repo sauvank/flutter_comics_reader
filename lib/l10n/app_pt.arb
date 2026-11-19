@@ -575,5 +575,18 @@
   "consoleHintOpen": "Abrir",
   "consoleHintBack": "Voltar",
   "consoleHintFilter": "Filtro",
-  "consoleView": "Console"
+  "consoleView": "Console",
+  "consoleQueue": "Fila",
+  "consoleQueueHint": "pela ordem de início",
+  "consoleReady": "Pronto a ler",
+  "consoleFailed": "Falha · repetir",
+  "consoleCancelled": "Cancelado · reiniciar",
+  "consoleChooseServer": "Escolha um servidor para explorar as pastas.",
+  "consoleItemsCount": "{count, plural, =1{1 item} other{{count} itens}}",
+  "consoleDownloadMissing": "Transferir os {count} em falta",
+  "consoleHintOpenDownload": "Abrir / transferir",
+  "consoleHintReadRetry": "Ler / repetir",
+  "consoleAlreadyQueued": "Já está na fila de transferências",
+  "consoleNothingYet": "Ainda sem transferências",
+  "consoleSwitchPage": "Página seguinte"
 }

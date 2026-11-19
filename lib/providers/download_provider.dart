@@ -58,6 +58,15 @@ class DownloadProvider extends ChangeNotifier {
     return [...running, ...waiting];
   }
 
+  /// Test hook: replaces the task list (newest first, like [_tasks]).
+  @visibleForTesting
+  void debugSetTasks(List<DownloadTask> tasks) {
+    _tasks
+      ..clear()
+      ..addAll(tasks);
+    notifyListeners();
+  }
+
   DownloadTask? getTask(String taskId) {
     try {
       return _tasks.firstWhere((t) => t.id == taskId);

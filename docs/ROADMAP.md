@@ -167,6 +167,7 @@ gantt
 - [ ] Glisser-déposer de fichiers sur la fenêtre ; sommaire latéral des Réglages ; double page pour les PDF.
 - [x] Connexion Google sur PC (flux OAuth navigateur, v2.0.62) — reste à confirmer sur un vrai Windows.
 - [x] Vue « Console » de la bibliothèque (rangées de séries et de tomes, clavier/souris).
+- [x] Pages Serveurs et Téléchargements en style Console (PC).
 - [ ] Vue Console : manette (XInput), pastille « ☁ N tomes sur le serveur », bouton « Télécharger les manquants », mémoriser le mode choisi.
 
 ## Prochaine étape — qualité de production

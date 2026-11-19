@@ -42,19 +42,38 @@ class ServerProvider extends ChangeNotifier {
     if (_currentPath.isEmpty || _currentPath == rootPath) return false;
     final cleanCurrent = _currentPath.replaceAll(RegExp(r'/+$'), '');
     final cleanRoot = rootPath.replaceAll(RegExp(r'/+$'), '');
-    return cleanCurrent != cleanRoot && cleanCurrent.isNotEmpty && cleanCurrent != '/';
+    return cleanCurrent != cleanRoot &&
+        cleanCurrent.isNotEmpty &&
+        cleanCurrent != '/';
   }
 
   List<String> get breadcrumbs {
     if (_currentPath.isEmpty || _currentPath == rootPath) return [];
 
     if (_currentPath.startsWith(rootPath) && rootPath != '/') {
-      final relative = _currentPath.substring(rootPath.length).replaceAll(RegExp(r'^/+'), '');
+      final relative = _currentPath
+          .substring(rootPath.length)
+          .replaceAll(RegExp(r'^/+'), '');
       if (relative.isEmpty) return [];
       return relative.split('/').where((s) => s.isNotEmpty).toList();
     }
 
     return _currentPath.split('/').where((s) => s.isNotEmpty).toList();
+  }
+
+  /// Test hook: shows [servers] with [active] open on [files].
+  @visibleForTesting
+  void debugShow({
+    required List<ServerProfile> servers,
+    ServerProfile? active,
+    List<RemoteFile> files = const [],
+  }) {
+    _servers = servers;
+    _activeServer = active;
+    _isBrowsing = active != null;
+    _currentPath = active?.path ?? '';
+    _remoteFiles = files;
+    notifyListeners();
   }
 
   Future<void> loadServers() async {
@@ -173,7 +192,8 @@ class ServerProvider extends ChangeNotifier {
       return await _webdav.testConnection(server);
     } else {
       try {
-        final list = await _http.listDirectory(server: server, remoteRelativePath: '');
+        final list =
+            await _http.listDirectory(server: server, remoteRelativePath: '');
         return list.isNotEmpty;
       } catch (_) {
         return false;
@@ -181,7 +201,8 @@ class ServerProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> verifyPathExists(ServerProfile server, [String? targetPath]) async {
+  Future<bool> verifyPathExists(ServerProfile server,
+      [String? targetPath]) async {
     if (server.serverType == ServerType.ftp) {
       return await _ftp.testPathExists(server, targetPath ?? server.path);
     }
@@ -212,7 +233,9 @@ class ServerProvider extends ChangeNotifier {
   }
 
   Future<void> navigateTo(String path) async {
-    if (!path.startsWith('/') && rootPath != '/' && !path.startsWith(rootPath)) {
+    if (!path.startsWith('/') &&
+        rootPath != '/' &&
+        !path.startsWith(rootPath)) {
       final base = rootPath.endsWith('/') ? rootPath : '$rootPath/';
       _currentPath = '$base$path';
     } else {
@@ -234,7 +257,8 @@ class ServerProvider extends ChangeNotifier {
       final base = rootPath.endsWith('/') ? rootPath : '$rootPath/';
       await navigateTo('$base$sub');
     } else {
-      final segments = _currentPath.split('/').where((s) => s.isNotEmpty).toList();
+      final segments =
+          _currentPath.split('/').where((s) => s.isNotEmpty).toList();
       final target = '/${segments.sublist(0, index + 1).join('/')}';
       await navigateTo(target);
     }

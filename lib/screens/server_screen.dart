@@ -14,6 +14,8 @@ import '../widgets/server_form_dialog.dart';
 import '../widgets/server_setup_guide.dart';
 import '../l10n/l10n.dart';
 import '../utils/desktop_layout.dart';
+import '../widgets/console_servers_view.dart';
+import 'synced_reader_screen.dart';
 
 class ServerScreen extends StatefulWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -325,6 +327,21 @@ class _ServerScreenState extends State<ServerScreen> {
     final theme = Theme.of(context);
     final serverProvider = context.watch<ServerProvider>();
 
+    // PC: console page with servers, folder content and actions together.
+    if (DesktopLayout.isWide(context) && serverProvider.servers.isNotEmpty) {
+      return Scaffold(
+        appBar: _buildServersAppBar(serverProvider.servers, theme),
+        body: ConsoleServersView(
+          onAddServer: _openAddServerDialog,
+          onEditServer: _openEditServerDialog,
+          onTestServer: _testServerConnection,
+          onDeleteServer: _confirmDeleteServer,
+          onOpenBook: (book) => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => buildSyncedReaderScreen(book))),
+        ),
+      );
+    }
+
     if (!serverProvider.isBrowsing || serverProvider.activeServer == null) {
       return _buildServersList(context, serverProvider, theme);
     }
@@ -333,197 +350,116 @@ class _ServerScreenState extends State<ServerScreen> {
         context, serverProvider, serverProvider.activeServer!, theme);
   }
 
+  PreferredSizeWidget _buildServersAppBar(
+      List<ServerProfile> servers, ThemeData theme) {
+    return AppBar(
+      title: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withAlpha(40),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.dns_rounded,
+                color: theme.colorScheme.primary, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Text(l10n.myServers),
+          if (servers.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withAlpha(30),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${servers.length}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline_rounded),
+          tooltip: l10n.addServer,
+          onPressed: _openAddServerDialog,
+        ),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert_rounded),
+          tooltip: l10n.options,
+          onSelected: (value) {
+            if (value == 'guide') {
+              _openSetupGuide();
+            } else if (value == 'export') {
+              _exportServersDialog();
+            } else if (value == 'import') {
+              _importServersDialog();
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem(
+              value: 'guide',
+              child: Row(
+                children: [
+                  Icon(Icons.help_outline_rounded, size: 20),
+                  SizedBox(width: 10),
+                  Text(l10n.howToSetupServer),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'export',
+              child: Row(
+                children: [
+                  Icon(Icons.file_upload_outlined, size: 20),
+                  SizedBox(width: 10),
+                  Text(l10n.exportConfigurations),
+                ],
+              ),
+            ),
+            PopupMenuItem(
+              value: 'import',
+              child: Row(
+                children: [
+                  Icon(Icons.file_download_outlined, size: 20),
+                  SizedBox(width: 10),
+                  Text(l10n.importConfiguration),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildServersList(
       BuildContext context, ServerProvider serverProvider, ThemeData theme) {
     final servers = serverProvider.servers;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withAlpha(40),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.dns_rounded,
-                  color: theme.colorScheme.primary, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Text(l10n.myServers),
-            if (servers.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${servers.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            tooltip: l10n.addServer,
-            onPressed: _openAddServerDialog,
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded),
-            tooltip: l10n.options,
-            onSelected: (value) {
-              if (value == 'guide') {
-                _openSetupGuide();
-              } else if (value == 'export') {
-                _exportServersDialog();
-              } else if (value == 'import') {
-                _importServersDialog();
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'guide',
-                child: Row(
-                  children: [
-                    Icon(Icons.help_outline_rounded, size: 20),
-                    SizedBox(width: 10),
-                    Text(l10n.howToSetupServer),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_upload_outlined, size: 20),
-                    SizedBox(width: 10),
-                    Text(l10n.exportConfigurations),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'import',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_download_outlined, size: 20),
-                    SizedBox(width: 10),
-                    Text(l10n.importConfiguration),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+      appBar: _buildServersAppBar(servers, theme),
       body: servers.isEmpty
           ? ServerSetupGuide(
               onAddServer: _openAddServerDialog,
               onImportConfiguration: _importServersDialog,
             )
-          : DesktopLayout.isWide(context)
-              ? _buildDesktopServers(servers, serverProvider, theme)
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: servers.length,
-                  itemBuilder: (context, index) {
-                    final server = servers[index];
-                    return _buildServerCard(
-                        context, server, serverProvider, theme);
-                  },
-                ),
-    );
-  }
-
-  /// Large windows: servers on the left, a compact setup guide on the right.
-  Widget _buildDesktopServers(List<ServerProfile> servers,
-      ServerProvider serverProvider, ThemeData theme) {
-    final scheme = theme.colorScheme;
-    final steps = [
-      l10n.guideStep1Title,
-      l10n.guideStep2Title,
-      l10n.guideStep3Title,
-      l10n.guideStep4Title,
-    ];
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-          horizontal: DesktopLayout.contentPadding - 16, vertical: 16),
-      child: DesktopContent(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Column(
-                children: [
-                  for (final server in servers)
-                    _buildServerCard(context, server, serverProvider, theme),
-                ],
-              ),
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              itemCount: servers.length,
+              itemBuilder: (context, index) {
+                final server = servers[index];
+                return _buildServerCard(context, server, serverProvider, theme);
+              },
             ),
-            const SizedBox(width: 24),
-            SizedBox(
-              width: 340,
-              child: Container(
-                margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: scheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: scheme.outlineVariant),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.guideHeroTitle,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 14),
-                    for (var i = 0; i < steps.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CircleAvatar(
-                              radius: 11,
-                              backgroundColor: scheme.primary,
-                              child: Text('${i + 1}',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: scheme.onPrimary)),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(steps[i],
-                                  style: theme.textTheme.bodyMedium),
-                            ),
-                          ],
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    TextButton.icon(
-                      onPressed: _openSetupGuide,
-                      icon: const Icon(Icons.help_outline_rounded, size: 18),
-                      label: Text(l10n.howToSetupServer),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

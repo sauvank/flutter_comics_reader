@@ -2013,4 +2013,53 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get consoleView => 'Console';
+
+  @override
+  String get consoleQueue => 'Fila';
+
+  @override
+  String get consoleQueueHint => 'pela ordem de início';
+
+  @override
+  String get consoleReady => 'Pronto a ler';
+
+  @override
+  String get consoleFailed => 'Falha · repetir';
+
+  @override
+  String get consoleCancelled => 'Cancelado · reiniciar';
+
+  @override
+  String get consoleChooseServer => 'Escolha um servidor para explorar as pastas.';
+
+  @override
+  String consoleItemsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count itens',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String consoleDownloadMissing(int count) {
+    return 'Transferir os $count em falta';
+  }
+
+  @override
+  String get consoleHintOpenDownload => 'Abrir / transferir';
+
+  @override
+  String get consoleHintReadRetry => 'Ler / repetir';
+
+  @override
+  String get consoleAlreadyQueued => 'Já está na fila de transferências';
+
+  @override
+  String get consoleNothingYet => 'Ainda sem transferências';
+
+  @override
+  String get consoleSwitchPage => 'Página seguinte';
 }

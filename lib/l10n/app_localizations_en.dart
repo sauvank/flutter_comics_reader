@@ -2013,4 +2013,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get consoleView => 'Console';
+
+  @override
+  String get consoleQueue => 'Queue';
+
+  @override
+  String get consoleQueueHint => 'in start order';
+
+  @override
+  String get consoleReady => 'Ready to read';
+
+  @override
+  String get consoleFailed => 'Failed · retry';
+
+  @override
+  String get consoleCancelled => 'Cancelled · restart';
+
+  @override
+  String get consoleChooseServer => 'Choose a server to browse its folders.';
+
+  @override
+  String consoleItemsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count items',
+      one: '1 item',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String consoleDownloadMissing(int count) {
+    return 'Download the $count missing';
+  }
+
+  @override
+  String get consoleHintOpenDownload => 'Open / download';
+
+  @override
+  String get consoleHintReadRetry => 'Read / retry';
+
+  @override
+  String get consoleAlreadyQueued => 'Already in the download queue';
+
+  @override
+  String get consoleNothingYet => 'No downloads yet';
+
+  @override
+  String get consoleSwitchPage => 'Next page';
 }
