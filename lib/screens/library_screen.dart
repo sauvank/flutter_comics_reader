@@ -1265,17 +1265,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-                child: Row(
+                // Wrap: on a narrow phone the button moves under the title
+                // instead of overflowing.
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    const Icon(Icons.cloud_download_rounded,
-                        size: 18, color: Color(0xFFF59E0B)),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.serverVolumesCount(undownloadedRemote.length),
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.cloud_download_rounded,
+                            size: 18, color: Color(0xFFF59E0B)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            l10n.serverVolumesCount(undownloadedRemote.length),
+                            style: const TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
                     ),
-                    const Spacer(),
                     if (undownloadedRemote.length > 1)
                       FilledButton.icon(
                         icon: const Icon(Icons.download_rounded, size: 18),
