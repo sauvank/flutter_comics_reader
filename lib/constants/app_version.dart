@@ -1,6 +1,6 @@
 class AppVersion {
-  static const String version = '2.0.64';
-  static const int buildNumber = 119;
+  static const String version = '2.0.65';
+  static const int buildNumber = 120;
   static const String fullVersion = 'v$version';
   static const String githubRepo = 'sauvank/flutter_comics_reader';
   static const String githubReleasesUrl = 'https://github.com/$githubRepo/releases';
