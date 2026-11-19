@@ -50,9 +50,17 @@ les clés `FIREBASE_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_PROJECT_ID`,
   Sans secret, l'app se compile mais le compte reste désactivé sur Windows.
 - Compilation locale : `flutter build windows --dart-define-from-file=firebase_desktop.json`
   (fichier ignoré par Git).
-- La connexion Google n'existe pas sur ordinateur (`google_sign_in` n'a pas
-  d'implémentation Windows/Linux) : le bouton est masqué, la connexion se fait
-  par e-mail et mot de passe.
+- Connexion Google sur Windows : `google_sign_in` n'a pas d'implémentation
+  Windows, l'app passe donc par le navigateur
+  (`lib/services/sync/desktop_google_sign_in.dart`, flux OAuth « application
+  installée » avec redirection sur `127.0.0.1` et PKCE). Il faut un client OAuth
+  de type **Application de bureau** dans le projet Google Cloud du projet
+  Firebase (Google Cloud Console › API et services › Identifiants). Ajouter
+  `GOOGLE_DESKTOP_CLIENT_ID` et `GOOGLE_DESKTOP_CLIENT_SECRET` au JSON
+  `firebase_desktop.json` et au secret `FIREBASE_DESKTOP_CONFIG`. Sans ces
+  clés, le bouton Google reste masqué et la connexion se fait par e-mail.
+  Google indique que le secret d'un client de bureau ne peut pas rester
+  confidentiel ; la protection repose sur PKCE.
 - Linux n'est pas pris en charge par les SDK Firebase : le compte y reste
   désactivé.
 

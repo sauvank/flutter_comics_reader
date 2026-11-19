@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import 'desktop_google_sign_in.dart';
+
 /// Firebase is optional until the maintainer links a Firebase project.
 /// The reader must remain fully usable locally in the meantime.
 class FirebaseBootstrap {
@@ -16,8 +18,12 @@ class FirebaseBootstrap {
           defaultTargetPlatform == TargetPlatform.linux ||
           defaultTargetPlatform == TargetPlatform.macOS);
 
-  /// Google Sign-In only has mobile and web implementations.
-  static bool get supportsGoogleSignIn => !_isDesktop;
+  /// Mobile and web use `google_sign_in`; Windows uses the browser flow of
+  /// [DesktopGoogleSignIn] when the build carries its OAuth client.
+  static bool get supportsGoogleSignIn =>
+      !_isDesktop ||
+      (defaultTargetPlatform == TargetPlatform.windows &&
+          DesktopGoogleSignIn.isConfigured);
 
   /// Desktop has no google-services.json: the Firebase web-app configuration
   /// is passed at build time with `--dart-define-from-file` (see

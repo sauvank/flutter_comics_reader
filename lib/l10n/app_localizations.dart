@@ -3474,6 +3474,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Langue du système'**
   String get systemLanguage;
+
+  /// No description provided for @googleBrowserDone.
+  ///
+  /// In fr, this message translates to:
+  /// **'Connexion réussie. Vous pouvez fermer cet onglet et revenir dans ComicStream.'**
+  String get googleBrowserDone;
+
+  /// No description provided for @googleBrowserFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'La connexion Google a échoué. Fermez cet onglet et réessayez depuis ComicStream.'**
+  String get googleBrowserFailed;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -9,6 +9,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'desktop_google_sign_in.dart';
 import '../../models/book_item.dart';
 import '../../models/server_profile.dart';
 import '../database_service.dart';
@@ -105,6 +106,18 @@ class SyncService {
   }
 
   Future<UserCredential> signInWithGoogle() async {
+    if (!kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.windows &&
+        DesktopGoogleSignIn.isConfigured) {
+      final tokens = await DesktopGoogleSignIn.signIn(
+        successHtml: _browserPage(l10n.googleBrowserDone),
+        errorHtml: _browserPage(l10n.googleBrowserFailed),
+      );
+      return _auth.signInWithCredential(GoogleAuthProvider.credential(
+        idToken: tokens.idToken,
+        accessToken: tokens.accessToken,
+      ));
+    }
     await FirebaseBootstrap.ensureGoogleSignInInitialized();
     if (_googleSignIn.supportsAuthenticate()) {
       final account = await _googleSignIn.authenticate();
@@ -119,8 +132,18 @@ class SyncService {
     }
 
     if (kIsWeb) return _auth.signInWithPopup(GoogleAuthProvider());
-    throw UnsupportedError(
-        l10n.googleSignInUnavailable);
+    throw UnsupportedError(l10n.googleSignInUnavailable);
+  }
+
+  /// Page shown in the browser tab once Google redirects back to the app.
+  static String _browserPage(String message) {
+    final text = const HtmlEscape().convert(message);
+    return '<!doctype html><html><head><meta charset="utf-8">'
+        '<title>ComicStream</title></head>'
+        '<body style="margin:0;height:100vh;display:grid;place-items:center;'
+        'background:#03042A;color:#ECEBFF;font:16px system-ui,sans-serif">'
+        '<p style="max-width:28em;text-align:center;padding:0 16px">$text</p>'
+        '</body></html>';
   }
 
   Future<void> sendPasswordReset(String email) =>
@@ -146,8 +169,7 @@ class SyncService {
   /// recovery phrase; the phrase is not persisted on this device.
   Future<void> createVault(String recoveryPhrase) async {
     if (recoveryPhrase.trim().length < 16) {
-      throw ArgumentError(
-          l10n.recoveryPhraseTooShort);
+      throw ArgumentError(l10n.recoveryPhraseTooShort);
     }
     final currentUser = user;
     if (currentUser == null) throw StateError(l10n.signInRequired);
@@ -189,15 +211,13 @@ class SyncService {
   /// The vault must already be unlocked on this device.
   Future<void> updateRecoveryPhrase(String newRecoveryPhrase) async {
     if (newRecoveryPhrase.trim().length < 16) {
-      throw ArgumentError(
-          l10n.recoveryPhraseTooShort);
+      throw ArgumentError(l10n.recoveryPhraseTooShort);
     }
     final currentUser = user;
     if (currentUser == null) throw StateError(l10n.signInRequired);
     final master = await _vault.readLocalKey();
     if (master == null) {
-      throw StateError(
-          l10n.vaultMustBeUnlocked);
+      throw StateError(l10n.vaultMustBeUnlocked);
     }
     final salt = await _vault.generateNewRecoverySalt();
     final recovery = await _vault.recoveryKey(newRecoveryPhrase, salt: salt);

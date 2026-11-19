@@ -8,6 +8,7 @@ import '../../providers/library_provider.dart';
 import '../../providers/server_provider.dart';
 import '../../providers/sync_provider.dart';
 import '../../services/sync/sync_service.dart';
+import '../../services/sync/desktop_google_sign_in.dart';
 import '../../services/sync/firebase_bootstrap.dart';
 import '../../services/sync/sync_models.dart';
 import '../../services/android_signing_certificate_service.dart';
@@ -334,6 +335,7 @@ class _AccountScreenState extends State<AccountScreen> {
           error.code == 'web-context-canceled') {
         return;
       }
+      if (error is DesktopGoogleSignInCanceled) return;
       var message = l10n.cannotContinue(error);
       if (error.toString().contains('invalid-cert-hash')) {
         final hashes = await AndroidSigningCertificateService.currentSha1();
@@ -975,8 +977,8 @@ class _AccountScreenState extends State<AccountScreen> {
                       ? l10n.alreadyHaveAccount
                       : l10n.createAccount),
                 ),
-                // google_sign_in has no Windows/Linux implementation: desktop
-                // users sign in with email and password.
+                // Windows signs in through the browser when the build has a
+                // desktop OAuth client; Linux keeps email and password only.
                 if (FirebaseBootstrap.supportsGoogleSignIn) ...[
                   const Divider(height: 32),
                   OutlinedButton.icon(

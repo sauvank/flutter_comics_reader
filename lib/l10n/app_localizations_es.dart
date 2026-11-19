@@ -1967,4 +1967,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get systemLanguage => 'Idioma del sistema';
+
+  @override
+  String get googleBrowserDone => 'Sesión iniciada. Puede cerrar esta pestaña y volver a ComicStream.';
+
+  @override
+  String get googleBrowserFailed => 'Error al iniciar sesión con Google. Cierre esta pestaña y vuelva a intentarlo desde ComicStream.';
 }

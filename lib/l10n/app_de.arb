@@ -561,5 +561,7 @@
   "deleteSelectedBody": "Die Dateien werden von diesem Gerät gelöscht. Dateien auf deinen Servern bleiben erhalten.",
   "librarySelectionCount": "{count, plural, =1{1 ausgewählt} other{{count} ausgewählt}}",
   "languageTitle": "Sprache",
-  "systemLanguage": "Systemsprache"
+  "systemLanguage": "Systemsprache",
+  "googleBrowserDone": "Anmeldung erfolgreich. Sie können diesen Tab schließen und zu ComicStream zurückkehren.",
+  "googleBrowserFailed": "Die Google-Anmeldung ist fehlgeschlagen. Schließen Sie diesen Tab und versuchen Sie es in ComicStream erneut."
 }

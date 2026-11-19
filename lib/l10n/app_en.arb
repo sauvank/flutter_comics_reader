@@ -561,5 +561,7 @@
   "deleteSelectedBody": "The files will be removed from this device. Files on your servers are not affected.",
   "librarySelectionCount": "{count, plural, =1{1 selected} other{{count} selected}}",
   "languageTitle": "Language",
-  "systemLanguage": "System language"
+  "systemLanguage": "System language",
+  "googleBrowserDone": "Signed in. You can close this tab and return to ComicStream.",
+  "googleBrowserFailed": "Google sign-in failed. Close this tab and try again from ComicStream."
 }

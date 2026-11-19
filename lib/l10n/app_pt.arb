@@ -561,5 +561,7 @@
   "deleteSelectedBody": "Os arquivos serão removidos deste dispositivo. Os dos seus servidores não são afetados.",
   "librarySelectionCount": "{count, plural, =1{1 selecionado} other{{count} selecionados}}",
   "languageTitle": "Idioma",
-  "systemLanguage": "Idioma do sistema"
+  "systemLanguage": "Idioma do sistema",
+  "googleBrowserDone": "Sessão iniciada. Pode fechar este separador e voltar ao ComicStream.",
+  "googleBrowserFailed": "O início de sessão com o Google falhou. Feche este separador e tente novamente no ComicStream."
 }

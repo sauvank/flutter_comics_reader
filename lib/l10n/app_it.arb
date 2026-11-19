@@ -561,5 +561,7 @@
   "deleteSelectedBody": "I file verranno eliminati da questo dispositivo. Quelli sui tuoi server restano intatti.",
   "librarySelectionCount": "{count, plural, =1{1 selezionato} other{{count} selezionati}}",
   "languageTitle": "Lingua",
-  "systemLanguage": "Lingua di sistema"
+  "systemLanguage": "Lingua di sistema",
+  "googleBrowserDone": "Accesso effettuato. Puoi chiudere questa scheda e tornare a ComicStream.",
+  "googleBrowserFailed": "Accesso con Google non riuscito. Chiudi questa scheda e riprova da ComicStream."
 }

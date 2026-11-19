@@ -202,7 +202,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
 * Play Store : la CI publie sur la piste interne. Passage en production : workflow `promote_playstore.yml` (`gh workflow run promote_playstore.yml -f version_code=<n>`), qui reprend la version de la piste interne sans recompiler ; il utilise l’environnement GitHub `production` (clé Play). v2.0.61 (116) promue le 19/11/2026.
 
 ### 🔐 Compte sur Windows
-* Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google masquée sur PC.
+* Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google sur Windows par le navigateur (`desktop_google_sign_in.dart`), active seulement si le build contient `GOOGLE_DESKTOP_CLIENT_ID` (voir `docs/FIREBASE_SETUP.md`).
 
 ### 🪟 Ouverture d'un fichier depuis Windows
 * Lecteur par défaut / « Ouvrir avec » : `main(args)` lit le chemin transmis par Windows, `LaunchFileService` (`lib/services/launch_file_service.dart`) retrouve le livre par empreinte SHA-256 ou l'importe, puis ouvre le lecteur.

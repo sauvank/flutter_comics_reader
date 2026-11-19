@@ -1967,4 +1967,10 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get systemLanguage => 'Systemsprache';
+
+  @override
+  String get googleBrowserDone => 'Anmeldung erfolgreich. Sie können diesen Tab schließen und zu ComicStream zurückkehren.';
+
+  @override
+  String get googleBrowserFailed => 'Die Google-Anmeldung ist fehlgeschlagen. Schließen Sie diesen Tab und versuchen Sie es in ComicStream erneut.';
 }
