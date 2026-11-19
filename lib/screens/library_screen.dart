@@ -14,6 +14,7 @@ import '../providers/sync_provider.dart';
 import '../services/sync/sync_models.dart';
 import '../utils/format_utils.dart';
 import '../widgets/book_card.dart';
+import '../widgets/console_library_view.dart';
 import '../widgets/instant_read_modal.dart';
 import '../widgets/remote_book_card.dart';
 import '../widgets/series_card.dart';
@@ -24,6 +25,9 @@ import '../utils/desktop_layout.dart';
 enum LibraryViewMode {
   series,
   allBooks,
+
+  /// Large windows only: series and volumes rows driven by keyboard or mouse.
+  console,
 }
 
 class LibraryScreen extends StatefulWidget {
@@ -38,7 +42,10 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
-  LibraryViewMode _viewMode = LibraryViewMode.series;
+  LibraryViewMode _viewMode =
+      Platform.isWindows || Platform.isLinux || Platform.isMacOS
+          ? LibraryViewMode.console
+          : LibraryViewMode.series;
   SeriesItem? _selectedSeries;
 
   /// Selected book ids (long press, or Ctrl + click on PC).
@@ -490,47 +497,72 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     _buildSortMenu(library),
                   ],
                 ),
-          body: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                    maxWidth: wide
-                        ? DesktopLayout.contentMaxWidth +
-                            2 * (DesktopLayout.contentPadding - 16)
-                        : 1350),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: wide ? DesktopLayout.contentPadding - 16 : 0),
-                  child: Column(
-                    children: [
-                      if (wide)
-                        _buildDesktopHeader(
-                            library, allSeries, books, theme, sync),
-                      if (library.books.isNotEmpty && !wide)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                          child: _buildViewModeToggle(allSeries, books),
-                        ),
-                      if (!wide)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-                          child: _buildSearchField(library, theme),
-                        ),
-                      Expanded(
-                        child: _viewMode == LibraryViewMode.series
-                            ? _buildSeriesListView(
-                                context, library, allSeries, theme)
-                            : _buildFlatBooksListView(
-                                context, library, books, theme),
+          body: wide &&
+                  _viewMode == LibraryViewMode.console &&
+                  library.books.isNotEmpty &&
+                  !_isSearching
+              ? Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: _buildDesktopHeader(
+                          library, allSeries, books, theme, sync),
+                    ),
+                    Expanded(
+                      child: ConsoleLibraryView(
+                        series: allSeries,
+                        filter: library.filter,
+                        onFilter: library.setFilter,
+                        onOpenBook: _openReader,
+                        onOpenSeries: _onSelectSeries,
                       ),
-                    ],
+                    ),
+                  ],
+                )
+              : GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                          maxWidth: wide
+                              ? DesktopLayout.contentMaxWidth +
+                                  2 * (DesktopLayout.contentPadding - 16)
+                              : 1350),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal:
+                                wide ? DesktopLayout.contentPadding - 16 : 0),
+                        child: Column(
+                          children: [
+                            if (wide)
+                              _buildDesktopHeader(
+                                  library, allSeries, books, theme, sync),
+                            if (library.books.isNotEmpty && !wide)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                child: _buildViewModeToggle(allSeries, books),
+                              ),
+                            if (!wide)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                                child: _buildSearchField(library, theme),
+                              ),
+                            Expanded(
+                              child: _viewMode != LibraryViewMode.allBooks
+                                  ? _buildSeriesListView(
+                                      context, library, allSeries, theme)
+                                  : _buildFlatBooksListView(
+                                      context, library, books, theme),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ),
         ),
       ),
     );
@@ -576,8 +608,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
           icon: const Icon(Icons.auto_stories_rounded, size: 16),
           label: Text(l10n.volumesCount(books.length)),
         ),
+        if (DesktopLayout.isWide(context))
+          ButtonSegment(
+            value: LibraryViewMode.console,
+            icon: const Icon(Icons.view_carousel_rounded, size: 16),
+            label: Text(l10n.consoleView),
+          ),
       ],
-      selected: {_viewMode},
+      selected: {
+        _viewMode == LibraryViewMode.console && !DesktopLayout.isWide(context)
+            ? LibraryViewMode.series
+            : _viewMode
+      },
       onSelectionChanged: (set) {
         setState(() {
           _viewMode = set.first;

@@ -1973,4 +1973,44 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get googleBrowserFailed => 'Die Google-Anmeldung ist fehlgeschlagen. Schließen Sie diesen Tab und versuchen Sie es in ComicStream erneut.';
+
+  @override
+  String get readAgain => 'Erneut lesen';
+
+  @override
+  String resumeVolumeNumber(int number) {
+    return 'Band $number fortsetzen';
+  }
+
+  @override
+  String readVolumeNumber(int number) {
+    return 'Band $number lesen';
+  }
+
+  @override
+  String get startReading => 'Lesen beginnen';
+
+  @override
+  String get seeVolumes => 'Bände ansehen';
+
+  @override
+  String get openSeriesSheet => 'Serienseite';
+
+  @override
+  String get consoleEmpty => 'Keine Serie in diesem Filter';
+
+  @override
+  String get consoleHintMove => 'Bewegen';
+
+  @override
+  String get consoleHintOpen => 'Öffnen';
+
+  @override
+  String get consoleHintBack => 'Zurück';
+
+  @override
+  String get consoleHintFilter => 'Filter';
+
+  @override
+  String get consoleView => 'Konsole';
 }

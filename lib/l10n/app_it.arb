@@ -563,5 +563,17 @@
   "languageTitle": "Lingua",
   "systemLanguage": "Lingua di sistema",
   "googleBrowserDone": "Accesso effettuato. Puoi chiudere questa scheda e tornare a ComicStream.",
-  "googleBrowserFailed": "Accesso con Google non riuscito. Chiudi questa scheda e riprova da ComicStream."
+  "googleBrowserFailed": "Accesso con Google non riuscito. Chiudi questa scheda e riprova da ComicStream.",
+  "readAgain": "Rileggi",
+  "resumeVolumeNumber": "Riprendi il volume {number}",
+  "readVolumeNumber": "Leggi il volume {number}",
+  "startReading": "Inizia",
+  "seeVolumes": "Vedi i volumi",
+  "openSeriesSheet": "Scheda della serie",
+  "consoleEmpty": "Nessuna serie in questo filtro",
+  "consoleHintMove": "Muoviti",
+  "consoleHintOpen": "Apri",
+  "consoleHintBack": "Indietro",
+  "consoleHintFilter": "Filtro",
+  "consoleView": "Console"
 }

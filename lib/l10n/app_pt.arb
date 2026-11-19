@@ -563,5 +563,17 @@
   "languageTitle": "Idioma",
   "systemLanguage": "Idioma do sistema",
   "googleBrowserDone": "Sessão iniciada. Pode fechar este separador e voltar ao ComicStream.",
-  "googleBrowserFailed": "O início de sessão com o Google falhou. Feche este separador e tente novamente no ComicStream."
+  "googleBrowserFailed": "O início de sessão com o Google falhou. Feche este separador e tente novamente no ComicStream.",
+  "readAgain": "Ler novamente",
+  "resumeVolumeNumber": "Continuar o volume {number}",
+  "readVolumeNumber": "Ler o volume {number}",
+  "startReading": "Começar",
+  "seeVolumes": "Ver volumes",
+  "openSeriesSheet": "Página da série",
+  "consoleEmpty": "Nenhuma série neste filtro",
+  "consoleHintMove": "Mover",
+  "consoleHintOpen": "Abrir",
+  "consoleHintBack": "Voltar",
+  "consoleHintFilter": "Filtro",
+  "consoleView": "Console"
 }

@@ -563,5 +563,17 @@
   "languageTitle": "Sprache",
   "systemLanguage": "Systemsprache",
   "googleBrowserDone": "Anmeldung erfolgreich. Sie können diesen Tab schließen und zu ComicStream zurückkehren.",
-  "googleBrowserFailed": "Die Google-Anmeldung ist fehlgeschlagen. Schließen Sie diesen Tab und versuchen Sie es in ComicStream erneut."
+  "googleBrowserFailed": "Die Google-Anmeldung ist fehlgeschlagen. Schließen Sie diesen Tab und versuchen Sie es in ComicStream erneut.",
+  "readAgain": "Erneut lesen",
+  "resumeVolumeNumber": "Band {number} fortsetzen",
+  "readVolumeNumber": "Band {number} lesen",
+  "startReading": "Lesen beginnen",
+  "seeVolumes": "Bände ansehen",
+  "openSeriesSheet": "Serienseite",
+  "consoleEmpty": "Keine Serie in diesem Filter",
+  "consoleHintMove": "Bewegen",
+  "consoleHintOpen": "Öffnen",
+  "consoleHintBack": "Zurück",
+  "consoleHintFilter": "Filter",
+  "consoleView": "Konsole"
 }

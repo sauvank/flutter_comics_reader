@@ -1187,5 +1187,31 @@
   "languageTitle": "Langue",
   "systemLanguage": "Langue du système",
   "googleBrowserDone": "Connexion réussie. Vous pouvez fermer cet onglet et revenir dans ComicStream.",
-  "googleBrowserFailed": "La connexion Google a échoué. Fermez cet onglet et réessayez depuis ComicStream."
+  "googleBrowserFailed": "La connexion Google a échoué. Fermez cet onglet et réessayez depuis ComicStream.",
+  "readAgain": "Relire",
+  "resumeVolumeNumber": "Reprendre le tome {number}",
+  "@resumeVolumeNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "readVolumeNumber": "Lire le tome {number}",
+  "@readVolumeNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "startReading": "Commencer",
+  "seeVolumes": "Voir les tomes",
+  "openSeriesSheet": "Fiche de la série",
+  "consoleEmpty": "Aucune série dans ce filtre",
+  "consoleHintMove": "Se déplacer",
+  "consoleHintOpen": "Ouvrir",
+  "consoleHintBack": "Retour",
+  "consoleHintFilter": "Filtre",
+  "consoleView": "Console"
 }

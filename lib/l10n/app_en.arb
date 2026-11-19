@@ -563,5 +563,17 @@
   "languageTitle": "Language",
   "systemLanguage": "System language",
   "googleBrowserDone": "Signed in. You can close this tab and return to ComicStream.",
-  "googleBrowserFailed": "Google sign-in failed. Close this tab and try again from ComicStream."
+  "googleBrowserFailed": "Google sign-in failed. Close this tab and try again from ComicStream.",
+  "readAgain": "Read again",
+  "resumeVolumeNumber": "Resume volume {number}",
+  "readVolumeNumber": "Read volume {number}",
+  "startReading": "Start reading",
+  "seeVolumes": "See volumes",
+  "openSeriesSheet": "Series page",
+  "consoleEmpty": "No series in this filter",
+  "consoleHintMove": "Move",
+  "consoleHintOpen": "Open",
+  "consoleHintBack": "Back",
+  "consoleHintFilter": "Filter",
+  "consoleView": "Console"
 }

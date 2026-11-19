@@ -1973,4 +1973,44 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get googleBrowserFailed => 'La connexion Google a échoué. Fermez cet onglet et réessayez depuis ComicStream.';
+
+  @override
+  String get readAgain => 'Relire';
+
+  @override
+  String resumeVolumeNumber(int number) {
+    return 'Reprendre le tome $number';
+  }
+
+  @override
+  String readVolumeNumber(int number) {
+    return 'Lire le tome $number';
+  }
+
+  @override
+  String get startReading => 'Commencer';
+
+  @override
+  String get seeVolumes => 'Voir les tomes';
+
+  @override
+  String get openSeriesSheet => 'Fiche de la série';
+
+  @override
+  String get consoleEmpty => 'Aucune série dans ce filtre';
+
+  @override
+  String get consoleHintMove => 'Se déplacer';
+
+  @override
+  String get consoleHintOpen => 'Ouvrir';
+
+  @override
+  String get consoleHintBack => 'Retour';
+
+  @override
+  String get consoleHintFilter => 'Filtre';
+
+  @override
+  String get consoleView => 'Console';
 }

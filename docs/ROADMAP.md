@@ -165,7 +165,9 @@ gantt
 - [x] Compte et synchronisation sur Windows (e-mail / mot de passe).
 - [ ] Vérifier la connexion au compte sur un vrai Windows (build CI v2.0.55).
 - [ ] Glisser-déposer de fichiers sur la fenêtre ; sommaire latéral des Réglages ; double page pour les PDF.
-- [ ] Connexion Google sur PC (flux OAuth navigateur).
+- [x] Connexion Google sur PC (flux OAuth navigateur, v2.0.62) — reste à confirmer sur un vrai Windows.
+- [x] Vue « Console » de la bibliothèque (rangées de séries et de tomes, clavier/souris).
+- [ ] Vue Console : manette (XInput), pastille « ☁ N tomes sur le serveur », bouton « Télécharger les manquants », mémoriser le mode choisi.
 
 ## Prochaine étape — qualité de production
 

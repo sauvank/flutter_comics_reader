@@ -201,6 +201,8 @@ l’interface plafonne le facteur de texte Android à 115 %.
 * Icône (v2.0.59) : néon pleine surface ; fond adaptatif Android `#03042A`, premier plan `assets/icon/app_icon_foreground.png` (dessin à 62 % du canevas). Regénérer avec `dart run flutter_launcher_icons` ; le `.ico` Windows est fait à la main (ImageMagick).
 * Play Store : la CI publie sur la piste interne. Passage en production : workflow `promote_playstore.yml` (`gh workflow run promote_playstore.yml -f version_code=<n>`), qui reprend la version de la piste interne sans recompiler ; il utilise l’environnement GitHub `production` (clé Play). v2.0.61 (116) promue le 19/11/2026.
 
+* Vue « Console » (`lib/widgets/console_library_view.dart`, `LibraryViewMode.console`) : mode par défaut sur PC dans une fenêtre large, plein largeur, masquée pendant une recherche. Rangée de séries (pile qui se range sous la jaquette sélectionnée), fiche (Reprendre / Voir les tomes / Fiche de la série), rangée de tomes. Flèches, Entrée, Échap, Q/E = filtre. Tailles calculées sur la hauteur, `FittedBox` en dernier recours. Maquette validée : artefact « Étagère 3D ComicStream ».
+
 ### 🔐 Compte sur Windows
 * Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google sur Windows par le navigateur (`desktop_google_sign_in.dart`), active seulement si le build contient `GOOGLE_DESKTOP_CLIENT_ID` (voir `docs/FIREBASE_SETUP.md`).
 

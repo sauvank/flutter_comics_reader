@@ -3486,6 +3486,78 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'La connexion Google a échoué. Fermez cet onglet et réessayez depuis ComicStream.'**
   String get googleBrowserFailed;
+
+  /// No description provided for @readAgain.
+  ///
+  /// In fr, this message translates to:
+  /// **'Relire'**
+  String get readAgain;
+
+  /// No description provided for @resumeVolumeNumber.
+  ///
+  /// In fr, this message translates to:
+  /// **'Reprendre le tome {number}'**
+  String resumeVolumeNumber(int number);
+
+  /// No description provided for @readVolumeNumber.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire le tome {number}'**
+  String readVolumeNumber(int number);
+
+  /// No description provided for @startReading.
+  ///
+  /// In fr, this message translates to:
+  /// **'Commencer'**
+  String get startReading;
+
+  /// No description provided for @seeVolumes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Voir les tomes'**
+  String get seeVolumes;
+
+  /// No description provided for @openSeriesSheet.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fiche de la série'**
+  String get openSeriesSheet;
+
+  /// No description provided for @consoleEmpty.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune série dans ce filtre'**
+  String get consoleEmpty;
+
+  /// No description provided for @consoleHintMove.
+  ///
+  /// In fr, this message translates to:
+  /// **'Se déplacer'**
+  String get consoleHintMove;
+
+  /// No description provided for @consoleHintOpen.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir'**
+  String get consoleHintOpen;
+
+  /// No description provided for @consoleHintBack.
+  ///
+  /// In fr, this message translates to:
+  /// **'Retour'**
+  String get consoleHintBack;
+
+  /// No description provided for @consoleHintFilter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Filtre'**
+  String get consoleHintFilter;
+
+  /// No description provided for @consoleView.
+  ///
+  /// In fr, this message translates to:
+  /// **'Console'**
+  String get consoleView;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

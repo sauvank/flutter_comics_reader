@@ -1973,4 +1973,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get googleBrowserFailed => 'Google sign-in failed. Close this tab and try again from ComicStream.';
+
+  @override
+  String get readAgain => 'Read again';
+
+  @override
+  String resumeVolumeNumber(int number) {
+    return 'Resume volume $number';
+  }
+
+  @override
+  String readVolumeNumber(int number) {
+    return 'Read volume $number';
+  }
+
+  @override
+  String get startReading => 'Start reading';
+
+  @override
+  String get seeVolumes => 'See volumes';
+
+  @override
+  String get openSeriesSheet => 'Series page';
+
+  @override
+  String get consoleEmpty => 'No series in this filter';
+
+  @override
+  String get consoleHintMove => 'Move';
+
+  @override
+  String get consoleHintOpen => 'Open';
+
+  @override
+  String get consoleHintBack => 'Back';
+
+  @override
+  String get consoleHintFilter => 'Filter';
+
+  @override
+  String get consoleView => 'Console';
 }
