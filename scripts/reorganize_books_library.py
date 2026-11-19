@@ -164,9 +164,9 @@ class LibraryOrganizer:
         bd_dir = os.path.join(self.base_dir, "BD")
         manga_dir = os.path.join(self.base_dir, "Manga")
         livres_dir = os.path.join(self.base_dir, "Livres")
-        comics_dir = os.path.join(self.base_dir, "Comics")
+        comics_dir = os.path.join(self.base_dir, "Comics US")
 
-        # 0. Normaliser 'comics' en 'Comics'
+        # 0. Normaliser 'comics' en 'Comics US' (évite Comics/comics dans l'app)
         old_comics_dir = os.path.join(self.base_dir, "comics")
         if os.path.exists(old_comics_dir) and not os.path.exists(comics_dir):
             self.safe_rename(old_comics_dir, comics_dir)

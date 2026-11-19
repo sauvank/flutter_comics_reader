@@ -164,7 +164,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
   * **Arborescence type** :
     * `/media/comics/BOOKS/BD/` *(ex: Conquêtes, XIII, Centaures, Sillage...)*
     * `/media/comics/BOOKS/Manga/` *(ex: Planetes...)*
-    * `/media/comics/BOOKS/comics/` *(ex: Red Son, V pour Vendetta, Invincible...)*
+    * `/media/comics/BOOKS/Comics US/` *(ex: Red Son, V pour Vendetta, Invincible...)*
     * `/media/comics/BOOKS/Livres/`
     * `/media/comics/BOOKS/AUDIO/`
 
