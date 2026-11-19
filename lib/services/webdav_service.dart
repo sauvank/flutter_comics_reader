@@ -8,6 +8,12 @@ import '../models/server_profile.dart';
 import '../l10n/l10n.dart';
 
 class WebDavService {
+  /// Cancel reason used to pause: the partial `.tmp` file is kept so the
+  /// next attempt resumes with an HTTP Range request.
+  static const pauseReason = 'pause';
+
+  static bool isPause(CancelToken? t) => t?.cancelError?.error == pauseReason;
+
   final Dio _dio;
 
   WebDavService()
@@ -339,7 +345,7 @@ class WebDavService {
     while (attempts < maxAttempts) {
       attempts++;
       if (cancelToken?.isCancelled == true) {
-        if (await tempFile.exists()) {
+        if (!isPause(cancelToken) && await tempFile.exists()) {
           try {
             await tempFile.delete();
           } catch (_) {}
@@ -447,7 +453,7 @@ class WebDavService {
       } catch (e) {
         lastError = e;
         if (cancelToken?.isCancelled == true) {
-          if (await tempFile.exists()) {
+          if (!isPause(cancelToken) && await tempFile.exists()) {
             try {
               await tempFile.delete();
             } catch (_) {}

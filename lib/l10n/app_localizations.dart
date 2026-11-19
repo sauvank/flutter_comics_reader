@@ -3636,6 +3636,30 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Page suivante'**
   String get consoleSwitchPage;
+
+  /// No description provided for @pause.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause'**
+  String get pause;
+
+  /// No description provided for @pausedStatus.
+  ///
+  /// In fr, this message translates to:
+  /// **'En pause'**
+  String get pausedStatus;
+
+  /// No description provided for @consoleHintPause.
+  ///
+  /// In fr, this message translates to:
+  /// **'Pause / reprendre'**
+  String get consoleHintPause;
+
+  /// No description provided for @keySpace.
+  ///
+  /// In fr, this message translates to:
+  /// **'Espace'**
+  String get keySpace;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

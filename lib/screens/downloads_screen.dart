@@ -180,6 +180,23 @@ class DownloadsScreen extends StatelessWidget {
                       fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ),
+              if (task.status != DownloadStatus.converting)
+                IconButton(
+                  icon: Icon(
+                      task.status == DownloadStatus.paused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      size: 20),
+                  onPressed: () => task.status == DownloadStatus.paused
+                      ? provider.resumeDownload(task.id)
+                      : provider.pauseDownload(task.id),
+                  tooltip: task.status == DownloadStatus.paused
+                      ? l10n.resume
+                      : l10n.pause,
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
               IconButton(
                 icon:
                     const Icon(Icons.close, size: 20, color: Colors.redAccent),
@@ -218,7 +235,8 @@ class DownloadsScreen extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (task.speedBytesPerSec > 0) ...[
+                  if (task.speedBytesPerSec > 0 &&
+                      task.status != DownloadStatus.paused) ...[
                     Text(
                       FormatUtils.formatSpeed(task.speedBytesPerSec),
                       style: TextStyle(

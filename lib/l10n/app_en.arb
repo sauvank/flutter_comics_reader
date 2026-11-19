@@ -588,5 +588,9 @@
   "consoleHintReadRetry": "Read / retry",
   "consoleAlreadyQueued": "Already in the download queue",
   "consoleNothingYet": "No downloads yet",
-  "consoleSwitchPage": "Next page"
+  "consoleSwitchPage": "Next page",
+  "pause": "Pause",
+  "pausedStatus": "Paused",
+  "consoleHintPause": "Pause / resume",
+  "keySpace": "Space"
 }

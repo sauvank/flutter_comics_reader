@@ -116,11 +116,29 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       expect(tester.takeException(), isNull);
       expect(find.text('Hantait'), findsOneWidget);
-      expect(find.textContaining("FILE D'ATTENTE · 2", findRichText: true), findsOneWidget);
+      expect(find.textContaining("FILE D'ATTENTE · 2", findRichText: true),
+          findsOneWidget);
       // Queue numbered in start order: oldest pending is #1.
       final first = tester.getTopLeft(find.text('Dunwich 01'));
       final second = tester.getTopLeft(find.text('Dunwich 02'));
       expect(first.dx, lessThan(second.dx));
+      expect(find.text('Pause'), findsNWidgets(2));
+    });
+
+    testWidgets('paused download stays in the live row at $size',
+        (tester) async {
+      final (_, downloads) =
+          await pump(tester, size, ConsoleDownloadsView(onOpenBook: (_) {}));
+      downloads.debugSetTasks([
+        _task('Dunwich 01', DownloadStatus.pending, 3),
+        _task('Abime', DownloadStatus.paused, 2, progress: .4),
+        _task('Hantait', DownloadStatus.downloading, 1, progress: .5),
+      ]);
+      await tester.pump(const Duration(seconds: 1));
+      expect(tester.takeException(), isNull);
+      expect(find.text('Reprendre'), findsOneWidget);
+      expect(find.textContaining('EN COURS (2)', findRichText: true),
+          findsOneWidget);
     });
   }
 }

@@ -203,7 +203,9 @@ l’interface plafonne le facteur de texte Android à 115 %.
 
 * Vue « Console » (`lib/widgets/console_library_view.dart`, `LibraryViewMode.console`) : mode par défaut sur PC dans une fenêtre large, plein largeur, masquée pendant une recherche. Rangée de séries (pile qui se range sous la jaquette sélectionnée), fiche (Reprendre / Voir les tomes / Fiche de la série), rangée de tomes. Flèches, Entrée, Échap, Q/E = filtre. Tailles calculées sur la hauteur, `FittedBox` en dernier recours. Maquette validée : artefact « Étagère 3D ComicStream ».
 
-* Pages Console PC : `console_servers_view.dart` (serveurs, dossier ouvert, actions ; Échap = dossier parent, F5) et `console_downloads_view.dart` (en cours, file dans l'ordre de démarrage, historique ; Suppr = annuler, pas de pause : non gérée par `DownloadProvider`). Composants communs : `console_kit.dart`. Hooks de test : `ServerProvider.debugShow`, `DownloadProvider.debugSetTasks`.
+* Pages Console PC : `console_servers_view.dart` (serveurs, dossier ouvert, actions ; Échap = dossier parent, F5) et `console_downloads_view.dart` (en cours, file dans l'ordre de démarrage, historique ; Espace = pause/reprise, Suppr = annuler). Composants communs : `console_kit.dart`. Hooks de test : `ServerProvider.debugShow`, `DownloadProvider.debugSetTasks`.
+
+* Pause des téléchargements : `DownloadProvider.pauseDownload/resumeDownload` ; annulation avec la raison `WebDavService.pauseReason`, qui garde le `.tmp` (reprise par en-tête Range). En FTP, la reprise repart de zéro.
 
 ### 🔐 Compte sur Windows
 * Firebase desktop configuré par `--dart-define-from-file=firebase_desktop.json` (secret CI `FIREBASE_DESKTOP_CONFIG`, détails `docs/FIREBASE_SETUP.md`). Connexion Google sur Windows par le navigateur (`desktop_google_sign_in.dart`), active seulement si le build contient `GOOGLE_DESKTOP_CLIENT_ID` (voir `docs/FIREBASE_SETUP.md`).

@@ -2062,4 +2062,16 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get consoleSwitchPage => 'Pagina successiva';
+
+  @override
+  String get pause => 'Pausa';
+
+  @override
+  String get pausedStatus => 'In pausa';
+
+  @override
+  String get consoleHintPause => 'Pausa / riprendi';
+
+  @override
+  String get keySpace => 'Spazio';
 }

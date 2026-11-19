@@ -42,7 +42,7 @@ class DownloadProvider extends ChangeNotifier {
 
   List<DownloadTask> get tasks => List.unmodifiable(_tasks);
 
-  /// Running downloads first, then the waiting ones in the order the queue
+  /// Running downloads first, then paused ones, then the waiting ones in the order the queue
   /// will start them (oldest first).
   List<DownloadTask> get activeTasks {
     final running = _tasks
@@ -51,11 +51,15 @@ class DownloadProvider extends ChangeNotifier {
             t.status == DownloadStatus.converting)
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final paused = _tasks
+        .where((t) => t.status == DownloadStatus.paused)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
     final waiting = _tasks
         .where((t) => t.status == DownloadStatus.pending)
         .toList()
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return [...running, ...waiting];
+    return [...running, ...paused, ...waiting];
   }
 
   /// Test hook: replaces the task list (newest first, like [_tasks]).
@@ -178,6 +182,19 @@ class DownloadProvider extends ChangeNotifier {
     }
   }
 
+  /// A cancelled transfer ends as paused (kept for later) or cancelled.
+  void _markStopped(
+      DownloadTask task, ServerProfile server, RemoteFile remoteFile) {
+    if (_pausing.remove(task.id)) {
+      _paused[task.id] = (server: server, file: remoteFile, task: task);
+      _updateTaskStatus(task.id, DownloadStatus.paused,
+          statusDescription: l10n.pausedStatus);
+    } else {
+      _updateTaskStatus(task.id, DownloadStatus.cancelled,
+          statusDescription: l10n.cancelled);
+    }
+  }
+
   Future<void> _executeDownload(
       DownloadTask task, ServerProfile server, RemoteFile remoteFile) async {
     final cancelToken = CancelToken();
@@ -239,8 +256,7 @@ class DownloadProvider extends ChangeNotifier {
       }
 
       if (cancelToken.isCancelled) {
-        _updateTaskStatus(task.id, DownloadStatus.cancelled,
-            statusDescription: l10n.cancelled);
+        _markStopped(task, server, remoteFile);
         return;
       }
 
@@ -424,8 +440,7 @@ class DownloadProvider extends ChangeNotifier {
       );
     } catch (e) {
       if (cancelToken.isCancelled) {
-        _updateTaskStatus(task.id, DownloadStatus.cancelled,
-            statusDescription: l10n.cancelled);
+        _markStopped(task, server, remoteFile);
       } else {
         debugPrint('Download failed for ${task.fileName}: $e');
         final cleanMsg = _formatDownloadError(e);
@@ -488,8 +503,41 @@ class DownloadProvider extends ChangeNotifier {
     return error.toString();
   }
 
+  /// Paused tasks with what is needed to start them again.
+  final Map<String,
+          ({ServerProfile server, RemoteFile file, DownloadTask task})>
+      _paused = {};
+  final Set<String> _pausing = {};
+
+  /// Stops a waiting or running download and keeps it to resume later.
+  /// WebDAV/HTTP keep the partial file and resume where they stopped.
+  void pauseDownload(String taskId) {
+    final waiting = _pendingQueue.remove(taskId);
+    if (waiting != null) {
+      _paused[taskId] = waiting;
+      _updateTaskStatus(taskId, DownloadStatus.paused,
+          statusDescription: l10n.pausedStatus);
+      return;
+    }
+    final token = _cancelTokens[taskId];
+    if (token == null) return;
+    _pausing.add(taskId);
+    token.cancel(WebDavService.pauseReason);
+  }
+
+  void resumeDownload(String taskId) {
+    final item = _paused.remove(taskId);
+    if (item == null) return;
+    _updateTaskStatus(taskId, DownloadStatus.pending,
+        statusDescription: l10n.waiting);
+    _pendingQueue[taskId] = item;
+    _processQueue();
+  }
+
   void cancelDownload(String taskId) {
     _pendingQueue.remove(taskId);
+    _paused.remove(taskId);
+    _pausing.remove(taskId);
     final token = _cancelTokens[taskId];
     token?.cancel();
     _updateTaskStatus(taskId, DownloadStatus.cancelled,

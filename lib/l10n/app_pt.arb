@@ -588,5 +588,9 @@
   "consoleHintReadRetry": "Ler / repetir",
   "consoleAlreadyQueued": "Já está na fila de transferências",
   "consoleNothingYet": "Ainda sem transferências",
-  "consoleSwitchPage": "Página seguinte"
+  "consoleSwitchPage": "Página seguinte",
+  "pause": "Pausa",
+  "pausedStatus": "Em pausa",
+  "consoleHintPause": "Pausa / retomar",
+  "keySpace": "Espaço"
 }

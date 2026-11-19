@@ -1240,5 +1240,9 @@
   "consoleHintReadRetry": "Lire / réessayer",
   "consoleAlreadyQueued": "Déjà dans la file de téléchargement",
   "consoleNothingYet": "Aucun téléchargement pour l'instant",
-  "consoleSwitchPage": "Page suivante"
+  "consoleSwitchPage": "Page suivante",
+  "pause": "Pause",
+  "pausedStatus": "En pause",
+  "consoleHintPause": "Pause / reprendre",
+  "keySpace": "Espace"
 }

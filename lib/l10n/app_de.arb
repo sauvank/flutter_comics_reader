@@ -588,5 +588,9 @@
   "consoleHintReadRetry": "Lesen / erneut",
   "consoleAlreadyQueued": "Bereits in der Warteschlange",
   "consoleNothingYet": "Noch keine Downloads",
-  "consoleSwitchPage": "Nächste Seite"
+  "consoleSwitchPage": "Nächste Seite",
+  "pause": "Pause",
+  "pausedStatus": "Pausiert",
+  "consoleHintPause": "Pause / fortsetzen",
+  "keySpace": "Leertaste"
 }

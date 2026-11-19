@@ -65,7 +65,9 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
   Map<_Row, List<DownloadTask>> _lists(DownloadProvider d) {
     final active = d.activeTasks;
     return {
-      _Row.live: active.where(_running).toList(),
+      _Row.live: active
+          .where((t) => _running(t) || t.status == DownloadStatus.paused)
+          .toList(),
       _Row.queue:
           active.where((t) => t.status == DownloadStatus.pending).toList(),
       _Row.history: d.tasks.where((t) => !active.contains(t)).toList(),
@@ -109,6 +111,8 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
       case DownloadStatus.completed:
         final book = context.read<LibraryProvider>().getBookById(t.bookId);
         if (book != null) widget.onOpenBook(book);
+      case DownloadStatus.paused:
+        d.resumeDownload(t.id);
       case DownloadStatus.failed:
       case DownloadStatus.cancelled:
         final s = _server(t);
@@ -119,8 +123,20 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
   }
 
   void _cancel(DownloadTask t) {
-    if (t.status == DownloadStatus.pending || _running(t)) {
+    if (t.status == DownloadStatus.pending ||
+        t.status == DownloadStatus.paused ||
+        _running(t)) {
       context.read<DownloadProvider>().cancelDownload(t.id);
+    }
+  }
+
+  void _togglePause(DownloadTask t) {
+    final d = context.read<DownloadProvider>();
+    if (t.status == DownloadStatus.paused) {
+      d.resumeDownload(t.id);
+    } else if (t.status == DownloadStatus.downloading ||
+        t.status == DownloadStatus.pending) {
+      d.pauseDownload(t.id);
     }
   }
 
@@ -166,11 +182,14 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
     } else if (k == LogicalKeyboardKey.arrowDown) {
       _move(0, 1);
     } else if (k == LogicalKeyboardKey.enter ||
-        k == LogicalKeyboardKey.numpadEnter ||
-        k == LogicalKeyboardKey.space) {
+        k == LogicalKeyboardKey.numpadEnter) {
       if (e is KeyRepeatEvent) return KeyEventResult.handled;
       final t = _focused(lists);
       if (t != null) _activate(t);
+    } else if (k == LogicalKeyboardKey.space) {
+      if (e is KeyRepeatEvent) return KeyEventResult.handled;
+      final t = _focused(lists);
+      if (t != null) _togglePause(t);
     } else if (k == LogicalKeyboardKey.delete) {
       final t = _focused(lists);
       if (t != null) _cancel(t);
@@ -249,6 +268,7 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
                 ConsoleHints([
                   (['←', '→', '↑', '↓'], l10n.consoleHintMove),
                   (['↵'], l10n.consoleHintReadRetry),
+                  ([l10n.keySpace], l10n.consoleHintPause),
                   (['Suppr'], l10n.cancel),
                 ]),
               ],
@@ -325,6 +345,7 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
                             task: t,
                             cover: _cover(t),
                             onCancel: () => _cancel(t),
+                            onPause: () => _togglePause(t),
                           )
                         : Stack(fit: StackFit.expand, children: [
                             _cover(t),
@@ -353,10 +374,14 @@ class _ConsoleDownloadsViewState extends State<ConsoleDownloadsView>
 
 class _LiveCard extends StatelessWidget {
   const _LiveCard(
-      {required this.task, required this.cover, required this.onCancel});
+      {required this.task,
+      required this.cover,
+      required this.onCancel,
+      required this.onPause});
   final DownloadTask task;
   final Widget cover;
   final VoidCallback onCancel;
+  final VoidCallback onPause;
 
   @override
   Widget build(BuildContext context) {
@@ -364,6 +389,7 @@ class _LiveCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final t = task;
     final converting = t.status == DownloadStatus.converting;
+    final paused = t.status == DownloadStatus.paused;
     return ColoredBox(
       color: cs.surfaceContainerLowest,
       child: Padding(
@@ -408,7 +434,7 @@ class _LiveCard extends StatelessWidget {
                     Text('${(t.progress * 100).round()} %',
                         style: const TextStyle(fontWeight: FontWeight.w800)),
                     const Spacer(),
-                    if (t.speedBytesPerSec > 0)
+                    if (t.speedBytesPerSec > 0 && !paused)
                       Flexible(
                         child: Text(
                           [
@@ -423,9 +449,22 @@ class _LiveCard extends StatelessWidget {
                       ),
                   ]),
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: OutlinedButton.icon(
+                  Wrap(spacing: 8, children: [
+                    if (!converting)
+                      FilledButton.tonalIcon(
+                        onPressed: onPause,
+                        icon: Icon(
+                            paused
+                                ? Icons.play_arrow_rounded
+                                : Icons.pause_rounded,
+                            size: 18),
+                        label: Text(paused ? l10n.resume : l10n.pause),
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          shape: const StadiumBorder(),
+                        ),
+                      ),
+                    OutlinedButton.icon(
                       onPressed: onCancel,
                       icon: const Icon(Icons.close_rounded, size: 18),
                       label: Text(l10n.cancel),
@@ -435,7 +474,7 @@ class _LiveCard extends StatelessWidget {
                         shape: const StadiumBorder(),
                       ),
                     ),
-                  ),
+                  ]),
                 ],
               ),
             ),
