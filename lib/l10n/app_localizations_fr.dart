@@ -2077,4 +2077,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get downloadUpdate => 'Télécharger la mise à jour';
+
+  @override
+  String scanFoundCount(int count) {
+    return 'Analyse… $count trouvé(s)';
+  }
+
+  @override
+  String importProgress(int percent) {
+    return 'Import… $percent %';
+  }
 }

@@ -593,5 +593,7 @@
   "pausedStatus": "In pausa",
   "consoleHintPause": "Pausa / riprendi",
   "keySpace": "Spazio",
-  "downloadUpdate": "Scarica l'aggiornamento"
+  "downloadUpdate": "Scarica l'aggiornamento",
+  "scanFoundCount": "Analisi… {count} trovati",
+  "importProgress": "Importazione… {percent}%"
 }

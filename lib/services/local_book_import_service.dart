@@ -40,7 +40,9 @@ class LocalBookImportService {
   /// Android can deny access to individual system-owned folders while allowing
   /// the shared storage root. A failure in one of those folders must not hide
   /// books stored in the rest of the device.
-  static Future<List<String>> scanDirectory(String directoryPath) async {
+  /// [onFound] receives the number of books found so far.
+  static Future<List<String>> scanDirectory(String directoryPath,
+      {void Function(int found)? onFound}) async {
     final directory = Directory(directoryPath);
     if (!await directory.exists()) return const [];
 
@@ -50,6 +52,7 @@ class LocalBookImportService {
         await for (final entity in currentDirectory.list(followLinks: false)) {
           if (entity is File && isSupportedPath(entity.path)) {
             paths.add(entity.path);
+            onFound?.call(paths.length);
           } else if (entity is Directory) {
             await scan(entity);
           }
@@ -66,15 +69,19 @@ class LocalBookImportService {
     return paths;
   }
 
-  Future<LocalBookImportResult> importFiles(
-      Iterable<String> sourcePaths) async {
+  /// [onProgress] receives the number of files handled and the total.
+  Future<LocalBookImportResult> importFiles(Iterable<String> sourcePaths,
+      {void Function(int done, int total)? onProgress}) async {
     var imported = 0;
     var skipped = 0;
     final known = await _database.getBooks();
     final booksDirectory = await _database.getBooksDirectory();
     final coversDirectory = await _database.getCoversDirectory();
 
-    for (final sourcePath in sourcePaths.toSet()) {
+    final unique = sourcePaths.toSet().toList();
+    for (var i = 0; i < unique.length; i++) {
+      onProgress?.call(i, unique.length);
+      final sourcePath = unique[i];
       final source = File(sourcePath);
       final format = BookItem.formatFromExtension(sourcePath);
       if (format == BookFormat.unknown || !await source.exists()) {
@@ -125,6 +132,7 @@ class LocalBookImportService {
         skipped++;
       }
     }
+    onProgress?.call(unique.length, unique.length);
     return LocalBookImportResult(imported: imported, skipped: skipped);
   }
 

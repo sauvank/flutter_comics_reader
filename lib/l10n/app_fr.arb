@@ -1245,5 +1245,21 @@
   "pausedStatus": "En pause",
   "consoleHintPause": "Pause / reprendre",
   "keySpace": "Espace",
-  "downloadUpdate": "Télécharger la mise à jour"
+  "downloadUpdate": "Télécharger la mise à jour",
+  "scanFoundCount": "Analyse… {count} trouvé(s)",
+  "@scanFoundCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importProgress": "Import… {percent} %",
+  "@importProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

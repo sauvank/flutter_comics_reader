@@ -434,16 +434,19 @@ class LibraryProvider extends ChangeNotifier {
   }
 
   /// Adds user-selected files that were already present on this device.
-  Future<LocalBookImportResult> importLocalFiles(Iterable<String> paths) async {
-    final result =
-        await LocalBookImportService(database: _db).importFiles(paths);
+  Future<LocalBookImportResult> importLocalFiles(Iterable<String> paths,
+      {void Function(int done, int total)? onProgress}) async {
+    final result = await LocalBookImportService(database: _db)
+        .importFiles(paths, onProgress: onProgress);
     await loadLibrary();
     return result;
   }
 
   /// Finds compatible books in a directory selected by the user.
-  Future<List<String>> scanLocalDirectory(String directoryPath) {
-    return LocalBookImportService.scanDirectory(directoryPath);
+  Future<List<String>> scanLocalDirectory(String directoryPath,
+      {void Function(int found)? onFound}) {
+    return LocalBookImportService.scanDirectory(directoryPath,
+        onFound: onFound);
   }
 
   BookItem? getBookById(String bookId) {

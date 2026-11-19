@@ -593,5 +593,7 @@
   "pausedStatus": "Pausiert",
   "consoleHintPause": "Pause / fortsetzen",
   "keySpace": "Leertaste",
-  "downloadUpdate": "Update herunterladen"
+  "downloadUpdate": "Update herunterladen",
+  "scanFoundCount": "Suche… {count} gefunden",
+  "importProgress": "Import… {percent} %"
 }

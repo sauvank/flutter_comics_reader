@@ -3666,6 +3666,18 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Télécharger la mise à jour'**
   String get downloadUpdate;
+
+  /// No description provided for @scanFoundCount.
+  ///
+  /// In fr, this message translates to:
+  /// **'Analyse… {count} trouvé(s)'**
+  String scanFoundCount(int count);
+
+  /// No description provided for @importProgress.
+  ///
+  /// In fr, this message translates to:
+  /// **'Import… {percent} %'**
+  String importProgress(int percent);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

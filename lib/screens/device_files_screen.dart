@@ -24,6 +24,23 @@ class DeviceFilesScreen extends StatefulWidget {
 class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     with WidgetsBindingObserver {
   bool _importing = false;
+
+  /// Progress shown while scanning or importing: label and 0..1 value
+  /// (null value = total not known yet).
+  String? _progressLabel;
+  double? _progressValue;
+
+  void _setProgress(String label, double? value) {
+    if (!mounted) return;
+    setState(() {
+      _progressLabel = label;
+      _progressValue = value;
+    });
+  }
+
+  void _onImportProgress(int done, int total) => _setProgress(
+      l10n.importProgress(total == 0 ? 100 : (done * 100 / total).round()),
+      total == 0 ? 1 : done / total);
   bool _waitingForStorageAccess = false;
 
   @override
@@ -76,8 +93,13 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
   Future<void> _scanAndReview(String rootPath) async {
     setState(() => _importing = true);
     try {
+      _setProgress(l10n.scanFoundCount(0), null);
       final paths =
-          await context.read<LibraryProvider>().scanLocalDirectory(rootPath);
+          await context.read<LibraryProvider>().scanLocalDirectory(rootPath,
+              // Repaint every few files: a large folder holds thousands.
+              onFound: (n) {
+        if (n % 10 == 0) _setProgress(l10n.scanFoundCount(n), null);
+      });
       if (!mounted) return;
       if (paths.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -102,13 +124,20 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     } catch (error) {
       _showImportError(error);
     } finally {
-      if (mounted) setState(() => _importing = false);
+      if (mounted) {
+        setState(() {
+          _importing = false;
+          _progressLabel = null;
+          _progressValue = null;
+        });
+      }
     }
   }
 
   Future<void> _importPaths(List<String> paths) async {
-    final result =
-        await context.read<LibraryProvider>().importLocalFiles(paths);
+    final result = await context
+        .read<LibraryProvider>()
+        .importLocalFiles(paths, onProgress: _onImportProgress);
     if (!mounted) return;
     final skipped =
         result.skipped == 0 ? '' : l10n.alreadyPresentOrSkipped(result.skipped);
@@ -143,7 +172,13 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
     } catch (error) {
       _showImportError(error);
     } finally {
-      if (mounted) setState(() => _importing = false);
+      if (mounted) {
+        setState(() {
+          _importing = false;
+          _progressLabel = null;
+          _progressValue = null;
+        });
+      }
     }
   }
 
@@ -244,13 +279,16 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                 FilledButton.icon(
                   onPressed: _importing ? null : _scanDeviceStorage,
                   icon: _importing
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, value: _progressValue),
                         )
                       : const Icon(Icons.manage_search_rounded),
-                  label: Text(_importing ? l10n.scanningFiles : l10n.scanPhone),
+                  label: Text(_importing
+                      ? (_progressLabel ?? l10n.scanningFiles)
+                      : l10n.scanPhone),
                 ),
               ],
             ),
@@ -322,14 +360,16 @@ class _DeviceFilesScreenState extends State<DeviceFilesScreen>
                     FilledButton.icon(
                       onPressed: _importing ? null : _pickFiles,
                       icon: _importing
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, value: _progressValue),
                             )
                           : const Icon(Icons.add_rounded, size: 18),
-                      label: Text(
-                          _importing ? l10n.scanningFiles : l10n.openFiles),
+                      label: Text(_importing
+                          ? (_progressLabel ?? l10n.scanningFiles)
+                          : l10n.openFiles),
                     ),
                   ],
                 ),
