@@ -580,13 +580,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get libraryEmpty => 'Tu biblioteca está vacía';
 
   @override
-  String get libraryEmptyBody => 'Añade cómics desde un servidor o desde archivos que ya estén en tu teléfono.';
+  String get libraryEmptyBody => 'Añade tus cómics desde un servidor o desde los archivos que ya están en este dispositivo.';
 
   @override
   String get exploreServers => 'Explorar mis servidores';
 
   @override
-  String get importFromPhone => 'Importar desde este teléfono';
+  String get importFromPhone => 'Importar desde este dispositivo';
 
   @override
   String get noSearchResults => 'No hay resultados para esta búsqueda';
@@ -900,7 +900,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get guideHeroTitle => 'Lee los cómics de tu ordenador o NAS';
 
   @override
-  String get guideHeroBody => 'Un servidor hace que tu colección esté disponible desde el teléfono sin copiarlo todo. Calcula unos 2 minutos.';
+  String get guideHeroBody => 'Un servidor hace que tu colección esté disponible en la app sin copiarlo todo. Unos 2 minutos.';
 
   @override
   String get howItWorks => 'Cómo hacerlo';
@@ -915,7 +915,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get guideStep2Title => 'Anota su dirección';
 
   @override
-  String get guideStep2Body => 'Busca la dirección IP local de la máquina (ej. 192.168.1.100) y el puerto del recurso compartido. El teléfono debe estar conectado a la misma red Wi-Fi.';
+  String get guideStep2Body => 'Busca la dirección IP local de la máquina (p. ej. 192.168.1.100) y el puerto del recurso compartido. Este dispositivo debe estar en la misma red.';
 
   @override
   String get guideStep3Title => 'Rellena el formulario';
@@ -969,7 +969,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get cannotConnectTitle => '¿No se conecta?';
 
   @override
-  String get tipSameWifi => 'Comprueba que el teléfono y el servidor estén en la misma Wi-Fi.';
+  String get tipSameWifi => 'Comprueba que este dispositivo y el servidor están en la misma red.';
 
   @override
   String get tipUseIp => 'Prueba con la dirección IP en lugar de un nombre (nas.local).';
@@ -1210,7 +1210,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get allFilesAccessRequired => 'Se necesita acceso a todos los archivos para analizar el teléfono.';
 
   @override
-  String get noCompatibleBookFound => 'No se encontró ningún libro compatible en el teléfono.';
+  String get noCompatibleBookFound => 'No se encontró ningún libro compatible en este dispositivo.';
 
   @override
   String alreadyPresentOrSkipped(Object skipped) {
@@ -1231,7 +1231,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get permissionNotGranted => 'Permiso no concedido: no se analizó ningún archivo.';
 
   @override
-  String get scanPhoneTitle => '¿Analizar los libros del teléfono?';
+  String get scanPhoneTitle => '¿Buscar libros en este dispositivo?';
 
   @override
   String get scanPhoneBody => 'ComicStream pedirá acceso a los archivos solo para encontrar cómics, PDF y EPUB. Después elegirás los archivos a importar; no se copia nada sin confirmación.';
@@ -1246,13 +1246,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get addComicsFromDevice => 'Añadir cómics desde este dispositivo';
 
   @override
-  String get addComicsFromDeviceBody => 'Analiza todos los archivos compatibles del teléfono y elige los libros que quieres conservar.';
+  String get addComicsFromDeviceBody => 'Analiza todos los archivos compatibles de este dispositivo y elige los libros que quieres conservar.';
 
   @override
   String get scanningFiles => 'Analizando archivos…';
 
   @override
-  String get scanPhone => 'Analizar el teléfono';
+  String get scanPhone => 'Escanear este dispositivo';
 
   @override
   String addedFilesCount(Object length) {
@@ -1263,7 +1263,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get noFileAdded => 'Ningún archivo añadido';
 
   @override
-  String get scanPhoneToFindBooks => 'Analiza el teléfono para encontrar tus libros.';
+  String get scanPhoneToFindBooks => 'Escanea este dispositivo para encontrar tus libros.';
 
   @override
   String formatPageProgress(Object formatString, Object currentPage1, Object totalPages) {

@@ -580,13 +580,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get libraryEmpty => 'La tua libreria è vuota';
 
   @override
-  String get libraryEmptyBody => 'Aggiungi fumetti da un server o dai file già presenti sul telefono.';
+  String get libraryEmptyBody => 'Aggiungi i tuoi fumetti da un server o dai file già presenti su questo dispositivo.';
 
   @override
   String get exploreServers => 'Esplora i miei server';
 
   @override
-  String get importFromPhone => 'Importa da questo telefono';
+  String get importFromPhone => 'Importa da questo dispositivo';
 
   @override
   String get noSearchResults => 'Nessun risultato per questa ricerca';
@@ -900,7 +900,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get guideHeroTitle => 'Leggi i fumetti del tuo computer o NAS';
 
   @override
-  String get guideHeroBody => 'Un server rende la tua collezione accessibile dal telefono senza copiare tutto. Servono circa 2 minuti.';
+  String get guideHeroBody => 'Un server rende la tua collezione disponibile nell’app senza copiare tutto. Circa 2 minuti.';
 
   @override
   String get howItWorks => 'Come fare';
@@ -915,7 +915,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get guideStep2Title => 'Annota il suo indirizzo';
 
   @override
-  String get guideStep2Body => 'Trova l\'indirizzo IP locale della macchina (es. 192.168.1.100) e la porta della condivisione. Il telefono deve essere connesso alla stessa rete Wi-Fi.';
+  String get guideStep2Body => 'Individua l’indirizzo IP locale della macchina (es. 192.168.1.100) e la porta della condivisione. Questo dispositivo deve essere sulla stessa rete.';
 
   @override
   String get guideStep3Title => 'Compila il modulo';
@@ -969,7 +969,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get cannotConnectTitle => 'Non si connette?';
 
   @override
-  String get tipSameWifi => 'Verifica che telefono e server siano sulla stessa Wi-Fi.';
+  String get tipSameWifi => 'Verifica che questo dispositivo e il server siano sulla stessa rete.';
 
   @override
   String get tipUseIp => 'Prova l\'indirizzo IP invece di un nome (nas.local).';
@@ -1210,7 +1210,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get allFilesAccessRequired => 'Per analizzare il telefono serve l\'accesso a tutti i file.';
 
   @override
-  String get noCompatibleBookFound => 'Nessun libro compatibile trovato sul telefono.';
+  String get noCompatibleBookFound => 'Nessun libro compatibile trovato su questo dispositivo.';
 
   @override
   String alreadyPresentOrSkipped(Object skipped) {
@@ -1231,7 +1231,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get permissionNotGranted => 'Autorizzazione non concessa: nessun file è stato analizzato.';
 
   @override
-  String get scanPhoneTitle => 'Analizzare i libri del telefono?';
+  String get scanPhoneTitle => 'Cercare libri su questo dispositivo?';
 
   @override
   String get scanPhoneBody => 'ComicStream chiederà l\'accesso ai file solo per trovare fumetti, PDF ed EPUB. Poi sceglierai i file da importare; nulla viene copiato senza conferma.';
@@ -1246,13 +1246,13 @@ class AppLocalizationsIt extends AppLocalizations {
   String get addComicsFromDevice => 'Aggiungi fumetti da questo dispositivo';
 
   @override
-  String get addComicsFromDeviceBody => 'Analizza tutti i file compatibili del telefono, poi scegli i libri da tenere.';
+  String get addComicsFromDeviceBody => 'Analizza tutti i file compatibili di questo dispositivo, poi scegli i libri da tenere.';
 
   @override
   String get scanningFiles => 'Analisi dei file…';
 
   @override
-  String get scanPhone => 'Analizza il telefono';
+  String get scanPhone => 'Scansiona questo dispositivo';
 
   @override
   String addedFilesCount(Object length) {
@@ -1263,7 +1263,7 @@ class AppLocalizationsIt extends AppLocalizations {
   String get noFileAdded => 'Nessun file aggiunto';
 
   @override
-  String get scanPhoneToFindBooks => 'Analizza il telefono per trovare i tuoi libri.';
+  String get scanPhoneToFindBooks => 'Scansiona questo dispositivo per trovare i tuoi libri.';
 
   @override
   String formatPageProgress(Object formatString, Object currentPage1, Object totalPages) {

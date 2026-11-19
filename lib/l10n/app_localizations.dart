@@ -1120,7 +1120,7 @@ abstract class AppLocalizations {
   /// No description provided for @libraryEmptyBody.
   ///
   /// In fr, this message translates to:
-  /// **'Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur votre téléphone.'**
+  /// **'Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur cet appareil.'**
   String get libraryEmptyBody;
 
   /// No description provided for @exploreServers.
@@ -1132,7 +1132,7 @@ abstract class AppLocalizations {
   /// No description provided for @importFromPhone.
   ///
   /// In fr, this message translates to:
-  /// **'Importer depuis ce téléphone'**
+  /// **'Importer depuis cet appareil'**
   String get importFromPhone;
 
   /// No description provided for @noSearchResults.
@@ -1612,7 +1612,7 @@ abstract class AppLocalizations {
   /// No description provided for @guideHeroBody.
   ///
   /// In fr, this message translates to:
-  /// **'Un serveur rend votre collection accessible depuis le téléphone, sans tout copier. Comptez environ 2 minutes.'**
+  /// **'Un serveur rend votre collection accessible depuis l’app, sans tout copier. Comptez environ 2 minutes.'**
   String get guideHeroBody;
 
   /// No description provided for @howItWorks.
@@ -1642,7 +1642,7 @@ abstract class AppLocalizations {
   /// No description provided for @guideStep2Body.
   ///
   /// In fr, this message translates to:
-  /// **'Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Le téléphone doit être connecté au même réseau Wi-Fi.'**
+  /// **'Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Cet appareil doit être connecté au même réseau.'**
   String get guideStep2Body;
 
   /// No description provided for @guideStep3Title.
@@ -1750,7 +1750,7 @@ abstract class AppLocalizations {
   /// No description provided for @tipSameWifi.
   ///
   /// In fr, this message translates to:
-  /// **'Vérifiez que le téléphone et le serveur sont sur le même Wi-Fi.'**
+  /// **'Vérifiez que cet appareil et le serveur sont sur le même réseau.'**
   String get tipSameWifi;
 
   /// No description provided for @tipUseIp.
@@ -2188,7 +2188,7 @@ abstract class AppLocalizations {
   /// No description provided for @noCompatibleBookFound.
   ///
   /// In fr, this message translates to:
-  /// **'Aucun livre compatible trouvé sur le téléphone.'**
+  /// **'Aucun livre compatible trouvé sur cet appareil.'**
   String get noCompatibleBookFound;
 
   /// No description provided for @alreadyPresentOrSkipped.
@@ -2218,7 +2218,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanPhoneTitle.
   ///
   /// In fr, this message translates to:
-  /// **'Analyser les livres du téléphone ?'**
+  /// **'Analyser les livres de cet appareil ?'**
   String get scanPhoneTitle;
 
   /// No description provided for @scanPhoneBody.
@@ -2248,7 +2248,7 @@ abstract class AppLocalizations {
   /// No description provided for @addComicsFromDeviceBody.
   ///
   /// In fr, this message translates to:
-  /// **'Analysez tous les fichiers compatibles du téléphone, puis choisissez les livres à garder.'**
+  /// **'Analysez tous les fichiers compatibles de cet appareil, puis choisissez les livres à garder.'**
   String get addComicsFromDeviceBody;
 
   /// No description provided for @scanningFiles.
@@ -2260,7 +2260,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanPhone.
   ///
   /// In fr, this message translates to:
-  /// **'Scanner le téléphone'**
+  /// **'Scanner cet appareil'**
   String get scanPhone;
 
   /// No description provided for @addedFilesCount.
@@ -2278,7 +2278,7 @@ abstract class AppLocalizations {
   /// No description provided for @scanPhoneToFindBooks.
   ///
   /// In fr, this message translates to:
-  /// **'Analysez le téléphone pour trouver vos livres.'**
+  /// **'Analysez cet appareil pour trouver vos livres.'**
   String get scanPhoneToFindBooks;
 
   /// No description provided for @formatPageProgress.

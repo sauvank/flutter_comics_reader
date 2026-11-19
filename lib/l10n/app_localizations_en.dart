@@ -580,13 +580,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get libraryEmpty => 'Your library is empty';
 
   @override
-  String get libraryEmptyBody => 'Add comics from a server or from files already on your phone.';
+  String get libraryEmptyBody => 'Add your comics from a server or from files already on this device.';
 
   @override
   String get exploreServers => 'Explore my servers';
 
   @override
-  String get importFromPhone => 'Import from this phone';
+  String get importFromPhone => 'Import from this device';
 
   @override
   String get noSearchResults => 'No results for this search';
@@ -900,7 +900,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideHeroTitle => 'Read the comics stored on your computer or NAS';
 
   @override
-  String get guideHeroBody => 'A server makes your collection available from your phone without copying everything. It takes about 2 minutes.';
+  String get guideHeroBody => 'A server makes your collection available in the app without copying everything. It takes about 2 minutes.';
 
   @override
   String get howItWorks => 'How it works';
@@ -915,7 +915,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideStep2Title => 'Note its address';
 
   @override
-  String get guideStep2Body => 'Find the local IP address of the machine (e.g. 192.168.1.100) and the port of the share. The phone must be on the same Wi-Fi network.';
+  String get guideStep2Body => 'Find the machine’s local IP address (e.g. 192.168.1.100) and the share port. This device must be on the same network.';
 
   @override
   String get guideStep3Title => 'Fill in the form';
@@ -969,7 +969,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cannotConnectTitle => 'Can’t connect?';
 
   @override
-  String get tipSameWifi => 'Check that the phone and the server are on the same Wi-Fi.';
+  String get tipSameWifi => 'Check that this device and the server are on the same network.';
 
   @override
   String get tipUseIp => 'Try the IP address rather than a name (nas.local).';
@@ -1210,7 +1210,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get allFilesAccessRequired => 'Access to all files is required to scan the phone.';
 
   @override
-  String get noCompatibleBookFound => 'No compatible book found on the phone.';
+  String get noCompatibleBookFound => 'No compatible book found on this device.';
 
   @override
   String alreadyPresentOrSkipped(Object skipped) {
@@ -1231,7 +1231,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get permissionNotGranted => 'Permission not granted: no file was scanned.';
 
   @override
-  String get scanPhoneTitle => 'Scan the books on this phone?';
+  String get scanPhoneTitle => 'Scan this device for books?';
 
   @override
   String get scanPhoneBody => 'ComicStream will request file access only to find comics, PDFs and EPUBs. You will then choose the files to import; nothing is copied without confirmation.';
@@ -1246,13 +1246,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addComicsFromDevice => 'Add comics from this device';
 
   @override
-  String get addComicsFromDeviceBody => 'Scan every compatible file on the phone, then choose the books to keep.';
+  String get addComicsFromDeviceBody => 'Scan every compatible file on this device, then choose the books to keep.';
 
   @override
   String get scanningFiles => 'Scanning files…';
 
   @override
-  String get scanPhone => 'Scan the phone';
+  String get scanPhone => 'Scan this device';
 
   @override
   String addedFilesCount(Object length) {
@@ -1263,7 +1263,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noFileAdded => 'No file added';
 
   @override
-  String get scanPhoneToFindBooks => 'Scan the phone to find your books.';
+  String get scanPhoneToFindBooks => 'Scan this device to find your books.';
 
   @override
   String formatPageProgress(Object formatString, Object currentPage1, Object totalPages) {

@@ -321,9 +321,9 @@
   "finished": "Terminés",
   "continueReading": "CONTINUER LA LECTURE",
   "libraryEmpty": "Votre bibliothèque est vide",
-  "libraryEmptyBody": "Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur votre téléphone.",
+  "libraryEmptyBody": "Ajoutez vos BD depuis un serveur ou les fichiers déjà présents sur cet appareil.",
   "exploreServers": "Explorer mes serveurs",
-  "importFromPhone": "Importer depuis ce téléphone",
+  "importFromPhone": "Importer depuis cet appareil",
   "noSearchResults": "Aucun résultat pour cette recherche",
   "noSearchResultsBody": "Essayez un autre mot-clé ou réinitialisez les filtres.",
   "chapterProgressPercent": "Chapitre {current}/{total} ({percent}%)",
@@ -567,12 +567,12 @@
     }
   },
   "guideHeroTitle": "Lisez les BD de votre ordinateur ou NAS",
-  "guideHeroBody": "Un serveur rend votre collection accessible depuis le téléphone, sans tout copier. Comptez environ 2 minutes.",
+  "guideHeroBody": "Un serveur rend votre collection accessible depuis l’app, sans tout copier. Comptez environ 2 minutes.",
   "howItWorks": "Comment faire",
   "guideStep1Title": "Partagez votre dossier de BD",
   "guideStep1Body": "Sur votre NAS ou ordinateur, activez un partage WebDAV, FTP ou HTTP qui pointe vers le dossier contenant vos fichiers CBZ, CBR, PDF ou EPUB. Les exemples ci-dessous détaillent chaque cas.",
   "guideStep2Title": "Notez son adresse",
-  "guideStep2Body": "Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Le téléphone doit être connecté au même réseau Wi-Fi.",
+  "guideStep2Body": "Repérez l’adresse IP locale de la machine (ex. 192.168.1.100) et le port du partage. Cet appareil doit être connecté au même réseau.",
   "guideStep3Title": "Remplissez le formulaire",
   "guideStep3Body": "Touchez « Ajouter un serveur », choisissez le type, puis saisissez l’hôte, le port, le chemin du dossier et, si besoin, l’identifiant et le mot de passe.",
   "guideStep4Title": "Testez puis enregistrez",
@@ -590,7 +590,7 @@
   "ftpCredentials": "compte FTP de la box ou du NAS",
   "ftpTip": "Le FTP n’est pas chiffré : réservez-le à votre réseau domestique.",
   "cannotConnectTitle": "Ça ne se connecte pas ?",
-  "tipSameWifi": "Vérifiez que le téléphone et le serveur sont sur le même Wi-Fi.",
+  "tipSameWifi": "Vérifiez que cet appareil et le serveur sont sur le même réseau.",
   "tipUseIp": "Essayez l’adresse IP plutôt qu’un nom (nas.local).",
   "tipFirewall": "Vérifiez que le pare-feu de l’ordinateur autorise le port choisi.",
   "tipVpn": "Hors de chez vous, passez par un VPN (WireGuard, Tailscale…) plutôt que d’exposer le serveur sur Internet.",
@@ -723,7 +723,7 @@
   "usernameLabel": "Identifiant / Nom d'utilisateur",
   "password": "Mot de passe",
   "allFilesAccessRequired": "L’accès à tous les fichiers est nécessaire pour analyser le téléphone.",
-  "noCompatibleBookFound": "Aucun livre compatible trouvé sur le téléphone.",
+  "noCompatibleBookFound": "Aucun livre compatible trouvé sur cet appareil.",
   "alreadyPresentOrSkipped": " · {skipped} déjà présent(s) ou ignoré(s)",
   "@alreadyPresentOrSkipped": {
     "placeholders": {
@@ -744,14 +744,14 @@
     }
   },
   "permissionNotGranted": "Autorisation non accordée : aucun fichier n’a été analysé.",
-  "scanPhoneTitle": "Analyser les livres du téléphone ?",
+  "scanPhoneTitle": "Analyser les livres de cet appareil ?",
   "scanPhoneBody": "ComicStream demandera l’accès aux fichiers uniquement pour repérer les BD, PDF et EPUB. Vous choisirez ensuite les fichiers à importer ; rien n’est copié sans confirmation.",
   "notNow": "Pas maintenant",
   "deviceFiles": "Fichiers de l’appareil",
   "addComicsFromDevice": "Ajouter des BD depuis cet appareil",
-  "addComicsFromDeviceBody": "Analysez tous les fichiers compatibles du téléphone, puis choisissez les livres à garder.",
+  "addComicsFromDeviceBody": "Analysez tous les fichiers compatibles de cet appareil, puis choisissez les livres à garder.",
   "scanningFiles": "Analyse des fichiers…",
-  "scanPhone": "Scanner le téléphone",
+  "scanPhone": "Scanner cet appareil",
   "addedFilesCount": "Fichiers ajoutés ({length})",
   "@addedFilesCount": {
     "placeholders": {
@@ -759,7 +759,7 @@
     }
   },
   "noFileAdded": "Aucun fichier ajouté",
-  "scanPhoneToFindBooks": "Analysez le téléphone pour trouver vos livres.",
+  "scanPhoneToFindBooks": "Analysez cet appareil pour trouver vos livres.",
   "formatPageProgress": "{formatString} · Page {currentPage1}/{totalPages}",
   "@formatPageProgress": {
     "placeholders": {
