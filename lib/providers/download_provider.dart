@@ -42,12 +42,21 @@ class DownloadProvider extends ChangeNotifier {
 
   List<DownloadTask> get tasks => List.unmodifiable(_tasks);
 
-  List<DownloadTask> get activeTasks => _tasks
-      .where((t) =>
-          t.status == DownloadStatus.downloading ||
-          t.status == DownloadStatus.converting ||
-          t.status == DownloadStatus.pending)
-      .toList();
+  /// Running downloads first, then the waiting ones in the order the queue
+  /// will start them (oldest first).
+  List<DownloadTask> get activeTasks {
+    final running = _tasks
+        .where((t) =>
+            t.status == DownloadStatus.downloading ||
+            t.status == DownloadStatus.converting)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    final waiting = _tasks
+        .where((t) => t.status == DownloadStatus.pending)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return [...running, ...waiting];
+  }
 
   DownloadTask? getTask(String taskId) {
     try {
@@ -267,8 +276,8 @@ class DownloadProvider extends ChangeNotifier {
             task.id,
             DownloadStatus.converting,
             progress: mappedProgress,
-            statusDescription:
-                l10n.convertingHdProgress(prog.currentPage, prog.totalPages, etaText),
+            statusDescription: l10n.convertingHdProgress(
+                prog.currentPage, prog.totalPages, etaText),
           );
         }
 
