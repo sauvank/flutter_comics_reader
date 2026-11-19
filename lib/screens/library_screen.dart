@@ -1277,14 +1277,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                     const Spacer(),
                     if (undownloadedRemote.length > 1)
-                      TextButton.icon(
-                        style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact),
-                        icon: const Icon(Icons.download_for_offline_outlined,
-                            size: 16),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.download_rounded, size: 18),
                         label: Text(
                             l10n.downloadAllCount(undownloadedRemote.length),
-                            style: const TextStyle(fontSize: 11)),
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w600)),
                         onPressed: () {
                           for (final f in undownloadedRemote) {
                             downloadProvider.enqueueDownload(

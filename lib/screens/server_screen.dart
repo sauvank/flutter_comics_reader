@@ -899,16 +899,15 @@ class _ServerScreenState extends State<ServerScreen> {
                   ),
                 ),
                 if (undownloadedBooks.isNotEmpty)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       visualDensity: VisualDensity.compact,
                     ),
-                    icon: const Icon(Icons.download_for_offline_outlined,
-                        size: 16),
-                    label: Text(l10n.everythingCount(undownloadedBooks.length),
-                        style: const TextStyle(fontSize: 11)),
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: Text(l10n.downloadAllCount(undownloadedBooks.length),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600)),
                     onPressed: () async {
                       if (undownloadedBooks.length > 3) {
                         final confirm = await showDialog<bool>(

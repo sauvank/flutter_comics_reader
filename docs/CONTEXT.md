@@ -211,7 +211,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
 ### 📥 Gestionnaire de Téléchargement & File d'attente
 * **Téléchargements Simultanés (Multi-queue)** : Jusqu'à 2 transferts en parallèle sans bloquer la bande passante ni la mémoire de la tablette.
 * **Minuteur Dynamique (ETA)** : Calcul du temps restant en direct (*ex: `~ 15s restantes`*).
-* **Bouton « Tout télécharger » Intelligent** : Détecte les tomes déjà présents et ne télécharge que les nouveautés, avec affichage `Tous téléchargés ✅` si tout est complet.
+* **Bouton « Tout télécharger » Intelligent** : Détecte les tomes déjà présents et ne télécharge que les nouveautés, avec affichage `Tous téléchargés ✅` si tout est complet. Bouton plein (couleur principale) dans la fiche série et dans l’explorateur serveur, libellé « Tout télécharger (n) ».
 * **Fonctionnement en Arrière-Plan** : Bouton « Arrière-plan » permettant de naviguer dans l'application pendant que les transferts et conversions se poursuivent en tâche de fond.
 * **Gestion du Local** : Bouton 3-petits-points pour « Supprimer du local » sans toucher au serveur distant.
 
