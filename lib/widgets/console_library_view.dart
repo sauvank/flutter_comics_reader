@@ -457,13 +457,27 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  s.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.displaySmall
-                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05),
-                ),
+                // Always two lines tall, text at the bottom: the page no
+                // longer jumps when a title takes one or two lines.
+                Builder(builder: (context) {
+                  final style = theme.textTheme.displaySmall
+                      ?.copyWith(fontWeight: FontWeight.w900, height: 1.05);
+                  final line = MediaQuery.textScalerOf(context)
+                          .scale(style?.fontSize ?? 36) *
+                      1.05;
+                  return SizedBox(
+                    height: line * 2 + 4,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: Text(
+                        s.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: style,
+                      ),
+                    ),
+                  );
+                }),
                 const SizedBox(height: 10),
                 Wrap(spacing: 8, runSpacing: 6, children: [
                   for (final c in chips)

@@ -470,42 +470,49 @@ class ConsoleActionButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final bg = action.primary ? cs.primary : cs.surfaceContainerHigh;
     final fg = action.primary ? cs.onPrimary : cs.onSurface;
-    return AnimatedScale(
-      scale: focused ? 1.07 : 1,
+    // Neighbours move aside so the enlarged ring never touches them.
+    return AnimatedPadding(
       duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutBack,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(99),
-          boxShadow: [
-            if (focused) ...[
-              BoxShadow(color: cs.primary, spreadRadius: 7),
-              const BoxShadow(color: Colors.white, spreadRadius: 4),
+      padding: EdgeInsets.symmetric(horizontal: focused ? 10 : 0),
+      child: AnimatedScale(
+        scale: focused ? 1.07 : 1,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(99),
+            boxShadow: [
+              if (focused) ...[
+                BoxShadow(color: cs.primary, spreadRadius: 7),
+                const BoxShadow(color: Colors.white, spreadRadius: 4),
+              ],
             ],
-          ],
-        ),
-        child: Material(
-          color: bg,
-          shape: const StadiumBorder(),
-          child: InkWell(
-            customBorder: const StadiumBorder(),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (action.icon != null) ...[
-                    Icon(action.icon, size: 20, color: fg),
-                    const SizedBox(width: 8),
+          ),
+          child: Material(
+            color: bg,
+            shape: const StadiumBorder(),
+            child: InkWell(
+              customBorder: const StadiumBorder(),
+              onTap: onTap,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (action.icon != null) ...[
+                      Icon(action.icon, size: 20, color: fg),
+                      const SizedBox(width: 8),
+                    ],
+                    Text(action.label,
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 15,
+                            color: fg)),
                   ],
-                  Text(action.label,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 15,
-                          color: fg)),
-                ],
+                ),
               ),
             ),
           ),
