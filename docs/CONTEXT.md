@@ -184,7 +184,7 @@ l’interface plafonne le facteur de texte Android à 115 %.
 ## ⚡ 4. Fonctionnalités Implémentées & État Actuel
 
 ### 🖥️ Interface PC (fenêtre ≥ 900 px)
-* `lib/utils/desktop_layout.dart` (`DesktopLayout.isWide`, `DesktopContent`) : menu latéral (`_DesktopSidebar` dans `home_screen.dart`) au lieu de la barre du bas, contenu centré ≤ 1180 px. Le mobile est inchangé.
+* `lib/utils/desktop_layout.dart` (`DesktopLayout.isWide`, `DesktopContent`) : menu latéral (`_DesktopSidebar` dans `home_screen.dart`) au lieu de la barre du bas, contenu centré ≤ 1180 px. Le mobile est inchangé. Pages en colonne lisible : Compte 720 px, Réglages 800, guide serveur 860, Téléchargements 900 ; toute nouvelle page doit passer par `DesktopContent`.
 * Bibliothèque : en-tête sur une ligne, 3 cartes « Reprendre ». Fichiers : sélecteurs fichier/dossier (`file_picker`) + tableau. Serveurs : liste + guide compact.
 * Lecteur CBZ : double page en paysage large (`ReaderSettingsService.doublePage`, local, non synchronisé ; bouton « 1 page / 2 pages » dans la barre du haut, touche D) ; les items du `PageView` sont des doubles pages, `_currentPage` reste un index de page.
 * UX souris/clavier (le visuel reste celui du mobile, choix de l'utilisateur) : clic droit et menu ⋮ au survol sur `BookCard` ; `showAdaptiveSheet` (`desktop_layout.dart`) = tiroir sur mobile, fenêtre centrée sur PC, utilisé à la place de `showModalBottomSheet` ; molette = page suivante/précédente dans le lecteur CBZ horizontal (Ctrl + molette = zoom) ; Échap / Alt+← / bouton « précédent » de la souris = retour (`_DesktopNavigationShortcuts`, `main.dart`) ; bibliothèque : Ctrl+F / Ctrl+K = recherche, F5 = recharger.

@@ -7,6 +7,7 @@ import '../providers/server_provider.dart';
 import '../utils/format_utils.dart';
 import 'synced_reader_screen.dart';
 import '../l10n/l10n.dart';
+import '../utils/desktop_layout.dart';
 
 class DownloadsScreen extends StatelessWidget {
   const DownloadsScreen({super.key, this.onNavigateToServers});
@@ -48,91 +49,95 @@ class DownloadsScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: tasks.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.cloud_done_outlined,
-                        size: 56, color: Colors.grey.shade600),
-                    const SizedBox(height: 16),
-                    Text(l10n.noDownloadInProgress,
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.noDownloadInProgressBody,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          fontSize: 13),
-                    ),
-                    if (onNavigateToServers != null) ...[
-                      const SizedBox(height: 20),
-                      FilledButton.icon(
-                        onPressed: onNavigateToServers,
-                        icon: const Icon(Icons.dns_outlined),
-                        label: Text(l10n.exploreServers),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            )
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    // Active Section
-                    if (activeTasks.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              l10n.inProgressCount(activeTasks.length),
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                      for (final task in activeTasks)
-                        _buildActiveTaskCard(
-                            context, task, downloadProvider, theme),
+      body: DesktopContent(
+        maxWidth: 900,
+        child: tasks.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.cloud_done_outlined,
+                          size: 56, color: Colors.grey.shade600),
                       const SizedBox(height: 16),
-                    ],
-
-                    // Finished & Other Section
-                    if (otherTasks.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 8),
-                        child: Text(
-                          l10n.historyCount(otherTasks.length),
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.grey),
-                        ),
+                      Text(l10n.noDownloadInProgress,
+                          style: TextStyle(
+                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.noDownloadInProgressBody,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 13),
                       ),
-                      for (final task in otherTasks)
-                        _buildCompletedTaskCard(
-                            context, task, downloadProvider, theme),
+                      if (onNavigateToServers != null) ...[
+                        const SizedBox(height: 20),
+                        FilledButton.icon(
+                          onPressed: onNavigateToServers,
+                          icon: const Icon(Icons.dns_outlined),
+                          label: Text(l10n.exploreServers),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
+                ),
+              )
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: ListView(
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      // Active Section
+                      if (activeTasks.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                l10n.inProgressCount(activeTasks.length),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        for (final task in activeTasks)
+                          _buildActiveTaskCard(
+                              context, task, downloadProvider, theme),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Finished & Other Section
+                      if (otherTasks.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 8),
+                          child: Text(
+                            l10n.historyCount(otherTasks.length),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey),
+                          ),
+                        ),
+                        for (final task in otherTasks)
+                          _buildCompletedTaskCard(
+                              context, task, downloadProvider, theme),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -284,10 +289,12 @@ class DownloadsScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   isSuccess
-                      ? l10n.doneWithSize(FormatUtils.formatBytes(task.totalBytes))
+                      ? l10n.doneWithSize(
+                          FormatUtils.formatBytes(task.totalBytes))
                       : isCancelled
                           ? l10n.cancelled
-                          : l10n.failedWithReason(task.errorMessage ?? l10n.networkError),
+                          : l10n.failedWithReason(
+                              task.errorMessage ?? l10n.networkError),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

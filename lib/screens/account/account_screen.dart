@@ -570,9 +570,12 @@ class _AccountScreenState extends State<AccountScreen> {
     if (!FirebaseBootstrap.isAvailable) {
       return Scaffold(
         appBar: AppBar(title: Text(l10n.accountAndSync)),
-        body: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(l10n.syncUnavailableNoFirebase),
+        body: DesktopContent(
+          maxWidth: 720,
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(l10n.syncUnavailableNoFirebase),
+          ),
         ),
       );
     }
@@ -586,417 +589,436 @@ class _AccountScreenState extends State<AccountScreen> {
         }
         return Scaffold(
           appBar: AppBar(title: Text(l10n.accountAndSync)),
-          body: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              if (user != null) ...[
-                ListTile(
-                  leading: Icon(
-                    _hasLocalVault == true
-                        ? Icons.verified_user_outlined
-                        : Icons.lock_outline,
-                    color: _hasLocalVault == true ? Colors.green : Colors.amber,
-                  ),
-                  title: Text(user.email ?? l10n.accountConnected),
-                  subtitle: Text(
-                    _hasLocalVault == true
-                        ? l10n.vaultUnlockedE2e
-                        : l10n.vaultLockedOrNew,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (_loadingVault) ...[
-                  const Center(
-                      child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: CircularProgressIndicator())),
-                ] else if (_hasLocalVault == false) ...[
-                  Card(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .surfaceContainerHighest
-                        .withAlpha(120),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _hasRemoteVault == true
-                                    ? Icons.lock_reset
-                                    : Icons.shield_outlined,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _hasRemoteVault == true
-                                      ? l10n.unlockVault
-                                      : l10n.initEncryptedVault,
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _hasRemoteVault == true
-                                ? l10n.unlockVaultBody
-                                : l10n.initVaultBody,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _phrase,
-                            obscureText: _obscurePhrase,
-                            decoration: InputDecoration(
-                              labelText: _hasRemoteVault == true
-                                  ? l10n.recoveryPhrase
-                                  : l10n.secretPhraseMin16,
-                              border: const OutlineInputBorder(),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscurePhrase
-                                    ? Icons.visibility
-                                    : Icons.visibility_off),
-                                onPressed: () => setState(
-                                    () => _obscurePhrase = !_obscurePhrase),
-                                tooltip: _obscurePhrase
-                                    ? l10n.showPhrase
-                                    : l10n.hidePhrase,
-                              ),
-                            ),
-                          ),
-                          if (_hasRemoteVault != true) ...[
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _confirmPhrase,
-                              obscureText: _obscureConfirmPhrase,
-                              decoration: InputDecoration(
-                                labelText: l10n.confirmSecretPhrase,
-                                border: const OutlineInputBorder(),
-                                suffixIcon: IconButton(
-                                  icon: Icon(_obscureConfirmPhrase
-                                      ? Icons.visibility
-                                      : Icons.visibility_off),
-                                  onPressed: () => setState(() =>
-                                      _obscureConfirmPhrase =
-                                          !_obscureConfirmPhrase),
-                                  tooltip: _obscureConfirmPhrase
-                                      ? l10n.showPhrase
-                                      : l10n.hidePhrase,
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                              onPressed: _busy
-                                  ? null
-                                  : () => _run(() async {
-                                        final phrase = _phrase.text.trim();
-                                        if (_hasRemoteVault == true) {
-                                          if (phrase.isEmpty) {
-                                            throw ArgumentError(
-                                                l10n.enterRecoveryPhrase);
-                                          }
-                                          await _sync.restoreVault(phrase);
-                                        } else {
-                                          final confirm =
-                                              _confirmPhrase.text.trim();
-                                          if (phrase.length < 16) {
-                                            throw ArgumentError(
-                                                l10n.secretPhraseTooShort);
-                                          }
-                                          if (phrase != confirm) {
-                                            throw ArgumentError(
-                                                l10n.secretPhrasesDoNotMatch);
-                                          }
-                                          final confirmed =
-                                              await _showConfirmCreationDialog(
-                                                  phrase);
-                                          if (!confirmed) return;
-                                          await _sync.createVault(phrase);
-                                        }
-                                        _phrase.clear();
-                                        _confirmPhrase.clear();
-                                        await _checkVault();
-                                      }),
-                              icon: Icon(_hasRemoteVault == true
-                                  ? Icons.lock_open
-                                  : Icons.vpn_key),
-                              label: Text(
-                                _hasRemoteVault == true
-                                    ? l10n.unlockSync
-                                    : l10n.createAndEnableVault,
-                              ),
-                            ),
-                          ),
-                          if (_hasRemoteVault == true) ...[
-                            const SizedBox(height: 8),
-                            Center(
-                              child: TextButton(
-                                onPressed: _busy ? null : _showResetVaultDialog,
-                                child: Text(l10n.forgotPhraseReset),
-                              ),
-                            ),
-                          ],
-                        ],
+          // Readable column on PC instead of stretching to the window.
+          body: DesktopContent(
+              maxWidth: 720,
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  if (user != null) ...[
+                    ListTile(
+                      leading: Icon(
+                        _hasLocalVault == true
+                            ? Icons.verified_user_outlined
+                            : Icons.lock_outline,
+                        color: _hasLocalVault == true
+                            ? Colors.green
+                            : Colors.amber,
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ] else ...[
-                  if (automaticSync.status == SyncStatus.conflict) ...[
-                    Card(
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      child: ListTile(
-                        leading: Icon(Icons.warning_amber_rounded,
-                            color:
-                                Theme.of(context).colorScheme.onErrorContainer),
-                        title: Text(l10n.syncConflict),
-                        subtitle: Text(
-                          l10n.pendingConflicts(automaticSync.conflicts.length),
-                        ),
-                        trailing: FilledButton(
-                          onPressed: _syncing
-                              ? null
-                              : () => _resolveAutomaticConflicts(automaticSync),
-                          child: Text(l10n.view),
-                        ),
+                      title: Text(user.email ?? l10n.accountConnected),
+                      subtitle: Text(
+                        _hasLocalVault == true
+                            ? l10n.vaultUnlockedE2e
+                            : l10n.vaultLockedOrNew,
                       ),
                     ),
                     const SizedBox(height: 12),
-                  ],
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
+                    if (_loadingVault) ...[
+                      const Center(
+                          child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator())),
+                    ] else if (_hasLocalVault == false) ...[
+                      Card(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest
+                            .withAlpha(120),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.verified_user,
-                                  color: Colors.green),
-                              const SizedBox(width: 8),
+                              Row(
+                                children: [
+                                  Icon(
+                                    _hasRemoteVault == true
+                                        ? Icons.lock_reset
+                                        : Icons.shield_outlined,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _hasRemoteVault == true
+                                          ? l10n.unlockVault
+                                          : l10n.initEncryptedVault,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
                               Text(
-                                l10n.vaultUnlocked,
-                                style: Theme.of(context).textTheme.titleMedium,
+                                _hasRemoteVault == true
+                                    ? l10n.unlockVaultBody
+                                    : l10n.initVaultBody,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _phrase,
+                                obscureText: _obscurePhrase,
+                                decoration: InputDecoration(
+                                  labelText: _hasRemoteVault == true
+                                      ? l10n.recoveryPhrase
+                                      : l10n.secretPhraseMin16,
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(_obscurePhrase
+                                        ? Icons.visibility
+                                        : Icons.visibility_off),
+                                    onPressed: () => setState(
+                                        () => _obscurePhrase = !_obscurePhrase),
+                                    tooltip: _obscurePhrase
+                                        ? l10n.showPhrase
+                                        : l10n.hidePhrase,
+                                  ),
+                                ),
+                              ),
+                              if (_hasRemoteVault != true) ...[
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _confirmPhrase,
+                                  obscureText: _obscureConfirmPhrase,
+                                  decoration: InputDecoration(
+                                    labelText: l10n.confirmSecretPhrase,
+                                    border: const OutlineInputBorder(),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(_obscureConfirmPhrase
+                                          ? Icons.visibility
+                                          : Icons.visibility_off),
+                                      onPressed: () => setState(() =>
+                                          _obscureConfirmPhrase =
+                                              !_obscureConfirmPhrase),
+                                      tooltip: _obscureConfirmPhrase
+                                          ? l10n.showPhrase
+                                          : l10n.hidePhrase,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton.icon(
+                                  onPressed: _busy
+                                      ? null
+                                      : () => _run(() async {
+                                            final phrase = _phrase.text.trim();
+                                            if (_hasRemoteVault == true) {
+                                              if (phrase.isEmpty) {
+                                                throw ArgumentError(
+                                                    l10n.enterRecoveryPhrase);
+                                              }
+                                              await _sync.restoreVault(phrase);
+                                            } else {
+                                              final confirm =
+                                                  _confirmPhrase.text.trim();
+                                              if (phrase.length < 16) {
+                                                throw ArgumentError(
+                                                    l10n.secretPhraseTooShort);
+                                              }
+                                              if (phrase != confirm) {
+                                                throw ArgumentError(l10n
+                                                    .secretPhrasesDoNotMatch);
+                                              }
+                                              final confirmed =
+                                                  await _showConfirmCreationDialog(
+                                                      phrase);
+                                              if (!confirmed) return;
+                                              await _sync.createVault(phrase);
+                                            }
+                                            _phrase.clear();
+                                            _confirmPhrase.clear();
+                                            await _checkVault();
+                                          }),
+                                  icon: Icon(_hasRemoteVault == true
+                                      ? Icons.lock_open
+                                      : Icons.vpn_key),
+                                  label: Text(
+                                    _hasRemoteVault == true
+                                        ? l10n.unlockSync
+                                        : l10n.createAndEnableVault,
+                                  ),
+                                ),
+                              ),
+                              if (_hasRemoteVault == true) ...[
+                                const SizedBox(height: 8),
+                                Center(
+                                  child: TextButton(
+                                    onPressed:
+                                        _busy ? null : _showResetVaultDialog,
+                                    child: Text(l10n.forgotPhraseReset),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ] else ...[
+                      if (automaticSync.status == SyncStatus.conflict) ...[
+                        Card(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          child: ListTile(
+                            leading: Icon(Icons.warning_amber_rounded,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onErrorContainer),
+                            title: Text(l10n.syncConflict),
+                            subtitle: Text(
+                              l10n.pendingConflicts(
+                                  automaticSync.conflicts.length),
+                            ),
+                            trailing: FilledButton(
+                              onPressed: _syncing
+                                  ? null
+                                  : () =>
+                                      _resolveAutomaticConflicts(automaticSync),
+                              child: Text(l10n.view),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.verified_user,
+                                      color: Colors.green),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    l10n.vaultUnlocked,
+                                    style:
+                                        Theme.of(context).textTheme.titleMedium,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                l10n.syncActiveE2e,
+                              ),
+                              const SizedBox(height: 16),
+                              if (_syncing) ...[
+                                const LinearProgressIndicator(),
+                                const SizedBox(height: 12),
+                              ],
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final syncButton = FilledButton.icon(
+                                    onPressed: _busy ? null : _startManualSync,
+                                    icon: _syncing
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Icon(Icons.sync),
+                                    label: Text(_syncing
+                                        ? l10n.syncing
+                                        : l10n.synchronize),
+                                  );
+                                  final recoveryButton = OutlinedButton.icon(
+                                    onPressed: _busy
+                                        ? null
+                                        : _showEditRecoveryPhraseDialog,
+                                    icon: const Icon(Icons.key),
+                                    label: Text(l10n.changePhrase),
+                                  );
+                                  if (constraints.maxWidth < 520) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        syncButton,
+                                        const SizedBox(height: 8),
+                                        recoveryButton,
+                                      ],
+                                    );
+                                  }
+                                  return Row(
+                                    children: [
+                                      Expanded(child: syncButton),
+                                      const SizedBox(width: 8),
+                                      recoveryButton,
+                                    ],
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading:
+                                    const Icon(Icons.devices_other_outlined),
+                                title: Text(l10n.thisDeviceName),
+                                subtitle: Text(l10n.shownWhenChoosingBackup),
+                                trailing: OutlinedButton(
+                                  onPressed:
+                                      _busy ? null : _showDeviceNameDialog,
+                                  child: Text(l10n.edit),
+                                ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.syncActiveE2e,
-                          ),
-                          const SizedBox(height: 16),
-                          if (_syncing) ...[
-                            const LinearProgressIndicator(),
-                            const SizedBox(height: 12),
-                          ],
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final syncButton = FilledButton.icon(
-                                onPressed: _busy ? null : _startManualSync,
-                                icon: _syncing
-                                    ? const SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Icon(Icons.sync),
-                                label: Text(
-                                    _syncing ? l10n.syncing : l10n.synchronize),
-                              );
-                              final recoveryButton = OutlinedButton.icon(
-                                onPressed: _busy
-                                    ? null
-                                    : _showEditRecoveryPhraseDialog,
-                                icon: const Icon(Icons.key),
-                                label: Text(l10n.changePhrase),
-                              );
-                              if (constraints.maxWidth < 520) {
-                                return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    syncButton,
-                                    const SizedBox(height: 8),
-                                    recoveryButton,
-                                  ],
-                                );
-                              }
-                              return Row(
-                                children: [
-                                  Expanded(child: syncButton),
-                                  const SizedBox(width: 8),
-                                  recoveryButton,
-                                ],
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 8),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(Icons.devices_other_outlined),
-                            title: Text(l10n.thisDeviceName),
-                            subtitle: Text(l10n.shownWhenChoosingBackup),
-                            trailing: OutlinedButton(
-                              onPressed: _busy ? null : _showDeviceNameDialog,
-                              child: Text(l10n.edit),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    OutlinedButton(
+                      onPressed: _busy
+                          ? null
+                          : () => _run(() async {
+                                await _sync.signOut();
+                                setState(() {
+                                  _hasLocalVault = null;
+                                  _hasRemoteVault = null;
+                                });
+                              }),
+                      child: Text(l10n.signOut),
+                    ),
+                  ] else ...[
+                    Text(_createMode ? l10n.createAccount : l10n.signIn,
+                        style: Theme.of(context).textTheme.headlineSmall),
+                    const SizedBox(height: 12),
+                    TextField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                            labelText: 'E-mail', border: OutlineInputBorder())),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _password,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: l10n.passwordMin12,
+                        border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                          tooltip: _obscurePassword
+                              ? l10n.showPassword
+                              : l10n.hidePassword,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                OutlinedButton(
-                  onPressed: _busy
-                      ? null
-                      : () => _run(() async {
-                            await _sync.signOut();
-                            setState(() {
-                              _hasLocalVault = null;
-                              _hasRemoteVault = null;
-                            });
-                          }),
-                  child: Text(l10n.signOut),
-                ),
-              ] else ...[
-                Text(_createMode ? l10n.createAccount : l10n.signIn,
-                    style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 12),
-                TextField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                        labelText: 'E-mail', border: OutlineInputBorder())),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _password,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: l10n.passwordMin12,
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility
-                          : Icons.visibility_off),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                      tooltip: _obscurePassword
-                          ? l10n.showPassword
-                          : l10n.hidePassword,
-                    ),
-                  ),
-                ),
-                if (_createMode) ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _recovery,
-                    obscureText: _obscureRecovery,
-                    decoration: InputDecoration(
-                      labelText: l10n.secretPhraseMin16,
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureRecovery
-                            ? Icons.visibility
-                            : Icons.visibility_off),
-                        onPressed: () => setState(
-                            () => _obscureRecovery = !_obscureRecovery),
-                        tooltip: _obscureRecovery
-                            ? l10n.showPhrase
-                            : l10n.hidePhrase,
+                    if (_createMode) ...[
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _recovery,
+                        obscureText: _obscureRecovery,
+                        decoration: InputDecoration(
+                          labelText: l10n.secretPhraseMin16,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureRecovery
+                                ? Icons.visibility
+                                : Icons.visibility_off),
+                            onPressed: () => setState(
+                                () => _obscureRecovery = !_obscureRecovery),
+                            tooltip: _obscureRecovery
+                                ? l10n.showPhrase
+                                : l10n.hidePhrase,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _confirmRecovery,
-                    obscureText: _obscureConfirmRecovery,
-                    decoration: InputDecoration(
-                      labelText: l10n.confirmSecretPhrase,
-                      border: const OutlineInputBorder(),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmRecovery
-                            ? Icons.visibility
-                            : Icons.visibility_off),
-                        onPressed: () => setState(() =>
-                            _obscureConfirmRecovery = !_obscureConfirmRecovery),
-                        tooltip: _obscureConfirmRecovery
-                            ? l10n.showPhrase
-                            : l10n.hidePhrase,
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: _confirmRecovery,
+                        obscureText: _obscureConfirmRecovery,
+                        decoration: InputDecoration(
+                          labelText: l10n.confirmSecretPhrase,
+                          border: const OutlineInputBorder(),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureConfirmRecovery
+                                ? Icons.visibility
+                                : Icons.visibility_off),
+                            onPressed: () => setState(() =>
+                                _obscureConfirmRecovery =
+                                    !_obscureConfirmRecovery),
+                            tooltip: _obscureConfirmRecovery
+                                ? l10n.showPhrase
+                                : l10n.hidePhrase,
+                          ),
+                        ),
                       ),
+                    ],
+                    const SizedBox(height: 16),
+                    FilledButton(
+                      onPressed: _busy
+                          ? null
+                          : () => _run(() async {
+                                if (_createMode) {
+                                  final phrase = _recovery.text.trim();
+                                  final confirm = _confirmRecovery.text.trim();
+                                  if (phrase.length < 16) {
+                                    throw ArgumentError(
+                                        l10n.secretPhraseTooShort);
+                                  }
+                                  if (phrase != confirm) {
+                                    throw ArgumentError(
+                                        l10n.secretPhrasesDoNotMatch);
+                                  }
+                                  final confirmed =
+                                      await _showConfirmCreationDialog(phrase);
+                                  if (!confirmed) return;
+                                  await _sync.createAccount(
+                                      email: _email.text,
+                                      password: _password.text);
+                                  await _sync.createVault(phrase);
+                                } else {
+                                  await _sync.signIn(
+                                      email: _email.text,
+                                      password: _password.text);
+                                }
+                                await _checkVault();
+                              }),
+                      child: Text(
+                          _createMode ? l10n.createTheAccount : l10n.signIn),
                     ),
-                  ),
+                    TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () => setState(() => _createMode = !_createMode),
+                      child: Text(_createMode
+                          ? l10n.alreadyHaveAccount
+                          : l10n.createAccount),
+                    ),
+                    // Windows signs in through the browser when the build has a
+                    // desktop OAuth client; Linux keeps email and password only.
+                    if (FirebaseBootstrap.supportsGoogleSignIn) ...[
+                      const Divider(height: 32),
+                      OutlinedButton.icon(
+                        onPressed: _busy
+                            ? null
+                            : () => _run(() async {
+                                  await _sync.signInWithGoogle();
+                                  await _checkVault();
+                                }),
+                        icon: const Icon(Icons.g_mobiledata),
+                        label: Text(l10n.continueWithGoogle),
+                      ),
+                    ],
+                  ],
+                  const SizedBox(height: 24),
+                  Text(l10n.recoveryPhraseRequiredNote),
                 ],
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _busy
-                      ? null
-                      : () => _run(() async {
-                            if (_createMode) {
-                              final phrase = _recovery.text.trim();
-                              final confirm = _confirmRecovery.text.trim();
-                              if (phrase.length < 16) {
-                                throw ArgumentError(l10n.secretPhraseTooShort);
-                              }
-                              if (phrase != confirm) {
-                                throw ArgumentError(
-                                    l10n.secretPhrasesDoNotMatch);
-                              }
-                              final confirmed =
-                                  await _showConfirmCreationDialog(phrase);
-                              if (!confirmed) return;
-                              await _sync.createAccount(
-                                  email: _email.text, password: _password.text);
-                              await _sync.createVault(phrase);
-                            } else {
-                              await _sync.signIn(
-                                  email: _email.text, password: _password.text);
-                            }
-                            await _checkVault();
-                          }),
-                  child:
-                      Text(_createMode ? l10n.createTheAccount : l10n.signIn),
-                ),
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() => _createMode = !_createMode),
-                  child: Text(_createMode
-                      ? l10n.alreadyHaveAccount
-                      : l10n.createAccount),
-                ),
-                // Windows signs in through the browser when the build has a
-                // desktop OAuth client; Linux keeps email and password only.
-                if (FirebaseBootstrap.supportsGoogleSignIn) ...[
-                  const Divider(height: 32),
-                  OutlinedButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _run(() async {
-                              await _sync.signInWithGoogle();
-                              await _checkVault();
-                            }),
-                    icon: const Icon(Icons.g_mobiledata),
-                    label: Text(l10n.continueWithGoogle),
-                  ),
-                ],
-              ],
-              const SizedBox(height: 24),
-              Text(l10n.recoveryPhraseRequiredNote),
-            ],
-          ),
+              )),
         );
       },
     );
