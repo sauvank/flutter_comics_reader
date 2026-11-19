@@ -61,6 +61,8 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
   String? _shownSeries;
 
   // Tile sizes, recomputed from the available height.
+  double _viewW = 1200;
+  static const _tilt = .42;
   double _sw = 196, _sh = 274, _vw = 118, _vh = 165;
 
   SeriesItem? get _current => widget.series.isEmpty ? null : widget.series[_si];
@@ -193,8 +195,20 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
           if (s != null) _vi = (_vi + dx).clamp(0, s.books.length - 1).toInt();
       }
     });
-    if (_row == _ConsoleRow.series) _scrollTo(_seriesScroll, _si, _sw);
+    if (_row == _ConsoleRow.series) _centerSeries();
     if (_row == _ConsoleRow.volumes) _scrollTo(_volumeScroll, _vi, _vw);
+  }
+
+  /// Series row: slides so the selected series sits in the middle.
+  void _centerSeries() {
+    final c = _seriesScroll;
+    if (!c.hasClients) return;
+    // Side padding is half the viewport, so item i is centred at i * extent;
+    // the focused tile also gets its extra margin on the left.
+    final grow = _row == _ConsoleRow.series ? _sw * .06 + 10 : 0.0;
+    final target =
+        (_si * (_sw + _gap) + grow).clamp(0.0, c.position.maxScrollExtent);
+    c.animateTo(target, duration: _move, curve: Curves.easeOutCubic);
   }
 
   /// Keeps the focused tile near the left edge with a neighbour visible.
@@ -250,6 +264,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
     final amb = s == null ? theme.colorScheme.primary : consoleColor(s.name);
 
     return LayoutBuilder(builder: (context, box) {
+      _viewW = box.maxWidth;
       final h = box.maxHeight;
       // Height left for the two rows once tabs, hints, the series sheet and
       // the row paddings are taken; volumes are 60 % of the series height.
@@ -372,7 +387,11 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
           controller: _seriesScroll,
           scrollDirection: Axis.horizontal,
           clipBehavior: Clip.hardEdge,
-          padding: EdgeInsets.symmetric(horizontal: 28, vertical: padV),
+          // Half a viewport on each side: any series, even the first or the
+          // last, can slide to the centre.
+          padding: EdgeInsets.symmetric(
+              horizontal: math.max(28.0, (_viewW - _sw) / 2 - 11),
+              vertical: padV),
           itemCount: widget.series.length,
           itemBuilder: (context, i) {
             final s = widget.series[i];
@@ -397,6 +416,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
                     _row = _ConsoleRow.actions;
                     _ai = 0;
                   });
+                  _centerSeries();
                 },
                 child: Semantics(
                   button: true,
@@ -412,6 +432,9 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
                         ? i != _si
                         : false,
                     pulse: _pulse,
+                    // Only the selected series faces front; the others turn
+                    // slightly towards it.
+                    tilt: i == _si ? 0 : (i < _si ? _tilt : -_tilt),
                     pileColor:
                         s.totalBooks > 1 ? consoleColor(s.name, l: .38) : null,
                     pileCount: math.min(2, s.totalBooks - 1),

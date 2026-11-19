@@ -165,9 +165,14 @@ class ConsoleTile extends StatelessWidget {
     this.bottomLeft,
     this.badge,
     this.progress = 0,
+    this.tilt = 0,
   });
 
   final double width, height, radius, scale;
+
+  /// Rotation around the vertical axis (radians), animated: tiles beside the
+  /// selected one turn slightly towards it, like a cover flow.
+  final double tilt;
   final bool focused, dimmed;
   final Animation<double> pulse;
   final Widget cover;
@@ -190,108 +195,120 @@ class ConsoleTile extends StatelessWidget {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 250),
         opacity: dimmed ? .5 : 1,
-        child: AnimatedScale(
-          duration: d,
-          curve: spring,
-          scale: focused ? scale : 1,
-          child: AnimatedSlide(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: tilt),
+          duration: const Duration(milliseconds: 480),
+          curve: Curves.easeOutCubic,
+          builder: (context, a, child) => Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, .0012)
+              ..rotateY(a),
+            child: child,
+          ),
+          child: AnimatedScale(
             duration: d,
             curve: spring,
-            offset: Offset(0, focused ? -.03 : 0),
-            child: SizedBox(
-              width: width,
-              height: height,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // Pile of volumes behind the cover, tucked away when focused.
-                  if (pileColor != null)
-                    for (var p = pileCount; p >= 1; p--)
-                      Positioned.fill(
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 220),
-                          opacity: focused ? 0 : 1,
-                          child: Transform.translate(
-                            offset: Offset(0, -7.0 * p),
-                            child: Transform.scale(
-                              scale: 1 - .07 * p,
-                              alignment: Alignment.topCenter,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Color.lerp(
-                                      pileColor, Colors.black, .12 * (p - 1)),
-                                  borderRadius: BorderRadius.circular(radius),
-                                  border: Border(
-                                      top: BorderSide(
-                                          color: Colors.white
-                                              .withValues(alpha: .3))),
+            scale: focused ? scale : 1,
+            child: AnimatedSlide(
+              duration: d,
+              curve: spring,
+              offset: Offset(0, focused ? -.03 : 0),
+              child: SizedBox(
+                width: width,
+                height: height,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    // Pile of volumes behind the cover, tucked away when focused.
+                    if (pileColor != null)
+                      for (var p = pileCount; p >= 1; p--)
+                        Positioned.fill(
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 220),
+                            opacity: focused ? 0 : 1,
+                            child: Transform.translate(
+                              offset: Offset(0, -7.0 * p),
+                              child: Transform.scale(
+                                scale: 1 - .07 * p,
+                                alignment: Alignment.topCenter,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Color.lerp(
+                                        pileColor, Colors.black, .12 * (p - 1)),
+                                    borderRadius: BorderRadius.circular(radius),
+                                    border: Border(
+                                        top: BorderSide(
+                                            color: Colors.white
+                                                .withValues(alpha: .3))),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  Positioned.fill(
-                    child: AnimatedBuilder(
-                      animation: pulse,
-                      builder: (context, child) {
-                        final glow = focused ? 8 + 3 * pulse.value : 0.0;
-                        return DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(radius),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withValues(alpha: focused ? .32 : .2),
-                                blurRadius: focused ? 30 : 18,
-                                offset: Offset(0, focused ? 16 : 8),
-                              ),
-                              if (focused) ...[
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: pulse,
+                        builder: (context, child) {
+                          final glow = focused ? 8 + 3 * pulse.value : 0.0;
+                          return DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(radius),
+                              boxShadow: [
                                 BoxShadow(
-                                    color: cs.primary.withValues(
-                                        alpha: .95 - .35 * pulse.value),
-                                    spreadRadius: glow),
-                                const BoxShadow(
-                                    color: Colors.white, spreadRadius: 4),
+                                  color: Colors.black
+                                      .withValues(alpha: focused ? .32 : .2),
+                                  blurRadius: focused ? 30 : 18,
+                                  offset: Offset(0, focused ? 16 : 8),
+                                ),
+                                if (focused) ...[
+                                  BoxShadow(
+                                      color: cs.primary.withValues(
+                                          alpha: .95 - .35 * pulse.value),
+                                      spreadRadius: glow),
+                                  const BoxShadow(
+                                      color: Colors.white, spreadRadius: 4),
+                                ],
                               ],
-                            ],
-                          ),
-                          child: child,
-                        );
-                      },
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(radius),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            cover,
-                            if (badge != null)
-                              Positioned(left: 8, top: 8, child: badge!),
-                            if (bottomLeft != null)
-                              Positioned(
-                                  left: 10, bottom: 14, child: bottomLeft!),
-                            if (progress > 0)
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                bottom: 0,
-                                height: 6,
-                                child: ColoredBox(
-                                  color: Colors.black38,
-                                  child: FractionallySizedBox(
-                                    alignment: Alignment.centerLeft,
-                                    widthFactor: progress.clamp(0.0, 1.0),
-                                    child: const ColoredBox(
-                                        color: Color(0xFF22D3EE)),
+                            ),
+                            child: child,
+                          );
+                        },
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(radius),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              cover,
+                              if (badge != null)
+                                Positioned(left: 8, top: 8, child: badge!),
+                              if (bottomLeft != null)
+                                Positioned(
+                                    left: 10, bottom: 14, child: bottomLeft!),
+                              if (progress > 0)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  height: 6,
+                                  child: ColoredBox(
+                                    color: Colors.black38,
+                                    child: FractionallySizedBox(
+                                      alignment: Alignment.centerLeft,
+                                      widthFactor: progress.clamp(0.0, 1.0),
+                                      child: const ColoredBox(
+                                          color: Color(0xFF22D3EE)),
+                                    ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
