@@ -1,0 +1,73 @@
+name: Promote to Google Play Production
+
+# Passe en production la version déjà publiée sur la piste interne,
+# sans recompiler (même versionCode, mêmes notes de version).
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode à promouvoir (vide = celui de la piste interne)"
+        required: false
+        default: ""
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare Google Play Credentials
+        env:
+          PLAY_STORE_JSON: ${{ secrets.PLAY_STORE_JSON_KEY || secrets.PLAY_STORE_JSON || secrets.PLAY_STORE_KEY || secrets.SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PLAY_STORE_JSON" ] || [ "${#PLAY_STORE_JSON}" -lt 50 ]; then
+            echo "::error::Secret Google Play introuvable"
+            exit 1
+          fi
+          printf '%s' "$PLAY_STORE_JSON" > service_account.json
+
+      - name: Promote internal release to production
+        env:
+          WANTED_CODE: ${{ github.event.inputs.version_code }}
+        run: |
+          pip install -q google-api-python-client google-auth
+          python3 - <<'PY'
+          import os, sys
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          pkg = "com.sauvank.comicstream"
+          creds = service_account.Credentials.from_service_account_file(
+              "service_account.json",
+              scopes=["https://www.googleapis.com/auth/androidpublisher"])
+          edits = build("androidpublisher", "v3", credentials=creds,
+                        cache_discovery=False).edits()
+          edit_id = edits.insert(packageName=pkg, body={}).execute()["id"]
+
+          internal = edits.tracks().get(packageName=pkg, editId=edit_id,
+                                        track="internal").execute()
+          releases = [r for r in internal.get("releases", [])
+                      if r.get("status") == "completed"]
+          if not releases:
+              sys.exit("Aucune version terminée sur la piste interne")
+          wanted = os.environ.get("WANTED_CODE", "").strip()
+          rel = releases[0]
+          if wanted:
+              rel = next((r for r in releases if wanted in r.get("versionCodes", [])), None)
+              if rel is None:
+                  sys.exit(f"versionCode {wanted} absent de la piste interne")
+          print("Promotion de", rel.get("name"), rel["versionCodes"])
+
+          body = {"track": "production", "releases": [{
+              "name": rel.get("name"),
+              "versionCodes": rel["versionCodes"],
+              "releaseNotes": rel.get("releaseNotes", []),
+              "status": "completed",
+          }]}
+          edits.tracks().update(packageName=pkg, editId=edit_id,
+                                track="production", body=body).execute()
+          edits.commit(packageName=pkg, editId=edit_id).execute()
+          print("Production mise à jour")
+          PY
+
+      - name: Cleanup Credentials
+        if: always()
+        run: rm -f service_account.json
