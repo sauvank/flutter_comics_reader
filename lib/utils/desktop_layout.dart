@@ -73,7 +73,12 @@ Future<T?> showAdaptiveSheet<T>({
     context: context,
     barrierDismissible: isDismissible,
     builder: (dialogContext) => Dialog(
-      backgroundColor: backgroundColor ?? Colors.transparent,
+      // Same default as a bottom sheet: an opaque surface, otherwise sheets
+      // that rely on it show the page through (e.g. backup chooser).
+      backgroundColor: backgroundColor ??
+          Theme.of(context).bottomSheetTheme.modalBackgroundColor ??
+          Theme.of(context).bottomSheetTheme.backgroundColor ??
+          Theme.of(context).colorScheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
