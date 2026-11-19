@@ -2074,4 +2074,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get keySpace => 'Leertaste';
+
+  @override
+  String get downloadUpdate => 'Update herunterladen';
 }

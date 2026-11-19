@@ -3660,6 +3660,12 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Espace'**
   String get keySpace;
+
+  /// No description provided for @downloadUpdate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Télécharger la mise à jour'**
+  String get downloadUpdate;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/material.dart';
 import '../models/update_info.dart';
 import '../services/update_service.dart';
@@ -110,35 +112,55 @@ class UpdateDialog extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                     child: Text(l10n.later),
                   ),
-                  OutlinedButton.icon(
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: Text(l10n.downloadApk),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  // PC: one button for the installer; APK and Play Store
+                  // only make sense on Android.
+                  if (!Platform.isAndroid)
+                    FilledButton.icon(
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(l10n.downloadUpdate),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        final url = info.directDownloadUrl ?? info.releaseUrl;
+                        UpdateService().launchUpdateUrl(url);
+                        Navigator.of(context).pop();
+                      },
                     ),
-                    onPressed: () {
-                      final url = info.directDownloadUrl ?? info.releaseUrl;
-                      UpdateService().launchUpdateUrl(url);
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                  FilledButton.icon(
-                    icon: const Icon(Icons.shop_two_rounded, size: 18),
-                    label: const Text('Google Play'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                  if (Platform.isAndroid)
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.download_rounded, size: 18),
+                      label: Text(l10n.downloadApk),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        final url = info.directDownloadUrl ?? info.releaseUrl;
+                        UpdateService().launchUpdateUrl(url);
+                        Navigator.of(context).pop();
+                      },
                     ),
-                    onPressed: () {
-                      UpdateService().launchPlayStore();
-                      Navigator.of(context).pop();
-                    },
-                  ),
+                  if (Platform.isAndroid)
+                    FilledButton.icon(
+                      icon: const Icon(Icons.shop_two_rounded, size: 18),
+                      label: const Text('Google Play'),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        UpdateService().launchPlayStore();
+                        Navigator.of(context).pop();
+                      },
+                    ),
                 ],
               ),
             ],

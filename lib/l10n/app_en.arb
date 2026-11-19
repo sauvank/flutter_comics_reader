@@ -592,5 +592,6 @@
   "pause": "Pause",
   "pausedStatus": "Paused",
   "consoleHintPause": "Pause / resume",
-  "keySpace": "Space"
+  "keySpace": "Space",
+  "downloadUpdate": "Download the update"
 }

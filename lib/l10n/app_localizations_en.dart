@@ -2074,4 +2074,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keySpace => 'Space';
+
+  @override
+  String get downloadUpdate => 'Download the update';
 }
