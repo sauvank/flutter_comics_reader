@@ -571,6 +571,8 @@
   "seeVolumes": "Ver los tomos",
   "openSeriesSheet": "Ficha de la serie",
   "consoleEmpty": "Ninguna serie en este filtro",
+  "shelfAll": "Todas las estanterías",
+  "shelfOther": "Otros",
   "consoleHintMove": "Moverse",
   "consoleHintOpen": "Abrir",
   "consoleHintBack": "Volver",

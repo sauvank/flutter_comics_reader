@@ -9,11 +9,12 @@ import '../models/series_item.dart';
 import '../providers/library_provider.dart';
 import 'console_kit.dart';
 
-enum _ConsoleRow { tabs, series, actions, volumes }
+enum _ConsoleRow { tabs, shelves, series, actions, volumes }
 
 /// "Console" library view for large windows: a row of series covers, the
 /// focused series sheet and a row of its volumes, driven by mouse or keyboard
-/// (arrows, Enter, Escape, Q/E for the filter tabs).
+/// (arrows, Enter, Escape, Q/E for the filter tabs), with a row of shelves
+/// (BD, Manga, Comics US…) when the library spans several server folders.
 class ConsoleLibraryView extends StatefulWidget {
   const ConsoleLibraryView({
     super.key,
@@ -65,19 +66,62 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
   static const _tilt = .42;
   double _sw = 196, _sh = 274, _vw = 118, _vh = 165;
 
-  SeriesItem? get _current => widget.series.isEmpty ? null : widget.series[_si];
+  /// Selected shelf: null = all, '' = series without a shelf.
+  String? _shelf;
+  List<SeriesItem>? _cacheFrom;
+  String? _cacheShelf;
+  List<SeriesItem> _cache = const [];
+  List<String> _shelvesCache = const [];
+
+  /// Shelves found in the library; '' (others) last. Empty when there is
+  /// nothing to choose between.
+  List<String> get _shelves {
+    _refresh();
+    return _shelvesCache;
+  }
+
+  /// Series of the selected shelf.
+  List<SeriesItem> get _series {
+    _refresh();
+    return _cache;
+  }
+
+  void _refresh() {
+    if (identical(_cacheFrom, widget.series) && _cacheShelf == _shelf) return;
+    if (!identical(_cacheFrom, widget.series)) {
+      final named = <String>{};
+      var others = false;
+      for (final s in widget.series) {
+        final c = s.category;
+        c == null ? others = true : named.add(c);
+      }
+      final list = named.toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+      if (others && list.isNotEmpty) list.add('');
+      _shelvesCache = list.length >= 2 ? list : const [];
+      if (_shelf != null && !_shelvesCache.contains(_shelf)) _shelf = null;
+    }
+    _cacheFrom = widget.series;
+    _cacheShelf = _shelf;
+    _cache = _shelf == null
+        ? widget.series
+        : widget.series.where((s) => (s.category ?? '') == _shelf).toList();
+  }
+
+  SeriesItem? get _current => _series.isEmpty ? null : _series[_si];
 
   @override
   void didUpdateWidget(covariant ConsoleLibraryView old) {
     super.didUpdateWidget(old);
-    if (widget.series.isEmpty) {
+    final list = _series;
+    if (list.isEmpty) {
       _si = 0;
       return;
     }
     // Keep the same series focused when the list is rebuilt.
-    final keep = widget.series.indexWhere((s) => s.name == _shownSeries);
-    _si = keep >= 0 ? keep : math.min(_si, widget.series.length - 1);
-    final cur = widget.series[_si];
+    final keep = list.indexWhere((s) => s.name == _shownSeries);
+    _si = keep >= 0 ? keep : math.min(_si, list.length - 1);
+    final cur = list[_si];
     _vi = math.min(_vi, math.max(0, cur.books.length - 1));
   }
 
@@ -130,6 +174,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
     final s = _current;
     switch (_row) {
       case _ConsoleRow.tabs:
+      case _ConsoleRow.shelves:
         setState(() => _row = _ConsoleRow.series);
       case _ConsoleRow.series:
         if (s != null) {
@@ -162,26 +207,53 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
     if (_seriesScroll.hasClients) _seriesScroll.jumpTo(0);
   }
 
+  void _cycleShelf(int d) {
+    final options = <String?>[null, ..._shelves];
+    if (options.length < 2) return;
+    final i = options.indexOf(_shelf);
+    _selectShelf(options[(i + d + options.length) % options.length]);
+  }
+
+  void _selectShelf(String? shelf) {
+    setState(() {
+      _shelf = shelf;
+      _si = 0;
+      _vi = 0;
+    });
+    if (_seriesScroll.hasClients) _seriesScroll.jumpTo(0);
+    if (_volumeScroll.hasClients) _volumeScroll.jumpTo(0);
+  }
+
   void _moveFocus(int dx, int dy) {
     final s = _current;
     if (dy == 0 && _row == _ConsoleRow.tabs) {
       _cycleFilter(dx);
       return;
     }
+    if (dy == 0 && _row == _ConsoleRow.shelves) {
+      _cycleShelf(dx);
+      return;
+    }
     setState(() {
       if (dy != 0) {
-        final order = _ConsoleRow.values;
+        final order = [
+          for (final r in _ConsoleRow.values)
+            if (r != _ConsoleRow.shelves || _shelves.isNotEmpty) r
+        ];
         final i = (order.indexOf(_row) + dy).clamp(0, order.length - 1).toInt();
-        if (s != null || order[i] == _ConsoleRow.tabs) _row = order[i];
+        final r = order[i];
+        if (s != null || r == _ConsoleRow.tabs || r == _ConsoleRow.shelves) {
+          _row = r;
+        }
         return;
       }
       switch (_row) {
         case _ConsoleRow.tabs:
+        case _ConsoleRow.shelves:
           break;
         case _ConsoleRow.series:
-          final n = (_si + dx)
-              .clamp(0, math.max(0, widget.series.length - 1))
-              .toInt();
+          final n =
+              (_si + dx).clamp(0, math.max(0, _series.length - 1)).toInt();
           if (n != _si) {
             _si = n;
             _vi = 0;
@@ -268,7 +340,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
       final h = box.maxHeight;
       // Height left for the two rows once tabs, hints, the series sheet and
       // the row paddings are taken; volumes are 60 % of the series height.
-      final rest = h - 330;
+      final rest = h - 330 - (_shelves.isEmpty ? 0 : 50);
       _sh = ((rest - 104) / 1.836).clamp(140.0, 274.0);
       _sw = _sh * .715;
       _vh = (_sh * .6).clamp(90.0, 165.0);
@@ -297,6 +369,7 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
             child: Column(
               children: [
                 _buildTabs(theme),
+                if (_shelves.isNotEmpty) _buildShelves(theme),
                 Expanded(
                   child: s == null
                       ? Center(
@@ -329,6 +402,38 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
         ),
       );
     });
+  }
+
+  Widget _buildShelves(ThemeData theme) {
+    final cs = theme.colorScheme;
+    final options = <String?>[null, ..._shelves];
+    String label(String? o) =>
+        o == null ? l10n.shelfAll : (o.isEmpty ? l10n.shelfOther : o);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              Icon(Icons.shelves, size: 20, color: cs.onSurfaceVariant),
+              const SizedBox(width: 10),
+              for (final o in options)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: ConsolePill(
+                    label: label(o),
+                    selected: _shelf == o,
+                    focused: _row == _ConsoleRow.shelves && _shelf == o,
+                    onTap: () => _selectShelf(o),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildTabs(ThemeData theme) {
@@ -392,9 +497,9 @@ class _ConsoleLibraryViewState extends State<ConsoleLibraryView>
           padding: EdgeInsets.symmetric(
               horizontal: math.max(28.0, (_viewW - _sw) / 2 - 11),
               vertical: padV),
-          itemCount: widget.series.length,
+          itemCount: _series.length,
           itemBuilder: (context, i) {
-            final s = widget.series[i];
+            final s = _series[i];
             final focused = _row == _ConsoleRow.series && i == _si;
             return MouseRegion(
               cursor: SystemMouseCursors.click,

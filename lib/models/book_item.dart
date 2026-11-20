@@ -43,6 +43,10 @@ class BookItem {
   /// guessed from the folder or title when not null.
   final String? customSeries;
 
+  /// Original path of a file imported from this device (the library keeps a
+  /// copy); its folders give the series and the shelf.
+  final String? sourcePath;
+
   BookItem({
     required this.id,
     required this.title,
@@ -64,6 +68,7 @@ class BookItem {
     List<int>? bookmarks,
     this.isFavorite = false,
     this.customSeries,
+    this.sourcePath,
   }) : bookmarks = bookmarks ?? [];
 
   static BookFormat formatFromExtension(String pathOrName) {
@@ -115,6 +120,7 @@ class BookItem {
     bool? isFavorite,
     String? customSeries,
     bool clearCustomSeries = false,
+    String? sourcePath,
   }) {
     return BookItem(
       id: id ?? this.id,
@@ -138,6 +144,7 @@ class BookItem {
       isFavorite: isFavorite ?? this.isFavorite,
       customSeries:
           clearCustomSeries ? null : (customSeries ?? this.customSeries),
+      sourcePath: sourcePath ?? this.sourcePath,
     );
   }
 
@@ -163,6 +170,7 @@ class BookItem {
       'bookmarks': jsonEncode(bookmarks),
       'isFavorite': isFavorite ? 1 : 0,
       if (customSeries != null) 'customSeries': customSeries,
+      if (sourcePath != null) 'sourcePath': sourcePath,
     };
   }
 
@@ -213,6 +221,7 @@ class BookItem {
           : [],
       isFavorite: (map['isFavorite'] == 1 || map['isFavorite'] == true),
       customSeries: map['customSeries'] as String?,
+      sourcePath: map['sourcePath'] as String?,
     );
   }
 

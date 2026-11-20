@@ -571,6 +571,8 @@
   "seeVolumes": "See volumes",
   "openSeriesSheet": "Series page",
   "consoleEmpty": "No series in this filter",
+  "shelfAll": "All shelves",
+  "shelfOther": "Other",
   "consoleHintMove": "Move",
   "consoleHintOpen": "Open",
   "consoleHintBack": "Back",

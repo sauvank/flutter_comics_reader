@@ -94,8 +94,18 @@ class LocalBookImportService {
           await BookFingerprintService.sha256ForFile(sourcePath);
       // Do not copy the same picked document twice into the library. A content
       // hash avoids treating two different books with the same filename as one.
-      if (contentHash != null &&
-          known.any((book) => book.contentHash == contentHash)) {
+      final existing = contentHash == null
+          ? -1
+          : known.indexWhere((book) => book.contentHash == contentHash);
+      if (existing >= 0) {
+        // Books imported before the source path was kept get their folder
+        // back on a new scan, so they join their series.
+        final old = known[existing];
+        if (old.sourcePath == null && old.serverRelativePath == null) {
+          final updated = old.copyWith(sourcePath: sourcePath);
+          await _database.updateBook(updated, notifySync: false);
+          known[existing] = updated;
+        }
         skipped++;
         continue;
       }
@@ -121,6 +131,7 @@ class LocalBookImportService {
           addedDate: DateTime.now(),
           fileSize: size,
           contentHash: contentHash,
+          sourcePath: sourcePath,
         );
         await _database.addBook(book);
         known.add(book);

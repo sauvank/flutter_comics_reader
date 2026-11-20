@@ -112,5 +112,59 @@ void main() {
       expect(spidey.overallProgress, 0.75);
       expect(spidey.nextToReadBook?.id, '2');
     });
+
+    BookItem book(String id, String title, [String? path]) => BookItem(
+          id: id,
+          title: title,
+          originalFilename: '$title.cbz',
+          localPath: '/local/$id.cbz',
+          serverRelativePath: path,
+          format: BookFormat.cbz,
+          addedDate: DateTime.now(),
+        );
+
+    test('Groups trailing issue numbers into one series', () {
+      final series = SeriesItem.groupFromBooks([
+        book('1', 'Injustice 2 007'),
+        book('2', 'Injustice 2 008'),
+        book('3', 'Injustice 2 014',
+            '/BOOKS/Comics US/Injustice 2 014/Injustice 2 014.cbz'),
+        book('4', 'Batman 1989'),
+      ]);
+      expect(series.map((s) => s.name), ['Batman 1989', 'Injustice 2']);
+      expect(series[1].totalBooks, 3);
+    });
+
+    test('Groups local imports by their original folder', () {
+      BookItem local(String id, String path) => BookItem(
+            id: id,
+            title: path.split(RegExp(r'[/\\]')).last,
+            originalFilename: 'x.epub',
+            localPath: '/app/$id.epub',
+            sourcePath: path,
+            format: BookFormat.epub,
+            addedDate: DateTime.now(),
+          );
+      final series = SeriesItem.groupFromBooks([
+        local(
+            '1', r'D:\BOOKS\Livres\Frank Herbert\Dune\1 Dune - Frank Herbert'),
+        local('2', r'D:\BOOKS\Livres\Frank Herbert\Dune\2 Messie de Dune'),
+        local('3', r'C:\Users\me\Downloads\Coraline - Neil Gaiman'),
+      ]);
+      expect(series.map((s) => s.name), ['Coraline - Neil Gaiman', 'Dune']);
+      expect(series[1].category, 'Livres');
+    });
+
+    test('Finds the shelf from the server path', () {
+      expect(
+          SeriesItem.categoryOf(
+              book('1', 'XIII T01', '/TeraBox2/BOOKS/BD/XIII/XIII T01.cbz')),
+          'BD');
+      expect(SeriesItem.categoryOf(book('2', 'P', '/Manga/Planetes/P 01.cbz')),
+          'Manga');
+      expect(
+          SeriesItem.categoryOf(book('3', 'X', '/BOOKS/Divers/X.cbz')), isNull);
+      expect(SeriesItem.categoryOf(book('4', 'X')), isNull);
+    });
   });
 }

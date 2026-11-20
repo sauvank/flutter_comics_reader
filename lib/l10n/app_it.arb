@@ -571,6 +571,8 @@
   "seeVolumes": "Vedi i volumi",
   "openSeriesSheet": "Scheda della serie",
   "consoleEmpty": "Nessuna serie in questo filtro",
+  "shelfAll": "Tutti gli scaffali",
+  "shelfOther": "Altri",
   "consoleHintMove": "Muoviti",
   "consoleHintOpen": "Apri",
   "consoleHintBack": "Indietro",

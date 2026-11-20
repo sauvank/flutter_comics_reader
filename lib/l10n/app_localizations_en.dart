@@ -2000,6 +2000,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consoleEmpty => 'No series in this filter';
 
   @override
+  String get shelfAll => 'All shelves';
+
+  @override
+  String get shelfOther => 'Other';
+
+  @override
   String get consoleHintMove => 'Move';
 
   @override

@@ -3529,6 +3529,18 @@ abstract class AppLocalizations {
   /// **'Aucune série dans ce filtre'**
   String get consoleEmpty;
 
+  /// No description provided for @shelfAll.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tous les rayons'**
+  String get shelfAll;
+
+  /// No description provided for @shelfOther.
+  ///
+  /// In fr, this message translates to:
+  /// **'Autres'**
+  String get shelfOther;
+
   /// No description provided for @consoleHintMove.
   ///
   /// In fr, this message translates to:
