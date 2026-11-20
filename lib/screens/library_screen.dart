@@ -42,6 +42,10 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
+
+  /// The desktop header moves when the console view gives way to search
+  /// results; this key moves it as is so the search field keeps the focus.
+  final GlobalKey _desktopHeaderKey = GlobalKey();
   LibraryViewMode _viewMode =
       Platform.isWindows || Platform.isLinux || Platform.isMacOS
           ? LibraryViewMode.console
@@ -505,8 +509,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: _buildDesktopHeader(
-                          library, allSeries, books, theme, sync),
+                      child: KeyedSubtree(
+                        key: _desktopHeaderKey,
+                        child: _buildDesktopHeader(
+                            library, allSeries, books, theme, sync),
+                      ),
                     ),
                     Expanded(
                       child: ConsoleLibraryView(
@@ -536,8 +543,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         child: Column(
                           children: [
                             if (wide)
-                              _buildDesktopHeader(
-                                  library, allSeries, books, theme, sync),
+                              KeyedSubtree(
+                                key: _desktopHeaderKey,
+                                child: _buildDesktopHeader(
+                                    library, allSeries, books, theme, sync),
+                              ),
                             if (library.books.isNotEmpty && !wide)
                               Padding(
                                 padding:
