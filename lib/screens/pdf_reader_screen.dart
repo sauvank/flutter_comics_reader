@@ -186,6 +186,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
           const SingleActivator(LogicalKeyboardKey.pageUp): _prevPage,
           const SingleActivator(LogicalKeyboardKey.backspace): _prevPage,
           const SingleActivator(LogicalKeyboardKey.escape): () => Navigator.of(context).pop(),
+          const SingleActivator(LogicalKeyboardKey.keyM): () =>
+              setState(() => _showControls = !_showControls),
+          const SingleActivator(LogicalKeyboardKey.enter): () =>
+              setState(() => _showControls = !_showControls),
         },
         child: Focus(
           autofocus: true,
@@ -200,7 +204,10 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
 
             return Scaffold(
               backgroundColor: settings.actualBackgroundColor,
-              body: Stack(
+              body: ReaderMouseReveal(
+                visible: _showControls,
+                onChanged: (v) => setState(() => _showControls = v),
+                child: Stack(
                 children: [
                   // PDF Viewer with smooth pinch-to-zoom & Webtoon scroll
                   Center(
@@ -334,6 +341,7 @@ class _PdfReaderScreenState extends State<PdfReaderScreen> {
                   ),
                 ),
             ],
+          ),
           ),
         );
       },

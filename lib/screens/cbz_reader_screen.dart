@@ -837,13 +837,18 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
           },
           const SingleActivator(LogicalKeyboardKey.escape): () =>
               Navigator.of(context).pop(),
+          const SingleActivator(LogicalKeyboardKey.keyM): _toggleControls,
+          const SingleActivator(LogicalKeyboardKey.enter): _toggleControls,
         },
         child: Focus(
           autofocus: true,
           focusNode: _focusNode,
           child: Scaffold(
             backgroundColor: settings.actualBackgroundColor,
-            body: Stack(
+            body: ReaderMouseReveal(
+              visible: _showControls,
+              onChanged: (v) => setState(() => _showControls = v),
+              child: Stack(
               children: [
                 // Main Reader Pages
                 settings.readingMode == ReadingMode.vertical
@@ -922,11 +927,14 @@ class _CbzReaderScreenState extends State<CbzReaderScreen>
                   ),
               ],
             ),
+            ),
           ),
         ),
       ),
     );
   }
+
+  void _toggleControls() => setState(() => _showControls = !_showControls);
 
   Widget _buildHorizontalReader(ReaderSettingsService settings) {
     final isRTL = settings.readingMode == ReadingMode.rightToLeft;

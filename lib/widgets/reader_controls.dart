@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../services/reader_settings_service.dart';
 import '../l10n/l10n.dart';
@@ -466,6 +469,82 @@ class ReaderSettingsSheet extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// Mouse helper for the readers on PC: moving the pointer to the top or the
+/// bottom edge shows the reader bars, and leaving that edge hides them again
+/// (only when they were opened this way, not by a click or a key).
+class ReaderMouseReveal extends StatefulWidget {
+  const ReaderMouseReveal({
+    super.key,
+    required this.visible,
+    required this.onChanged,
+    required this.child,
+  });
+
+  final bool visible;
+  final ValueChanged<bool> onChanged;
+  final Widget child;
+
+  @override
+  State<ReaderMouseReveal> createState() => _ReaderMouseRevealState();
+}
+
+class _ReaderMouseRevealState extends State<ReaderMouseReveal> {
+  bool _byHover = false;
+  Timer? _hide;
+
+  @override
+  void didUpdateWidget(covariant ReaderMouseReveal old) {
+    super.didUpdateWidget(old);
+    if (!widget.visible) {
+      _byHover = false;
+      _hide?.cancel();
+    }
+  }
+
+  @override
+  void dispose() {
+    _hide?.cancel();
+    super.dispose();
+  }
+
+  void _onHover(PointerHoverEvent e) {
+    if (e.kind != PointerDeviceKind.mouse) return;
+    final h = context.size?.height ?? 0;
+    if (h == 0) return;
+    // Bars are about 70 px high at the top and 110 px at the bottom.
+    final y = e.localPosition.dy;
+    final nearEdge = y < 90 || y > h - 130;
+    if (nearEdge) {
+      _hide?.cancel();
+      if (!widget.visible) {
+        _byHover = true;
+        widget.onChanged(true);
+      }
+    } else if (_byHover && widget.visible && !(_hide?.isActive ?? false)) {
+      _hide = Timer(const Duration(milliseconds: 900), _close);
+    }
+  }
+
+  void _close() {
+    if (!mounted || !_byHover || !widget.visible) return;
+    _byHover = false;
+    widget.onChanged(false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      opaque: false,
+      onHover: _onHover,
+      onExit: (_) {
+        if (_byHover) _close();
+      },
+      child: widget.child,
     );
   }
 }

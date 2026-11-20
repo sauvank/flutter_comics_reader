@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../utils/desktop_layout.dart';
 import 'package:flutter/services.dart';
+import '../widgets/reader_controls.dart';
 import 'package:flutter_widget_from_html_core/flutter_widget_from_html_core.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -344,6 +345,9 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
               _pageBackward();
             } else if (event.logicalKey == LogicalKeyboardKey.escape) {
               Navigator.of(context).pop();
+            } else if (event.logicalKey == LogicalKeyboardKey.keyM ||
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              setState(() => _showControls = !_showControls);
             }
           }
         },
@@ -409,7 +413,10 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                         ),
                       ),
                     )
-                  : Stack(
+                  : ReaderMouseReveal(
+                    visible: _showControls,
+                    onChanged: (v) => setState(() => _showControls = v),
+                    child: Stack(
                       children: [
                         // Reader Content with 3-zone Tap Navigation
                         GestureDetector(
@@ -727,6 +734,7 @@ class _EpubReaderScreenState extends State<EpubReaderScreen> {
                           ),
                       ],
                     ),
+                  ),
         ),
       ),
     );
