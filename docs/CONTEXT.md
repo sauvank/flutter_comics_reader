@@ -42,7 +42,7 @@ d’un lecteur déjà ouvert, ComicStream compare sa position locale avec la
 dernière position différente d’un autre appareil. Le dialogue affiche le nom
 de l’appareil, les pages ou chapitres et les dates, puis propose de continuer
 depuis cet appareil, de conserver la position locale ou d’ignorer la révision.
-Aucun écrasement n’est effectué sans ce choix. Une révision ignorée n’est plus
+Aucun écrasement n’est effectué sans ce choix. Le lecteur s’ouvre tout de suite à la position locale : la comparaison (`SyncedReaderGate`) tourne en arrière-plan et ne recharge le lecteur que si la position distante est choisie ; l’empreinte SHA-256 est calculée dans un isolat. Une révision ignorée n’est plus
 proposée tant que l’appareil distant n’a pas avancé. Ce choix ne remplace ni les
 favoris ni les marque-pages.
 Les conflits concernant les serveurs ou les réglages restent résolus depuis

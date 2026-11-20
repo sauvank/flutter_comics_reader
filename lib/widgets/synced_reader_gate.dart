@@ -9,8 +9,10 @@ import '../l10n/l10n.dart';
 
 typedef SyncedReaderBuilder = Widget Function(BookItem book);
 
-/// Resolves a book-scoped device sync before displaying a reader and checks
-/// again when an already-open reader returns from the background.
+/// Opens the reader at once and checks in the background whether another
+/// device is further in the book (again when the reader returns from the
+/// background). Waiting for the cloud before showing the book made large
+/// files slow to open.
 class SyncedReaderGate extends StatefulWidget {
   const SyncedReaderGate({
     super.key,
@@ -30,7 +32,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
   final SyncService _sync = SyncService();
   final DatabaseService _database = DatabaseService();
   late BookItem _book;
-  bool _ready = false;
+  bool _ready = true;
   bool _checking = false;
   int _readerGeneration = 0;
 
@@ -81,6 +83,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
               .firstOrNull ??
           _book;
       BookSyncProposal? proposal;
+      var reload = false;
       if (FirebaseBootstrap.isAvailable) {
         proposal = await _sync.bookProgressProposal(latest);
       }
@@ -89,6 +92,7 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
       if (proposal != null) {
         final choice = await _showProposal(proposal);
         if (!mounted) return;
+        if (choice == BookProgressChoice.useRemote) reload = true;
         if (choice == BookProgressChoice.useRemote && _ready) {
           // Let the active reader persist its final local position before it
           // is replaced. The remote choice is applied only afterwards.
@@ -99,6 +103,9 @@ class _SyncedReaderGateState extends State<SyncedReaderGate>
         await _sync.resolveBookProgress(proposal, choice);
       }
 
+      // The open reader already shows the local position: rebuild it only
+      // when the position of another device was chosen.
+      if (!reload) return;
       final refreshed = (await _database.getBooks())
               .where((book) => book.id == _book.id)
               .firstOrNull ??

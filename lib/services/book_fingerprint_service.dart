@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:crypto/crypto.dart';
 
@@ -9,7 +10,8 @@ class BookFingerprintService {
   static Future<String?> sha256ForFile(String path) async {
     final file = File(path);
     if (!await file.exists()) return null;
-    final digest = await sha256.bind(file.openRead()).first;
-    return digest.toString();
+    // Hashing a large PDF takes a while: keep it off the UI thread.
+    return Isolate.run(
+        () async => (await sha256.bind(File(path).openRead()).first).toString());
   }
 }
